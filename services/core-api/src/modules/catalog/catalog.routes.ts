@@ -149,8 +149,11 @@ catalogRoutes.post('/prompts/:slug/copy', async (c) => {
 
 // 5. Zero-LLM Atomic Block Forging
 catalogRoutes.post('/forge', async (c) => {
-  const body = await c.req.json();
-  const queryText = body.query || '';
+  const body = await c.req.json().catch(() => ({}));
+  const queryText = (body.query || '').trim();
+  if (!queryText) {
+    return c.json({ error: 'BAD_REQUEST', message: 'متن ایده یا دستور پرامپت الزامی است.' }, 400);
+  }
   const forcedModality = body.modality;
   const profile: Partial<SavedContextProfile> = body.profile || {};
 

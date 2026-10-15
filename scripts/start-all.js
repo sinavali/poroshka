@@ -48,11 +48,16 @@ function startProcess(name, command, args, cwd, color, env = {}) {
   return proc;
 }
 
-// 1. Start Core API Backend (Port 3000)
+// 1. Unified Port Allocation (Single-Project Deployment)
+const PUBLIC_PORT = process.env.PORT || '3000';
+const INTERNAL_API_PORT = process.env.INTERNAL_API_PORT || '4000';
+const INTERNAL_API_URL = `http://127.0.0.1:${INTERNAL_API_PORT}`;
+
+// 1. Start Core API Backend on internal port
 const coreApiDistPath = path.join(ROOT_DIR, 'dist/services/core-api/main.js');
 const useCoreApiDist = !isDev && fs.existsSync(coreApiDistPath);
 
-console.log('\x1b[34m[startup]\x1b[0m Launching Core API on http://localhost:3000 ...');
+console.log('\x1b[34m[startup]\x1b[0m Launching Core API on internal port ' + INTERNAL_API_PORT + ' ...');
 startProcess(
   'core-api',
   'node',
@@ -61,29 +66,30 @@ startProcess(
     : ['--experimental-strip-types', 'src/bootstrap/main.ts'],
   useCoreApiDist ? ROOT_DIR : path.join(ROOT_DIR, 'services/core-api'),
   '\x1b[34m',
-  { PORT: '3000', HOST: '0.0.0.0', NODE_ENV: isDev ? 'development' : 'production' }
+  { PORT: INTERNAL_API_PORT, HOST: '0.0.0.0', NODE_ENV: isDev ? 'development' : 'production' }
 );
 
-// 2. Start Web Frontend (Port 3001)
+// 2. Start Web Frontend on public port with internal API proxying
 const webCommand = isDev ? 'npx' : 'npx';
-const webArgs = isDev ? ['next', 'dev', '-p', '3001'] : ['next', 'start', '-p', '3001'];
+const webArgs = isDev ? ['next', 'dev', '-p', PUBLIC_PORT] : ['next', 'start', '-p', PUBLIC_PORT];
 
-console.log('\x1b[32m[startup]\x1b[0m Launching Web App on http://localhost:3001 ...');
+console.log('\x1b[32m[startup]\x1b[0m Launching Web Frontend on public port ' + PUBLIC_PORT + ' (serving both UI and /api/*) ...');
 startProcess(
   'web-app',
   webCommand,
   webArgs,
   path.join(ROOT_DIR, 'apps/web'),
   '\x1b[32m',
-  { PORT: '3001', NEXT_PUBLIC_API_URL: 'http://localhost:3000' }
+  { PORT: PUBLIC_PORT, INTERNAL_API_URL, NEXT_PUBLIC_API_URL: '' }
 );
 
 console.log('\n\x1b[35m%s\x1b[0m', '------------------------------------------------------------------------');
-console.log('\x1b[35m%s\x1b[0m', '📍 Available Endpoints:');
-console.log('\x1b[35m%s\x1b[0m', '  🌐 Web Frontend : http://localhost:3001');
-console.log('\x1b[35m%s\x1b[0m', '  🔌 Core API     : http://localhost:3000');
-console.log('\x1b[35m%s\x1b[0m', '  🩺 Health Probe : http://localhost:3000/healthz');
-console.log('\x1b[35m%s\x1b[0m', '  📊 Admin Portal : http://localhost:3001/admin');
+console.log('\x1b[35m%s\x1b[0m', '📍 Unified Single-Project Endpoints:');
+console.log('\x1b[35m%s\x1b[0m', `  🌐 Web Application : http://localhost:${PUBLIC_PORT}`);
+console.log('\x1b[35m%s\x1b[0m', `  🔌 Core REST API   : http://localhost:${PUBLIC_PORT}/api/v1/catalog/prompts`);
+console.log('\x1b[35m%s\x1b[0m', `  🩺 Health Probe    : http://localhost:${PUBLIC_PORT}/healthz`);
+console.log('\x1b[35m%s\x1b[0m', `  📊 Admin Portal    : http://localhost:${PUBLIC_PORT}/admin`);
+console.log('\x1b[35m%s\x1b[0m', `  🔒 Direct API Port : http://localhost:${INTERNAL_API_PORT}`);
 console.log('\x1b[35m%s\x1b[0m', '------------------------------------------------------------------------');
 console.log('\x1b[33m%s\x1b[0m', 'Press Ctrl+C to terminate all processes cleanly.\n');
 

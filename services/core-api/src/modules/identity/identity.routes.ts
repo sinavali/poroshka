@@ -26,7 +26,7 @@ function normalizePhone(phone: string): string {
 
 // 1. Send OTP (SMS / Messenger)
 identityRoutes.post('/send-otp', async (c) => {
-  const body = await c.req.json();
+  const body = await c.req.json().catch(() => ({}));
   const parsed = SendOtpRequestSchema.safeParse(body);
   if (!parsed.success) {
     return c.json({ error: 'INVALID_INPUT', details: parsed.error.format() }, 400);
@@ -98,7 +98,7 @@ identityRoutes.post('/send-otp', async (c) => {
 
 // 2. Verify OTP & Authenticate
 identityRoutes.post('/verify-otp', async (c) => {
-  const body = await c.req.json();
+  const body = await c.req.json().catch(() => ({}));
   const parsed = VerifyOtpRequestSchema.safeParse(body);
   if (!parsed.success) {
     return c.json({ error: 'INVALID_INPUT', details: parsed.error.format() }, 400);
@@ -176,7 +176,7 @@ identityRoutes.post('/verify-otp', async (c) => {
 
 // 3. Password Login (Optional secondary flow)
 identityRoutes.post('/login-password', async (c) => {
-  const body = await c.req.json();
+  const body = await c.req.json().catch(() => ({}));
   const parsed = PasswordLoginRequestSchema.safeParse(body);
   if (!parsed.success) {
     return c.json({ error: 'INVALID_INPUT', details: parsed.error.format() }, 400);

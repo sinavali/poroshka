@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { ShieldAlert, BarChart3, Radio, FileText, ToggleLeft, ToggleRight, Check, RefreshCw } from 'lucide-react';
 import { fetchFromApi } from '../../lib/api-client';
+import { showDynamicToast } from '../../components/DynamicIslandToast';
 
 export default function AdminPage() {
   const [adminToken, setAdminToken] = useState('');
@@ -53,6 +54,11 @@ export default function AdminPage() {
       localStorage.setItem('promptjoo_session_token', token);
       setAdminToken(token);
       setIsAuthenticated(true);
+      showDynamicToast({
+        title: 'ورود به پنل مدیریت',
+        message: 'احراز هویت سوپرادمین تایید شد',
+        type: 'auth'
+      });
       await loadAdminData();
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'خطا در احراز هویت ادمین';

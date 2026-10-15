@@ -7,10 +7,15 @@ const nextConfig: NextConfig = {
     '@promptjoo/prompt-compiler'
   ],
   async rewrites() {
+    const internalApi = process.env.INTERNAL_API_URL || 'http://127.0.0.1:4000';
     return [
       {
         source: '/api/:path*',
-        destination: `${process.env.INTERNAL_API_URL || 'http://localhost:3000'}/api/:path*`,
+        destination: `${internalApi}/api/:path*`,
+      },
+      {
+        source: '/healthz',
+        destination: `${internalApi}/healthz`,
       },
     ];
   },

@@ -27,7 +27,7 @@ monetizationRoutes.get('/active-units', async (c) => {
 
 // 2. Track Ad Click with Fraud Deduplication
 monetizationRoutes.post('/events/click', async (c) => {
-  const body = await c.req.json();
+  const body = await c.req.json().catch(() => ({}));
   const parsed = AdClickEventSchema.safeParse(body);
   if (!parsed.success) {
     return c.json({ error: 'INVALID_INPUT' }, 400);

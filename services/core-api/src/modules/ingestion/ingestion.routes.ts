@@ -8,7 +8,7 @@ export const ingestionRoutes = new Hono();
 
 // 1. Create Ingestion Batch
 ingestionRoutes.post('/batches', async (c) => {
-  const body = await c.req.json();
+  const body = await c.req.json().catch(() => ({}));
   const { batch_name, source_filename, max_budget_usd = 5.0 } = body;
 
   if (!batch_name || !source_filename) {
@@ -27,7 +27,7 @@ ingestionRoutes.post('/batches', async (c) => {
 // 2. Upload Prompt Items to Batch
 ingestionRoutes.post('/batches/:id/upload', async (c) => {
   const batchId = c.req.param('id');
-  const body = await c.req.json();
+  const body = await c.req.json().catch(() => ({}));
   const items: Array<{
     raw_template_en: string;
     title_fa?: string;

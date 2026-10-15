@@ -268,7 +268,7 @@ campaignsRoutes.post('/webhook/telegram', async (c) => {
 
 // 3. Enqueue Broadcast Campaign (Admin Only)
 campaignsRoutes.post('/broadcast', async (c) => {
-  const body = await c.req.json();
+  const body = await c.req.json().catch(() => ({}));
   const { channel, title, message, url } = body;
 
   if (!channel || !message) {

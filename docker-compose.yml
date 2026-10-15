@@ -1,0 +1,22 @@
+services:
+  promptjoo:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: promptjoo-app
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - INTERNAL_API_PORT=4000
+      - POSTGRES_URL=${POSTGRES_URL:-}
+      - MELIPAYAMAK_API_KEY=${MELIPAYAMAK_API_KEY:-}
+      - SUPERADMIN_TOKEN=${SUPERADMIN_TOKEN:-promptjoo-super-secret-admin-token}
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/healthz"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s

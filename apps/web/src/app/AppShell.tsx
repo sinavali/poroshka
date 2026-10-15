@@ -6,6 +6,7 @@ import { Footer } from '../components/Footer';
 import { PersonalMemoryModal } from '../components/PersonalMemoryModal';
 import { AuthModal } from '../components/AuthModal';
 import { AdBanner } from '../components/AdBanner';
+import { DynamicIslandToast } from '../components/DynamicIslandToast';
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const [memoryModalOpen, setMemoryModalOpen] = useState(false);
@@ -19,6 +20,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   return (
     <>
+      <DynamicIslandToast />
       <Header
         onOpenMemory={() => setMemoryModalOpen(true)}
         onOpenAuth={() => setAuthModalOpen(true)}

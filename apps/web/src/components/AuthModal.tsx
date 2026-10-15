@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, Phone, KeyRound, ShieldCheck, Send, CheckCircle2, ArrowRight } from 'lucide-react';
 import { fetchFromApi } from '../lib/api-client';
+import { showDynamicToast } from './DynamicIslandToast';
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -133,6 +134,11 @@ export function AuthModal({ isOpen, onClose, onLoginSuccess }: AuthModalProps) {
       if (sessionToken) {
         localStorage.setItem('promptjoo_session_token', sessionToken);
         localStorage.setItem('promptjoo_user_phone', userPhone);
+        showDynamicToast({
+          title: 'ورود موفقیت‌آمیز',
+          message: `خوش آمدید ${userPhone}`,
+          type: 'auth'
+        });
         onLoginSuccess(userPhone, sessionToken);
         onClose();
       }
@@ -166,6 +172,11 @@ export function AuthModal({ isOpen, onClose, onLoginSuccess }: AuthModalProps) {
       if (sessionToken) {
         localStorage.setItem('promptjoo_session_token', sessionToken);
         localStorage.setItem('promptjoo_user_phone', userPhone);
+        showDynamicToast({
+          title: 'ورود موفقیت‌آمیز',
+          message: `خوش آمدید ${userPhone}`,
+          type: 'auth'
+        });
         onLoginSuccess(userPhone, sessionToken);
         onClose();
       }

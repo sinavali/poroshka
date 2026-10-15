@@ -1,6 +1,6 @@
 const API_BASE =
   process.env.NEXT_PUBLIC_API_URL ??
-  (typeof window === 'undefined' ? (process.env.INTERNAL_API_URL || 'http://localhost:3000') : '');
+  (typeof window === 'undefined' ? (process.env.INTERNAL_API_URL || 'http://127.0.0.1:4000') : '');
 
 export function getClientUUID(): string {
   if (typeof window === 'undefined') return '';

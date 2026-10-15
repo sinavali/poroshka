@@ -69,7 +69,7 @@ adminRoutes.get('/prompts', async (c) => {
 // 3. Toggle Prompt Published / Locked
 adminRoutes.patch('/prompts/:id', async (c) => {
   const id = c.req.param('id');
-  const body = await c.req.json();
+  const body = await c.req.json().catch(() => ({}));
 
   await pool.query(`
     UPDATE prompts
@@ -86,7 +86,7 @@ adminRoutes.patch('/prompts/:id', async (c) => {
 // 4. Update Ad Network Config
 adminRoutes.put('/ad-configs/:id', async (c) => {
   const id = c.req.param('id');
-  const body = await c.req.json();
+  const body = await c.req.json().catch(() => ({}));
 
   await pool.query(`
     UPDATE ad_network_configs

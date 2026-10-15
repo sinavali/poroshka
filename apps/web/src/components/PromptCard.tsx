@@ -2,8 +2,9 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { Copy, Check, Sparkles, Eye, ArrowLeft } from 'lucide-react';
+import { Copy, Check, ArrowLeft } from 'lucide-react';
 import { fetchFromApi } from '../lib/api-client';
+import { showDynamicToast } from './DynamicIslandToast';
 
 export interface PromptCardData {
   id: string;
@@ -57,7 +58,12 @@ export function PromptCard({ prompt, onQuickCopied }: PromptCardProps) {
 
       await navigator.clipboard.writeText(res.compiled_text);
       setCopied(true);
-      setTimeout(() => setCopied(false), 2500);
+      showDynamicToast({
+        title: 'پرامپت در کلیپ‌بورد کپی شد',
+        message: prompt.title_fa,
+        type: 'copy'
+      });
+      setTimeout(() => setCopied(false), 2200);
 
       if (onQuickCopied) {
         onQuickCopied(prompt, res.compiled_text);
@@ -70,11 +76,11 @@ export function PromptCard({ prompt, onQuickCopied }: PromptCardProps) {
   };
 
   return (
-    <div className="glass-panel rounded-2xl overflow-hidden border border-white/10 hover:border-blue-500/40 hover:shadow-xl hover:shadow-blue-500/10 flex flex-col justify-between group spring-transition">
-      <Link href={`/p/${prompt.slug}`} className="block p-5 flex-1">
+    <div className="glass-panel rounded-3xl overflow-hidden border border-white/10 hover:border-blue-500/40 hover:shadow-2xl hover:shadow-blue-500/10 hover:-translate-y-1 flex flex-col justify-between group spring-transition pressable-subtle">
+      <Link href={`/p/${prompt.slug}`} className="block p-6 flex-1">
         {/* Top Badges */}
-        <div className="flex items-center justify-between gap-2 mb-3">
-          <span className={`text-[11px] font-bold px-2.5 py-0.5 rounded-full border ${modalityBadge.color} ${modalityBadge.border}`}>
+        <div className="flex items-center justify-between gap-2 mb-3.5">
+          <span className={`text-[11px] font-bold px-3 py-1 rounded-full border ${modalityBadge.color} ${modalityBadge.border}`}>
             {modalityBadge.label}
           </span>
           <div className="flex items-center gap-1 text-[11px] text-gray-400 font-medium">
@@ -99,7 +105,7 @@ export function PromptCard({ prompt, onQuickCopied }: PromptCardProps) {
             {prompt.supported_models.map((m) => (
               <span
                 key={m}
-                className="text-[10px] uppercase font-mono px-2 py-0.5 rounded bg-slate-800/80 text-gray-300 border border-white/5"
+                className="text-[10px] uppercase font-mono px-2.5 py-0.5 rounded-full bg-white/5 text-gray-300 border border-white/10"
               >
                 {m}
               </span>
@@ -109,20 +115,20 @@ export function PromptCard({ prompt, onQuickCopied }: PromptCardProps) {
       </Link>
 
       {/* Card Action Footer */}
-      <div className="px-5 py-3 border-t border-white/5 bg-slate-900/40 flex items-center justify-between gap-2">
+      <div className="px-6 py-3.5 border-t border-white/5 bg-slate-900/40 flex items-center justify-between gap-2">
         <Link
           href={`/p/${prompt.slug}`}
           className="text-xs font-semibold text-gray-400 hover:text-white flex items-center gap-1 group-hover:text-blue-300 spring-transition"
         >
-          <span>شخصی‌سازی و تنظیم</span>
+          <span>تنظیم متغیرها</span>
           <ArrowLeft className="w-3.5 h-3.5 group-hover:-translate-x-1 spring-transition" />
         </Link>
 
-        {/* 1-Click Quick Copy Button */}
+        {/* 1-Click Quick Copy Button with Tactile Press */}
         <button
           onClick={handleQuickCopy}
           disabled={loading}
-          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold spring-transition ${
+          className={`pressable flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold spring-transition ${
             copied
               ? 'bg-emerald-600 text-white'
               : 'bg-blue-600 hover:bg-blue-500 text-white shadow-sm shadow-blue-600/30'
