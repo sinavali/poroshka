@@ -88,7 +88,7 @@ export function PersonalMemoryModal({ isOpen, onClose, onSaved }: PersonalMemory
           </div>
           <div>
             <h3 className="text-lg font-black text-slate-900 flex items-center gap-2">
-              حافظه شخصی من (Personal Memory)
+              حافظه شخصی من
               <Sparkles className="w-4 h-4 text-amber-500" />
             </h3>
             <p className="text-xs text-slate-500 mt-0.5">
@@ -101,7 +101,7 @@ export function PersonalMemoryModal({ isOpen, onClose, onSaved }: PersonalMemory
         <form onSubmit={handleSave} className="space-y-4">
           <div>
             <label className="block text-xs font-bold text-slate-700 mb-1.5">
-              نام برند یا کسب‌وکار (Brand Name)
+              نام برند یا کسب‌وکار
             </label>
             <input
               type="text"
@@ -114,7 +114,7 @@ export function PersonalMemoryModal({ isOpen, onClose, onSaved }: PersonalMemory
 
           <div>
             <label className="block text-xs font-bold text-slate-700 mb-1.5">
-              حوزه فعالیت یا نیچ تخصصی (Niche Topic)
+              حوزه فعالیت یا نیچ تخصصی
             </label>
             <input
               type="text"
@@ -127,7 +127,7 @@ export function PersonalMemoryModal({ isOpen, onClose, onSaved }: PersonalMemory
 
           <div>
             <label className="block text-xs font-bold text-slate-700 mb-1.5">
-              مخاطبان هدف (Target Audience)
+              مخاطبان هدف
             </label>
             <input
               type="text"
@@ -141,7 +141,7 @@ export function PersonalMemoryModal({ isOpen, onClose, onSaved }: PersonalMemory
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                لحن برند (Brand Tone)
+                لحن برند
               </label>
               <select
                 value={formData.brand_tone}
@@ -158,7 +158,7 @@ export function PersonalMemoryModal({ isOpen, onClose, onSaved }: PersonalMemory
 
             <div>
               <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                دعوت به اقدام پیش‌فرض (CTA)
+                دعوت به اقدام پیش‌فرض
               </label>
               <input
                 type="text"

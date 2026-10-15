@@ -53,3 +53,12 @@ function shutdown(signal: string) {
 
 process.on('SIGTERM', () => shutdown('SIGTERM'));
 process.on('SIGINT', () => shutdown('SIGINT'));
+
+process.on('uncaughtException', (err) => {
+  logger.error({ err: err?.message, stack: err?.stack }, 'Uncaught Exception safely trapped in Core API');
+});
+
+process.on('unhandledRejection', (reason) => {
+  logger.error({ reason }, 'Unhandled Rejection safely trapped in Core API');
+});
+

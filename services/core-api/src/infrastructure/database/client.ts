@@ -8,14 +8,23 @@ const DATABASE_URL = process.env.DATABASE_URL || 'postgresql://postgres:jsF68GOo
 
 export const pool = new Pool({
   connectionString: DATABASE_URL,
-  max: 20,
+  max: 15,
   idleTimeoutMillis: 30000,
-  connectionTimeoutMillis: 30000,
-  keepAlive: true
+  connectionTimeoutMillis: 15000,
+  keepAlive: true,
+  keepAliveInitialDelayMillis: 10000
 });
 
+// Prevent unhandled error event crash when an idle client drops in pool
 pool.on('error', (err) => {
-  logger.error({ err: err.message }, 'Unexpected error on idle PostgreSQL client');
+  logger.warn({ err: err?.message }, 'Handled PostgreSQL pool client drop/error');
+});
+
+// Attach error listener to every new client to prevent unhandled 'error' events on sockets
+pool.on('connect', (client) => {
+  client.on('error', (err) => {
+    logger.warn({ err: err?.message }, 'Handled PostgreSQL client socket error');
+  });
 });
 
 export const db = drizzle(pool);

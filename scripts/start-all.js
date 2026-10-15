@@ -17,8 +17,9 @@ console.log('\x1b[36m%s\x1b[0m', `Mode: ${isDev ? 'DEVELOPMENT' : 'PRODUCTION'}`
 console.log('\x1b[36m%s\x1b[0m', '========================================================================\n');
 
 const children = [];
+let isShuttingDown = false;
 
-function startProcess(name, command, args, cwd, color, env = {}) {
+function startProcess(name, command, args, cwd, color, env = {}, autoRestart = false) {
   const proc = spawn(command, args, {
     cwd,
     stdio: ['inherit', 'pipe', 'pipe'],
@@ -42,6 +43,14 @@ function startProcess(name, command, args, cwd, color, env = {}) {
 
   proc.on('close', (code) => {
     console.log(`${color}[${name}]\x1b[0m Process exited with code ${code}`);
+    if (autoRestart && !isShuttingDown && code !== 0) {
+      console.log(`\x1b[33m[supervisor]\x1b[0m Restarting ${name} in 1.5s ...\x1b[0m`);
+      setTimeout(() => {
+        if (!isShuttingDown) {
+          startProcess(name, command, args, cwd, color, env, autoRestart);
+        }
+      }, 1500);
+    }
   });
 
   children.push(proc);
@@ -66,7 +75,8 @@ startProcess(
     : ['--experimental-strip-types', 'src/bootstrap/main.ts'],
   useCoreApiDist ? ROOT_DIR : path.join(ROOT_DIR, 'services/core-api'),
   '\x1b[34m',
-  { PORT: INTERNAL_API_PORT, HOST: '0.0.0.0', NODE_ENV: isDev ? 'development' : 'production' }
+  { PORT: INTERNAL_API_PORT, HOST: '0.0.0.0', NODE_ENV: isDev ? 'development' : 'production' },
+  true // autoRestart on crash
 );
 
 // 2. Start Web Frontend on public port with internal API proxying
@@ -95,6 +105,7 @@ console.log('\x1b[33m%s\x1b[0m', 'Press Ctrl+C to terminate all processes cleanl
 
 // Graceful cleanup on SIGINT / SIGTERM
 function cleanup() {
+  isShuttingDown = true;
   console.log('\n\x1b[31m[shutdown]\x1b[0m Terminating Promptjoo services...');
   for (const child of children) {
     child.kill('SIGTERM');

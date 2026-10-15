@@ -18,17 +18,59 @@ catalogRoutes.get('/categories', async (c) => {
   return c.json(res.rows);
 });
 
-// 2. List Prompts (Faceted search, filter by modality, category, trending)
+// 2. List Prompts (Faceted search, filter by modality, category, trending, with real pagination)
 catalogRoutes.get('/prompts', async (c) => {
   const modality = c.req.query('modality');
   const categorySlug = c.req.query('category');
   const search = c.req.query('q');
   const sort = c.req.query('sort') || 'trending';
   const page = Math.max(1, parseInt(c.req.query('page') || '1', 10));
-  const limit = Math.min(50, Math.max(1, parseInt(c.req.query('limit') || '20', 10)));
+  const limit = Math.min(50, Math.max(1, parseInt(c.req.query('limit') || '12', 10)));
   const offset = (page - 1) * limit;
 
-  let query = `
+  let whereClause = ' WHERE p.is_published = true';
+  const params: unknown[] = [];
+  let paramIdx = 1;
+
+  if (modality && modality !== 'all') {
+    whereClause += ` AND p.modality = $${paramIdx++}`;
+    params.push(modality);
+  }
+
+  if (categorySlug && categorySlug !== 'all') {
+    whereClause += ` AND c.slug = $${paramIdx++}`;
+    params.push(categorySlug);
+  }
+
+  if (search && search.trim() !== '') {
+    const cleaned = cleanSearchQuery(search);
+    whereClause += ` AND (p.title_fa ILIKE $${paramIdx} OR p.search_keywords_fa ILIKE $${paramIdx} OR p.template_en ILIKE $${paramIdx})`;
+    params.push(`%${cleaned}%`);
+    paramIdx++;
+  }
+
+  // Count total matching items for pagination
+  const countRes = await pool.query(`
+    SELECT COUNT(*) as total
+    FROM prompts p
+    JOIN categories c ON p.category_id = c.id
+    ${whereClause};
+  `, params);
+  const total = parseInt(countRes.rows[0]?.total || '0', 10);
+  const totalPages = Math.max(1, Math.ceil(total / limit));
+
+  let orderClause = '';
+  if (sort === 'copies') {
+    orderClause = ' ORDER BY p.copy_count DESC';
+  } else if (sort === 'views') {
+    orderClause = ' ORDER BY p.view_count DESC';
+  } else if (sort === 'newest') {
+    orderClause = ' ORDER BY p.created_at DESC';
+  } else {
+    orderClause = ' ORDER BY p.trending_score_7d DESC, p.copy_count DESC';
+  }
+
+  const query = `
     SELECT 
       p.id, p.slug, p.modality, c.slug as category_slug, c.title_fa as category_title_fa,
       p.title_fa, p.short_desc_fa, p.requires_image_upload, p.supported_models,
@@ -36,46 +78,19 @@ catalogRoutes.get('/prompts', async (c) => {
       p.slot_count, p.copy_count, p.view_count, p.trending_score_7d, p.created_at
     FROM prompts p
     JOIN categories c ON p.category_id = c.id
-    WHERE p.is_published = true
+    ${whereClause}
+    ${orderClause}
+    LIMIT $${paramIdx++} OFFSET $${paramIdx++};
   `;
-  const params: unknown[] = [];
-  let paramIdx = 1;
+  const queryParams = [...params, limit, offset];
+  const res = await pool.query(query, queryParams);
 
-  if (modality) {
-    query += ` AND p.modality = $${paramIdx++}`;
-    params.push(modality);
-  }
-
-  if (categorySlug) {
-    query += ` AND c.slug = $${paramIdx++}`;
-    params.push(categorySlug);
-  }
-
-  if (search && search.trim() !== '') {
-    const cleaned = cleanSearchQuery(search);
-    query += ` AND (p.title_fa ILIKE $${paramIdx} OR p.search_keywords_fa ILIKE $${paramIdx} OR p.template_en ILIKE $${paramIdx})`;
-    params.push(`%${cleaned}%`);
-    paramIdx++;
-  }
-
-  if (sort === 'copies') {
-    query += ' ORDER BY p.copy_count DESC';
-  } else if (sort === 'views') {
-    query += ' ORDER BY p.view_count DESC';
-  } else if (sort === 'newest') {
-    query += ' ORDER BY p.created_at DESC';
-  } else {
-    query += ' ORDER BY p.trending_score_7d DESC, p.copy_count DESC';
-  }
-
-  query += ` LIMIT $${paramIdx++} OFFSET $${paramIdx++}`;
-  params.push(limit, offset);
-
-  const res = await pool.query(query, params);
   return c.json({
     items: res.rows,
+    total,
     page,
-    limit
+    limit,
+    total_pages: totalPages
   });
 });
 
@@ -186,7 +201,99 @@ catalogRoutes.post('/prompts/:slug/copy', async (c) => {
   });
 });
 
-// 5. Zero-LLM Atomic Block Forging
+// Slot Dictionary for pre-filling prompt engine inputs with intelligent Persian defaults
+const SLOT_DICTIONARY: Record<string, { default_value_fa: string; suggestions: string[] }> = {
+  brand_name: {
+    default_value_fa: 'دیجی‌کالا',
+    suggestions: ['دیجی‌کالا', 'آکادمی وب‌آموز', 'اسنپ‌مارکت', 'کافه لاته', 'بوتیک مینو']
+  },
+  niche_topic: {
+    default_value_fa: 'فروش آنلاین و تجارت الکترونیک',
+    suggestions: ['آموزش سئو و هوش مصنوعی', 'لوازم دیجیتال و گجت‌ها', 'پوشاک و مد زنانه', 'رژیم غذایی و سلامت']
+  },
+  target_audience: {
+    default_value_fa: 'کاربران جوان و علاقمندان به خرید هوشمند',
+    suggestions: ['جوانان ۱۸ تا ۳۰ سال', 'مدیران استارتاپ‌ها', 'خریداران آنلاین و خانه‌دار', 'برنامه‌نویسان و مهندسان']
+  },
+  brand_tone: {
+    default_value_fa: 'صمیمی، پرانرژی و متقاعدکننده',
+    suggestions: ['صمیمی و پرانرژی', 'رسمی و تخصصی', 'داستان‌سرا و هیجان‌انگیز', 'طنز و صریح']
+  },
+  call_to_action: {
+    default_value_fa: 'همین حالا برای اطلاعات بیشتر روی لینک بیو کلیک کنید یا دایرکت پیام دهید',
+    suggestions: ['روی لینک بیو کلیک کنید', 'عدد ۱ را در کامنت ارسال کنید', 'همین حالا با ۵۰٪ تخفیف ثبت‌نام کن']
+  },
+  topic: {
+    default_value_fa: 'معرفی ویژگی‌های کلیدی محصول و پاسخ به نیاز اصلی مشتریان',
+    suggestions: ['معرفی محصول و مزایا', 'پاسخ به سوالات متداول مشتریان', 'نکات کاربردی و ترفندهای حرفه‌ای']
+  },
+  subject: {
+    default_value_fa: 'پرتره چهره سینمایی با فوکوس دقیق و جزئیات بافت پوست',
+    suggestions: ['پرتره سینمایی با نور ملایم', 'طراحی محصول استودیویی با پس‌زمینه مینیمال', 'منظره شهری مدرن در غروب آفتاب']
+  },
+  lighting: {
+    default_value_fa: 'نورپردازی استودیویی با سایه‌های نرم و بازتاب‌های طبیعی',
+    suggestions: ['نورپردازی استودیویی سافت‌باکس', 'نور طبیعی طلایی غروب آفتاب', 'نور نئونی سایبرپانکی آبی و بنفش']
+  },
+  style: {
+    default_value_fa: 'عکاسی واقع‌گرایانه با لنز ۸۵ میلی‌متری و عمق میدان کم',
+    suggestions: ['عکاسی واقع‌گرایانه 8k', 'طراحی سه‌بعدی سبک پیکسار', 'رندر معماری فتورئال']
+  },
+  aspect_ratio: {
+    default_value_fa: '16:9',
+    suggestions: ['16:9', '9:16', '1:1', '4:5']
+  },
+  language: {
+    default_value_fa: 'TypeScript / Node.js 22',
+    suggestions: ['TypeScript', 'Python 3.12', 'SQL / PostgreSQL', 'Golang']
+  },
+  constraints: {
+    default_value_fa: 'بدون پکیج اضافه، با مدیریت کامل خطاها و تایپ‌های استاتیک دقیق',
+    suggestions: ['بدون پکیج اضافه', 'بهینه‌سازی کامل حافظه و پردازش', 'کد تمیز با کامنت‌های توصیفی']
+  }
+};
+
+const MODALITY_IDEAS: Record<string, string[]> = {
+  text_writing: [
+    'سناریو استوری معرفی دوره آموزشی برای اینستاگرام با قلاب کنجکاوی و دعوت به اقدام',
+    'پست لینکدین تحلیلی درباره نقش هوش مصنوعی در آینده مشاغل و راهکارهای ارتقای مهارت',
+    'متن ایمیل مارکتینگ برای کمپین تخفیف بلک فرایدی با لحن فوری و جذاب',
+    'کپشن اینستاگرام برای معرفی محصول جدید با ایجاد تعامل و سوال در پایان'
+  ],
+  text_to_image: [
+    'پرتره سینمایی واقع‌گرایانه از یک مهندس نرم‌افزار در دفتر کاری مدرن با نور ملایم پنجره',
+    'عکاسی محصول استودیویی با کیفیت 8k از یک بطری عطر لوکس روی سنگ مرمر با بازتاب آب',
+    'طراحی کاراکتر فانتزی روباه سخنگو با عینک مطالعه به سبک انیمیشن‌های سه‌بعدی پیکسار',
+    'منظره شهری آینده‌نگرانه از تهران در سال ۲۰۵۰ با خودروهای پرنده و برج میلاد در غروب'
+  ],
+  code_tech: [
+    'طراحی و بهینه‌سازی کوئری PostgreSQL با ایندکس‌های BRIN و CTE برای ۱۰ میلیون رکورد',
+    'کامپوننت واکنش‌گرا فرم چندمرحله‌ای احراز هویت با اعتبارسنجی Zod در React و Tailwind',
+    'پیاده‌سازی میدل‌ور توکن‌باکت برای ریت‌لیمیت درخواست‌ها با ردیس در Node.js',
+    'اسکریپت پایتون استخراج خودکار متادیتا و تبدیل فایل‌های CSV به دیتابیس SQLite'
+  ],
+  data_structuring: [
+    'فرمول پیشرفته اکسل با ترکیب XLOOKUP و INDEX-MATCH برای محاسبه پورسانت پلکانی فروشندگان',
+    'جدول بودجه‌بندی ماهانه شرکتی با نمودار خودکار و تفکیک هزینه‌های ثابت و متغیر',
+    'تمپلیت تمیزکاری و نرمال‌سازی شماره‌های تماس و کدهای ملی نامعتبر در گوگل شیتس'
+  ]
+};
+
+// 5. Get Modality Presets & Random Ideas
+catalogRoutes.get('/forge/presets', (c) => {
+  const modality = c.req.query('modality') || 'text_writing';
+  const ideas = MODALITY_IDEAS[modality] || MODALITY_IDEAS['text_writing'];
+  const randomIdea = ideas[Math.floor(Math.random() * ideas.length)];
+
+  return c.json({
+    modality,
+    sample_ideas: ideas,
+    random_idea: randomIdea,
+    dictionary: SLOT_DICTIONARY
+  });
+});
+
+// 6. Zero-LLM Atomic Block Forging
 catalogRoutes.post('/forge', async (c) => {
   const body = await c.req.json().catch(() => ({}));
   const queryText = (body.query || '').trim();
@@ -200,7 +307,6 @@ catalogRoutes.post('/forge', async (c) => {
   const detected = forcedModality || detectModality(queryText).modality;
 
   // Retrieve top atomic blocks for this modality
-  // If vectors are available, we use cosine distance; otherwise grab top-used blocks
   const blocksRes = await pool.query(`
     SELECT DISTINCT ON (block_type)
       block_type, title_fa, block_template_en, slots_schema_json
@@ -220,7 +326,7 @@ catalogRoutes.post('/forge', async (c) => {
   let taskText = '';
   let constraintText = '';
   let formatText = '';
-  const mergedSlots: PromptSlot[] = [];
+  const mergedSlots: (PromptSlot & { suggestions?: string[] })[] = [];
 
   for (const block of blocksRes.rows) {
     if (block.block_type === 'ROLE') roleText = block.block_template_en;
@@ -231,8 +337,24 @@ catalogRoutes.post('/forge', async (c) => {
     if (Array.isArray(block.slots_schema_json)) {
       for (const slot of block.slots_schema_json) {
         if (!mergedSlots.some(s => s.slot_key === slot.slot_key)) {
-          mergedSlots.push(slot);
+          const dictEntry = SLOT_DICTIONARY[slot.slot_key];
+          mergedSlots.push({
+            ...slot,
+            default_value: slot.default_value || dictEntry?.default_value_fa || '',
+            suggestions: dictEntry?.suggestions || []
+          });
         }
+      }
+    }
+  }
+
+  // Pre-fill missing slot values with rich defaults from dictionary or profile
+  const userValues: Record<string, string> = { ...(body.slot_values || {}) };
+  for (const slot of mergedSlots) {
+    if (!userValues[slot.slot_key]) {
+      const dictVal = SLOT_DICTIONARY[slot.slot_key]?.default_value_fa;
+      if (dictVal) {
+        userValues[slot.slot_key] = dictVal;
       }
     }
   }
@@ -244,7 +366,7 @@ catalogRoutes.post('/forge', async (c) => {
     format: formatText
   });
 
-  const compiled = compilePrompt(stitchedTemplate, mergedSlots, body.slot_values || {}, profile, {
+  const compiled = compilePrompt(stitchedTemplate, mergedSlots, userValues, profile, {
     forceFarsiOutput: body.force_farsi_output ?? false,
     modality: detected
   });

@@ -33,6 +33,9 @@ export default function HomePage() {
   const [selectedModel, setSelectedModel] = useState('all');
   const [sortBy, setSortBy] = useState<'trending' | 'popular' | 'newest'>('trending');
   const [searchQuery, setSearchQuery] = useState('');
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -41,7 +44,7 @@ export default function HomePage() {
   const [copiedPromptText, setCopiedPromptText] = useState('');
   const [copiedPromptTitle, setCopiedPromptTitle] = useState('');
 
-  const loadPrompts = async () => {
+  const loadPrompts = async (targetPage = page) => {
     setLoading(true);
     setError(null);
     try {
@@ -49,15 +52,29 @@ export default function HomePage() {
       const q = searchParams.get('q') || '';
       setSearchQuery(q);
 
-      let url = '/api/v1/catalog/prompts?limit=30';
+      let url = `/api/v1/catalog/prompts?page=${targetPage}&limit=12`;
       if (selectedModality !== 'all') {
         url += `&modality=${selectedModality}`;
       }
       if (q) {
         url += `&q=${encodeURIComponent(q)}`;
       }
+      if (sortBy === 'popular') {
+        url += '&sort=copies';
+      } else if (sortBy === 'newest') {
+        url += '&sort=newest';
+      } else {
+        url += '&sort=trending';
+      }
 
-      const res = await fetchFromApi<{ items: PromptCardData[] }>(url);
+      const res = await fetchFromApi<{
+        items: PromptCardData[];
+        total: number;
+        page: number;
+        limit: number;
+        total_pages: number;
+      }>(url);
+
       let items = res.items || [];
 
       // Filter by AI model if specified
@@ -67,14 +84,10 @@ export default function HomePage() {
         );
       }
 
-      // Client-side sort options
-      if (sortBy === 'popular') {
-        items = [...items].sort((a, b) => b.copy_count - a.copy_count);
-      } else if (sortBy === 'newest') {
-        items = [...items].reverse();
-      }
-
       setPrompts(items);
+      setTotalPages(res.total_pages || 1);
+      setTotalCount(res.total || items.length);
+      setPage(res.page || targetPage);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'خطا در برقراری ارتباط با سرور';
       setError(msg);
@@ -84,8 +97,18 @@ export default function HomePage() {
   };
 
   useEffect(() => {
-    loadPrompts();
+    loadPrompts(1);
   }, [selectedModality, selectedModel, sortBy]);
+
+  const handlePageChange = (newPage: number) => {
+    if (newPage < 1 || newPage > totalPages) return;
+    setPage(newPage);
+    loadPrompts(newPage);
+    const catalogEl = document.getElementById('catalog-section');
+    if (catalogEl) {
+      catalogEl.scrollIntoView({ behavior: 'smooth' });
+    }
+  };
 
   const handleClearQuery = () => {
     window.location.href = '/';
@@ -98,31 +121,32 @@ export default function HomePage() {
   };
 
   return (
-    <div className="space-y-12 animate-fade-in">
+    <div className="space-y-10 animate-fade-in">
       {/* Apple-Grade Hero Header */}
-      <section className="text-center py-10 sm:py-16 relative">
-        <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-bold bg-blue-50 text-blue-700 border border-blue-200/80 mb-6 shadow-sm">
+      <section className="text-center py-8 sm:py-12 relative">
+        <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-bold bg-blue-50 text-blue-700 border border-blue-200/80 mb-5 shadow-sm">
           <Sparkles className="w-3.5 h-3.5 text-blue-600" />
           <span>مرجع تخصصی پرامپت‌های مهندسی‌شده هوش مصنوعی در ایران</span>
         </div>
 
-        <h1 className="text-3xl sm:text-6xl font-black text-slate-900 tracking-tight leading-tight mb-5">
+        <h1 className="text-3xl sm:text-5xl font-black text-slate-900 tracking-tight leading-tight mb-4">
           بهترین خروجی را از{' '}
           <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600">
             هوش مصنوعی
           </span>{' '}
           بگیرید
         </h1>
-        <p className="text-sm sm:text-base text-slate-600 max-w-2xl mx-auto leading-relaxed font-normal">
-          بدون نیاز به فرمول‌های پیچیده انگلیسی؛ پرامپت آماده را انتخاب، اطلاعات اختصاصی برندتان را درج و با ۱ کلیک در مدل هوش مصنوعی دلخواه اجرا کنید.
+        <p className="text-xs sm:text-sm text-slate-600 max-w-2xl mx-auto leading-relaxed font-normal">
+          بدون نیاز به فرمول‌های پیچیده انگلیسی؛ پرامپت آماده را انتخاب، اطلاعات اختصاصی برندتان را درج و با ۱ کلیک در مدل دلخواه اجرا کنید.
         </p>
 
         {searchQuery && (
-          <div className="mt-6 inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-slate-100 border border-slate-200 text-xs text-slate-700">
-            <span>نتایج جستجو برای: <strong>{searchQuery}</strong></span>
+          <div className="mt-5 inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-slate-100 border border-slate-200 text-xs text-slate-700 shadow-sm">
+            <span>نتایج جستجو برای: <strong className="text-blue-700">{searchQuery}</strong></span>
             <button
               onClick={handleClearQuery}
               className="pressable p-0.5 rounded-full hover:bg-slate-200 text-slate-500 hover:text-slate-800"
+              title="پاک کردن جستجو"
             >
               <X className="w-3.5 h-3.5" />
             </button>
@@ -130,11 +154,50 @@ export default function HomePage() {
         )}
       </section>
 
-      {/* Zero-LLM Block Forger */}
-      <BlockForger />
+      {/* SEARCH RESULTS MODE: Two-Row Carousel of Closest Matching Prompts, followed by Block Forger */}
+      {searchQuery && prompts.length > 0 && (
+        <section className="space-y-4 animate-fade-in">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-base sm:text-lg font-black text-slate-900 flex items-center gap-2">
+                <Sparkles className="w-4 h-4 text-blue-600" />
+                <span>نزدیک‌ترین پرامپت‌های آماده به جستجوی شما</span>
+              </h2>
+              <p className="text-xs text-slate-500 mt-0.5">
+                پرامپت‌های زیر بیشترین تطابق را با عبارت «{searchQuery}» دارند و آماده استفاده هستند.
+              </p>
+            </div>
+            <span className="text-xs font-bold text-blue-600 bg-blue-50 border border-blue-200 px-3 py-1 rounded-full">
+              {totalCount.toLocaleString('fa-IR')} مورد یافت شد
+            </span>
+          </div>
+
+          {/* 2-Row Carousel / Slider */}
+          <div className="grid grid-rows-2 grid-flow-col auto-cols-[290px] sm:auto-cols-[360px] gap-4 overflow-x-auto pb-4 snap-x snap-mandatory no-scrollbar scroll-smooth">
+            {prompts.slice(0, 10).map((prompt) => (
+              <div key={prompt.id} className="snap-start h-full">
+                <PromptCard prompt={prompt} onQuickCopied={handleQuickCopied} />
+              </div>
+            ))}
+          </div>
+
+          <div className="pt-4 border-t border-slate-200/80">
+            <h3 className="text-sm sm:text-base font-bold text-slate-900 mb-1">
+              یا پرامپت اختصاصی خود را بسازید:
+            </h3>
+            <p className="text-xs text-slate-500 mb-4">
+              اگر خروجی مدنظرتان متفاوت است، موتور زیر بر اساس متن جستجوی شما پرامپتی استاندارد می‌سازد.
+            </p>
+            <BlockForger initialQuery={searchQuery} />
+          </div>
+        </section>
+      )}
+
+      {/* DEFAULT LANDING MODE: Block Forger shown directly at top if no search */}
+      {!searchQuery && <BlockForger />}
 
       {/* Catalog & Filter Section */}
-      <section className="space-y-6">
+      <section id="catalog-section" className="space-y-6 pt-4">
         <div className="flex flex-col gap-4 border-b border-slate-200/80 pb-5">
           {/* Header & Sort Controls */}
           <div className="flex items-center justify-between flex-wrap gap-4">
@@ -142,7 +205,9 @@ export default function HomePage() {
               <div className="w-8 h-8 rounded-xl bg-blue-50 border border-blue-200 flex items-center justify-center text-blue-600">
                 <TrendingUp className="w-4 h-4" />
               </div>
-              <h2 className="text-lg font-bold text-slate-900 tracking-tight">پرامپت‌های برگزیده و کاربردی</h2>
+              <h2 className="text-base sm:text-lg font-bold text-slate-900 tracking-tight">
+                {searchQuery ? 'تمام پرامپت‌های کاتالوگ' : 'پرامپت‌های برگزیده و کاربردی'}
+              </h2>
             </div>
 
             {/* Sort Segmented Control */}
@@ -179,7 +244,10 @@ export default function HomePage() {
             {MODALITIES.map((mod) => (
               <button
                 key={mod.id}
-                onClick={() => setSelectedModality(mod.id)}
+                onClick={() => {
+                  setSelectedModality(mod.id);
+                  setPage(1);
+                }}
                 className={`pressable px-4 py-2 rounded-2xl text-xs font-bold whitespace-nowrap spring-transition ${
                   selectedModality === mod.id
                     ? 'bg-blue-600 text-white shadow-md shadow-blue-500/20'
@@ -197,7 +265,10 @@ export default function HomePage() {
             {AI_MODELS.map((model) => (
               <button
                 key={model.id}
-                onClick={() => setSelectedModel(model.id)}
+                onClick={() => {
+                  setSelectedModel(model.id);
+                  setPage(1);
+                }}
                 className={`pressable px-3 py-1 rounded-full text-[11px] font-medium whitespace-nowrap spring-transition ${
                   selectedModel === model.id
                     ? 'bg-indigo-50 text-indigo-700 border border-indigo-200'
@@ -231,7 +302,7 @@ export default function HomePage() {
             <h3 className="text-sm font-bold text-slate-900">خطا در بارگذاری پرامپت‌ها</h3>
             <p className="text-xs text-slate-500">{error}</p>
             <button
-              onClick={loadPrompts}
+              onClick={() => loadPrompts(page)}
               className="pressable inline-flex items-center gap-2 px-5 py-2.5 rounded-2xl text-xs font-bold bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 shadow-sm"
             >
               <RefreshCw className="w-3.5 h-3.5" />
@@ -246,7 +317,7 @@ export default function HomePage() {
             <Filter className="w-10 h-10 text-slate-400 mx-auto" />
             <h3 className="text-sm font-bold text-slate-900">پرامپتی با این مشخصات یافت نشد</h3>
             <p className="text-xs text-slate-500 leading-relaxed">
-              فیلتر انتخابی یا عبارت جستجو را تغییر دهید یا از موتور بلوک‌چین برای ساخت خودکار پرامپت استفاده کنید.
+              فیلتر انتخابی یا عبارت جستجو را تغییر دهید یا از موتور بلوک‌چین بالا برای ساخت خودکار پرامپت استفاده کنید.
             </p>
             <button
               onClick={() => {
@@ -261,16 +332,67 @@ export default function HomePage() {
           </div>
         )}
 
-        {/* 4-State UI: Success State (Grid with Native Ad Card inserted at slot 3) */}
+        {/* 4-State UI: Success State Grid */}
         {!loading && !error && prompts.length > 0 && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {prompts.map((prompt, idx) => (
-              <React.Fragment key={prompt.id}>
-                {idx === 2 && <AdBanner placementSlot="FEED_NATIVE_CARD_3" />}
-                <PromptCard prompt={prompt} onQuickCopied={handleQuickCopied} />
-              </React.Fragment>
-            ))}
-          </div>
+          <>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              {prompts.map((prompt, idx) => (
+                <React.Fragment key={prompt.id}>
+                  {idx === 2 && <AdBanner placementSlot="FEED_NATIVE_CARD_3" />}
+                  <PromptCard prompt={prompt} onQuickCopied={handleQuickCopied} />
+                </React.Fragment>
+              ))}
+            </div>
+
+            {/* Apple Light Mode Pagination Controls */}
+            {totalPages > 1 && (
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-8 border-t border-slate-200/80">
+                <div className="text-xs text-slate-500">
+                  نمایش {((page - 1) * 12) + 1} تا {Math.min(page * 12, totalCount)} از {totalCount.toLocaleString('fa-IR')} پرامپت
+                </div>
+
+                <div className="flex items-center gap-1.5">
+                  <button
+                    onClick={() => handlePageChange(page - 1)}
+                    disabled={page <= 1}
+                    className="pressable px-3 py-1.5 rounded-xl border border-slate-200 bg-white text-xs font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-40 disabled:pointer-events-none shadow-sm"
+                  >
+                    قبلی
+                  </button>
+
+                  {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => {
+                    if (totalPages > 7 && Math.abs(p - page) > 2 && p !== 1 && p !== totalPages) {
+                      if (p === 2 || p === totalPages - 1) {
+                        return <span key={p} className="px-1 text-slate-400 text-xs">...</span>;
+                      }
+                      return null;
+                    }
+                    return (
+                      <button
+                        key={p}
+                        onClick={() => handlePageChange(p)}
+                        className={`pressable w-8 h-8 rounded-xl text-xs font-bold spring-transition ${
+                          p === page
+                            ? 'bg-blue-600 text-white shadow-sm'
+                            : 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-50'
+                        }`}
+                      >
+                        {p.toLocaleString('fa-IR')}
+                      </button>
+                    );
+                  })}
+
+                  <button
+                    onClick={() => handlePageChange(page + 1)}
+                    disabled={page >= totalPages}
+                    className="pressable px-3 py-1.5 rounded-xl border border-slate-200 bg-white text-xs font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-40 disabled:pointer-events-none shadow-sm"
+                  >
+                    بعدی
+                  </button>
+                </div>
+              </div>
+            )}
+          </>
         )}
       </section>
 

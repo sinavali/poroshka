@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { fetchFromApi } from '../../lib/api-client';
 import { showDynamicToast } from '../../components/DynamicIslandToast';
+import { AdminReportsView } from '../../components/AdminReportsView';
 
 interface SystemSettingItem {
   id: string;
@@ -260,7 +261,7 @@ export default function AdminPage() {
         <div>
           <span className="text-xs font-bold text-blue-600 flex items-center gap-1.5 mb-1">
             <ShieldCheck className="w-4 h-4" />
-            مرکز کنترل و نظارت سیستم (Superadmin Portal)
+            مرکز کنترل و نظارت سیستم
           </span>
           <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
             داشبورد مدیریت و گزارش‌های جامع
@@ -458,39 +459,16 @@ export default function AdminPage() {
 
       {/* 4. REPORTS TAB */}
       {activeTab === 'reports' && (
-        <div className="space-y-6">
-          <div className="flex items-center gap-2 overflow-x-auto pb-2 no-scrollbar">
-            {[
-              { id: 'velocity', label: 'نرخ کپی و تبدیل' },
-              { id: 'model-demand', label: 'تقاضای مدل‌های هوش مصنوعی' },
-              { id: 'ad-yield', label: 'تبلیغات و کلیک‌ها' },
-              { id: 'search-insights', label: 'کلمات کلیدی و جستجوها' },
-              { id: 'ingestion-health', label: 'سلامت پایپلاین درون‌ریزی' },
-              { id: 'messengers', label: 'ربات تلگرام و بله' },
-              { id: 'system-health', label: 'امنیت و لاگ‌های سیستمی' }
-            ].map((rep) => (
-              <button
-                key={rep.id}
-                onClick={() => {
-                  setReportType(rep.id);
-                  loadReport(rep.id);
-                }}
-                className={`pressable px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap spring-transition ${
-                  reportType === rep.id ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
-                }`}
-              >
-                {rep.label}
-              </button>
-            ))}
-          </div>
-
-          <div className="glass-panel rounded-3xl p-6 border border-slate-200/80">
-            <h3 className="text-sm font-bold text-slate-800 mb-4">نتایج گزارش: {reportType}</h3>
-            <pre className="bilingual-code text-[11px] bg-slate-50 p-4 rounded-2xl border border-slate-200 text-slate-800 max-h-96 overflow-y-auto">
-              {JSON.stringify(reportData, null, 2)}
-            </pre>
-          </div>
-        </div>
+        <AdminReportsView
+          reportType={reportType}
+          reportData={reportData}
+          loading={loading}
+          onSelectReport={(type) => {
+            setReportType(type);
+            loadReport(type);
+          }}
+          onRefresh={() => loadReport(reportType)}
+        />
       )}
     </div>
   );

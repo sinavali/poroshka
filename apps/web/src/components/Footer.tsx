@@ -82,7 +82,7 @@ export function Footer() {
 
         {/* Bottom Bar */}
         <div className="border-t border-slate-200/80 pt-6 flex flex-col sm:flex-row items-center justify-between text-xs text-slate-500 gap-2">
-          <p>© {new Date().toLocaleDateString('fa-IR')} پرامپت‌جو (Promptjoo) — تمامی حقوق محفوظ است.</p>
+          <p>© {new Date().toLocaleDateString('fa-IR')} پرامپت‌جو — تمامی حقوق محفوظ است.</p>
           <p className="font-mono text-[11px]">v1.3.0 · Enterprise Node 22 LTS · PostgreSQL 18.1</p>
         </div>
       </div>
