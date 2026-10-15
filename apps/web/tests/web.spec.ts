@@ -1,6 +1,6 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { compilePrompt } from '../../../packages/prompt-compiler/src/index.ts';
+import { compilePrompt } from '@promptjoo/prompt-compiler';
 
 describe('Web Application Logic Tests', () => {
   it('correctly compiles prompt templates with custom slot values', () => {

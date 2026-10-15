@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { extendZodWithOpenApi } from '@asteasolutions/zod-to-openapi';
-import { SavedContextProfileSchema } from './catalog.schema.ts';
+import { SavedContextProfileSchema } from './catalog.schema.js';
 
 extendZodWithOpenApi(z);
 

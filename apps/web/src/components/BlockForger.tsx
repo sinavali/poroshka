@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { Hammer, Copy, Check, Sparkles, Wand2 } from 'lucide-react';
-import { fetchFromApi } from '../lib/api-client.ts';
+import { fetchFromApi } from '../lib/api-client';
 
 interface ForgeResult {
   modality: string;

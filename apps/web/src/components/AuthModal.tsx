@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { X, Phone, KeyRound, ShieldCheck, Send, CheckCircle2, ArrowRight } from 'lucide-react';
-import { fetchFromApi } from '../lib/api-client.ts';
+import { fetchFromApi } from '../lib/api-client';
 
 interface AuthModalProps {
   isOpen: boolean;

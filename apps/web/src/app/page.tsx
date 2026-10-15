@@ -1,11 +1,11 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { PromptCard, PromptCardData } from '../components/PromptCard.tsx';
-import { BlockForger } from '../components/BlockForger.tsx';
-import { PostCopyDrawer } from '../components/PostCopyDrawer.tsx';
-import { AdBanner } from '../components/AdBanner.tsx';
-import { fetchFromApi } from '../lib/api-client.ts';
+import { PromptCard, PromptCardData } from '../components/PromptCard';
+import { BlockForger } from '../components/BlockForger';
+import { PostCopyDrawer } from '../components/PostCopyDrawer';
+import { AdBanner } from '../components/AdBanner';
+import { fetchFromApi } from '../lib/api-client';
 import { Sparkles, TrendingUp, Filter, AlertCircle, RefreshCw } from 'lucide-react';
 
 const MODALITIES = [

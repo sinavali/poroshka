@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { extendZodWithOpenApi } from '@asteasolutions/zod-to-openapi';
-import { PromptModalitySchema } from './catalog.schema.ts';
+import { PromptModalitySchema } from './catalog.schema.js';
 
 extendZodWithOpenApi(z);
 

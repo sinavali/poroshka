@@ -4,9 +4,9 @@ import React, { useState, useEffect, use } from 'react';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { ArrowRight, Copy, Check, Sparkles, HelpCircle, Layers, Sliders, ExternalLink } from 'lucide-react';
-import { fetchFromApi } from '../../../lib/api-client.ts';
-import { PostCopyDrawer } from '../../../components/PostCopyDrawer.tsx';
-import { AdBanner } from '../../../components/AdBanner.tsx';
+import { fetchFromApi } from '../../../lib/api-client';
+import { PostCopyDrawer } from '../../../components/PostCopyDrawer';
+import { AdBanner } from '../../../components/AdBanner';
 
 interface PromptDetailData {
   id: string;

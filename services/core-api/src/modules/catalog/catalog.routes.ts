@@ -1,8 +1,8 @@
 import { Hono } from 'hono';
 import { pool } from '../../infrastructure/database/client.ts';
-import { detectModality, cleanSearchQuery } from '../../../../../packages/persian-normalizer/src/index.ts';
-import { compilePrompt, stitchAtomicBlocks } from '../../../../../packages/prompt-compiler/src/index.ts';
-import type { PromptSlot, SavedContextProfile } from '../../../../../packages/contracts/src/index.ts';
+import { detectModality, cleanSearchQuery } from '@promptjoo/persian-normalizer';
+import { compilePrompt, stitchAtomicBlocks } from '@promptjoo/prompt-compiler';
+import type { PromptSlot, SavedContextProfile } from '@promptjoo/contracts';
 
 export const catalogRoutes = new Hono();
 

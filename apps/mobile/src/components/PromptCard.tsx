@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
-import type { MobilePrompt } from '../types.ts';
+import type { MobilePrompt } from '../types';
 
 interface PromptCardProps {
   prompt: MobilePrompt;

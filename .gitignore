@@ -1,7 +1,8 @@
 # Dependencies
 node_modules/
 .pnpm-store/
-.nx/cache/
+.nx/
+*.tsbuildinfo
 dist/
 build/
 coverage/
@@ -19,8 +20,9 @@ out/
 # Database & Local Run
 *.db
 *.sqlite
-*.sqlite3
+*.sqlite*
 pgdata/
+data/
 
 # IDE & OS
 .idea/

@@ -1,3 +1,3 @@
-export * from './catalog.schema.ts';
-export * from './identity.schema.ts';
-export * from './monetization.schema.ts';
+export * from './catalog.schema.js';
+export * from './identity.schema.js';
+export * from './monetization.schema.js';

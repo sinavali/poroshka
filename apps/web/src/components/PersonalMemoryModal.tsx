@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { X, Brain, Check, Sparkles } from 'lucide-react';
-import { fetchFromApi, getAuthToken } from '../lib/api-client.ts';
+import { fetchFromApi, getAuthToken } from '../lib/api-client';
 
 interface PersonalMemoryModalProps {
   isOpen: boolean;

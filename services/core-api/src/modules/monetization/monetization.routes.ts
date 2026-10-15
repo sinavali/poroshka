@@ -1,6 +1,6 @@
 import { Hono } from 'hono';
 import { pool } from '../../infrastructure/database/client.ts';
-import { AdClickEventSchema } from '../../../../../packages/contracts/src/index.ts';
+import { AdClickEventSchema } from '@promptjoo/contracts';
 import { sqliteLogger } from '../../infrastructure/observability/sqlite-logger.ts';
 
 export const monetizationRoutes = new Hono();

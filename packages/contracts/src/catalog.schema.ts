@@ -105,3 +105,12 @@ export const AtomicBlockSchema = z.object({
   slots_schema_json: z.array(PromptSlotSchema).default([]),
   usage_count: z.number().int().default(0)
 }).openapi('AtomicBlock');
+
+export type PromptModality = z.infer<typeof PromptModalitySchema>;
+export type PromptBlockType = z.infer<typeof PromptBlockTypeSchema>;
+export type PromptSlot = z.infer<typeof PromptSlotSchema>;
+export type SavedContextProfile = z.infer<typeof SavedContextProfileSchema>;
+export type Category = z.infer<typeof CategorySchema>;
+export type PromptListItem = z.infer<typeof PromptListItemSchema>;
+export type PromptDetail = z.infer<typeof PromptDetailSchema>;
+export type AtomicBlock = z.infer<typeof AtomicBlockSchema>;

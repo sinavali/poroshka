@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { Copy, Check, Sparkles, Eye, ArrowLeft } from 'lucide-react';
-import { fetchFromApi } from '../lib/api-client.ts';
+import { fetchFromApi } from '../lib/api-client';
 
 export interface PromptCardData {
   id: string;

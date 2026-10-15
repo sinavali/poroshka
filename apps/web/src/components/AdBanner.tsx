@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { fetchFromApi, getClientUUID } from '../lib/api-client.ts';
+import { fetchFromApi, getClientUUID } from '../lib/api-client';
 import { Sparkles, ExternalLink } from 'lucide-react';
 
 interface AdConfig {

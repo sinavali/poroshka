@@ -1,4 +1,4 @@
-import type { PromptSlot, SavedContextProfile, PromptModality } from '../../contracts/src/index.ts';
+import type { PromptSlot, SavedContextProfile, PromptModality } from '@promptjoo/contracts';
 
 export interface CompilePromptOptions {
   forceFarsiOutput?: boolean;

@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { X, ExternalLink, Sparkles, CheckCircle2, MessageSquare, Bot } from 'lucide-react';
-import { AdBanner } from './AdBanner.tsx';
+import { AdBanner } from './AdBanner';
 
 interface PostCopyDrawerProps {
   isOpen: boolean;

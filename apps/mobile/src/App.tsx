@@ -10,9 +10,9 @@ import {
   StyleSheet,
   StatusBar
 } from 'react-native';
-import { PromptCard } from './components/PromptCard.tsx';
-import { SlotEditor } from './components/SlotEditor.tsx';
-import type { AppState, MobilePrompt } from './types.ts';
+import { PromptCard } from './components/PromptCard';
+import { SlotEditor } from './components/SlotEditor';
+import type { AppState, MobilePrompt } from './types';
 
 const API_BASE = 'https://core-api.promptjoo.ir';
 

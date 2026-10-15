@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import './globals.css';
-import { AppShell } from './AppShell.tsx';
+import { AppShell } from './AppShell';
 
 export const metadata: Metadata = {
   title: 'پرامپت‌جو — مرجع تخصصی پرامپت‌های مهندسی‌شده هوش مصنوعی',

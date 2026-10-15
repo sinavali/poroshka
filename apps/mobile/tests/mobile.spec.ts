@@ -1,7 +1,7 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { compilePrompt } from '../../../packages/prompt-compiler/src/index.ts';
-import type { AppState, MobilePrompt } from '../src/types.ts';
+import { compilePrompt } from '@promptjoo/prompt-compiler';
+import type { AppState, MobilePrompt } from '../src/types';
 
 describe('React Native Mobile Client Logic Tests', () => {
   it('correctly transitions through 4-state lifecycle (loading -> loaded)', () => {

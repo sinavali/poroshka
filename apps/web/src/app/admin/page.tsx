@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { ShieldAlert, BarChart3, Radio, FileText, ToggleLeft, ToggleRight, Check, RefreshCw } from 'lucide-react';
-import { fetchFromApi } from '../../lib/api-client.ts';
+import { fetchFromApi } from '../../lib/api-client';
 
 export default function AdminPage() {
   const [adminToken, setAdminToken] = useState('');

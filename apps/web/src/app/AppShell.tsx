@@ -1,11 +1,11 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Header } from '../components/Header.tsx';
-import { Footer } from '../components/Footer.tsx';
-import { PersonalMemoryModal } from '../components/PersonalMemoryModal.tsx';
-import { AuthModal } from '../components/AuthModal.tsx';
-import { AdBanner } from '../components/AdBanner.tsx';
+import { Header } from '../components/Header';
+import { Footer } from '../components/Footer';
+import { PersonalMemoryModal } from '../components/PersonalMemoryModal';
+import { AuthModal } from '../components/AuthModal';
+import { AdBanner } from '../components/AdBanner';
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const [memoryModalOpen, setMemoryModalOpen] = useState(false);

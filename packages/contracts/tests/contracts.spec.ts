@@ -5,7 +5,7 @@ import {
   SavedContextProfileSchema,
   SendOtpRequestSchema,
   AdPlacementSlotSchema
-} from '../src/index.ts';
+} from '../dist/src/index.js';
 
 describe('Contracts Schema Validation Tests', () => {
   it('validates a valid prompt slot schema', () => {

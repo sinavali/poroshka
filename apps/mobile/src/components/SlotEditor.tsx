@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, TextInput, TouchableOpacity, ScrollView, StyleSheet } from 'react-native';
-import { compilePrompt } from '../../../packages/prompt-compiler/src/index.ts';
-import type { MobilePrompt } from '../types.ts';
-import type { PromptModality, SavedContextProfile } from '../../../packages/contracts/src/index.ts';
+import { compilePrompt } from '@promptjoo/prompt-compiler';
+import type { MobilePrompt } from '../types';
+import type { PromptModality, SavedContextProfile } from '@promptjoo/contracts';
 
 interface SlotEditorProps {
   prompt: MobilePrompt;

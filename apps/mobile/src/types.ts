@@ -1,4 +1,4 @@
-import type { PromptSlot, SavedContextProfile } from '../../packages/contracts/src/index.ts';
+import type { PromptSlot, SavedContextProfile } from '@promptjoo/contracts';
 
 export interface MobilePrompt {
   id: string;

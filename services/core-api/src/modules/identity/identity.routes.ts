@@ -9,7 +9,7 @@ import {
   VerifyOtpRequestSchema,
   PasswordLoginRequestSchema,
   UpdateProfileRequestSchema
-} from '../../../../../packages/contracts/src/index.ts';
+} from '@promptjoo/contracts';
 
 export const identityRoutes = new Hono();
 
