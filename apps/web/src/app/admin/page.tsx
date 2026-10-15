@@ -30,10 +30,43 @@ export default function AdminPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  const handleLogin = (e: React.FormEvent) => {
+  const [loginMode, setLoginMode] = useState<'credentials' | 'token'>('credentials');
+  const [phone, setPhone] = useState('09000000000');
+  const [password, setPassword] = useState('promptjoo123456');
+
+  const handlePasswordLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setError('');
+    try {
+      const res = await fetchFromApi<{ token?: string; session_token?: string; user?: { role: string } }>(
+        '/api/v1/identity/login-password',
+        {
+          method: 'POST',
+          body: JSON.stringify({ phone: phone.trim(), password })
+        }
+      );
+      const token = res.token || res.session_token;
+      if (!token) throw new Error('توکن احراز هویت دریافت نشد');
+      if (res.user?.role !== 'ADMIN') throw new Error('این حساب کاربری دسترسی سوپرادمین ندارد');
+      localStorage.setItem('promptjoo_admin_token', token);
+      localStorage.setItem('promptjoo_session_token', token);
+      setAdminToken(token);
+      setIsAuthenticated(true);
+      await loadAdminData();
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'خطا در احراز هویت ادمین';
+      setError(msg);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleTokenLogin = (e: React.FormEvent) => {
     e.preventDefault();
     if (adminToken.trim()) {
       localStorage.setItem('promptjoo_admin_token', adminToken.trim());
+      localStorage.setItem('promptjoo_session_token', adminToken.trim());
       setIsAuthenticated(true);
       loadAdminData();
     }
@@ -82,25 +115,92 @@ export default function AdminPage() {
             </div>
           </div>
 
-          <form onSubmit={handleLogin} className="space-y-4">
-            <div>
-              <label className="block text-xs font-bold text-gray-300 mb-1.5">توکن دسترسی ادمین</label>
-              <input
-                type="password"
-                value={adminToken}
-                onChange={(e) => setAdminToken(e.target.value)}
-                placeholder="Session Token..."
-                className="w-full bg-slate-900 border border-white/10 rounded-xl px-4 py-3 text-xs text-white font-mono focus:outline-none focus:border-blue-500"
-              />
+          {error && (
+            <div className="p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-xs text-red-400 font-medium">
+              {error}
             </div>
+          )}
 
+          {/* Mode Tabs */}
+          <div className="flex bg-slate-900/80 p-1 rounded-xl border border-white/5 text-xs">
             <button
-              type="submit"
-              className="w-full py-3 rounded-xl text-xs font-bold bg-blue-600 hover:bg-blue-500 text-white shadow-lg shadow-blue-600/30"
+              type="button"
+              onClick={() => { setLoginMode('credentials'); setError(''); }}
+              className={`flex-1 py-2 rounded-lg font-bold transition-all ${
+                loginMode === 'credentials' ? 'bg-blue-600 text-white shadow-md' : 'text-gray-400 hover:text-white'
+              }`}
             >
-              ورود به کنسول نظارت
+              شماره و رمز عبور
             </button>
-          </form>
+            <button
+              type="button"
+              onClick={() => { setLoginMode('token'); setError(''); }}
+              className={`flex-1 py-2 rounded-lg font-bold transition-all ${
+                loginMode === 'token' ? 'bg-blue-600 text-white shadow-md' : 'text-gray-400 hover:text-white'
+              }`}
+            >
+              توکن نشست (Token)
+            </button>
+          </div>
+
+          {loginMode === 'credentials' ? (
+            <form onSubmit={handlePasswordLogin} className="space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-gray-300 mb-1.5">شماره موبایل ادمین</label>
+                <input
+                  type="text"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  dir="ltr"
+                  placeholder="09000000000"
+                  className="w-full bg-slate-900 border border-white/10 rounded-xl px-4 py-3 text-xs text-white font-mono focus:outline-none focus:border-blue-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-gray-300 mb-1.5">رمز عبور سوپرادمین</label>
+                <input
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  dir="ltr"
+                  placeholder="رمز عبور..."
+                  className="w-full bg-slate-900 border border-white/10 rounded-xl px-4 py-3 text-xs text-white font-mono focus:outline-none focus:border-blue-500"
+                />
+              </div>
+
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full py-3 rounded-xl text-xs font-bold bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white shadow-lg shadow-blue-600/30 transition-all flex items-center justify-center gap-2"
+              >
+                {loading ? <RefreshCw className="w-4 h-4 animate-spin" /> : null}
+                ورود به پنل مدیریت
+              </button>
+            </form>
+          ) : (
+            <form onSubmit={handleTokenLogin} className="space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-gray-300 mb-1.5">توکن دسترسی ادمین (Bearer Token)</label>
+                <input
+                  type="password"
+                  value={adminToken}
+                  onChange={(e) => setAdminToken(e.target.value)}
+                  dir="ltr"
+                  placeholder="Bearer Token..."
+                  className="w-full bg-slate-900 border border-white/10 rounded-xl px-4 py-3 text-xs text-white font-mono focus:outline-none focus:border-blue-500"
+                />
+              </div>
+
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full py-3 rounded-xl text-xs font-bold bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white shadow-lg shadow-blue-600/30 transition-all"
+              >
+                ورود با توکن
+              </button>
+            </form>
+          )}
         </div>
       </div>
     );

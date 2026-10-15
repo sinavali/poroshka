@@ -6,6 +6,14 @@ const nextConfig: NextConfig = {
     '@promptjoo/persian-normalizer',
     '@promptjoo/prompt-compiler'
   ],
+  async rewrites() {
+    return [
+      {
+        source: '/api/:path*',
+        destination: `${process.env.INTERNAL_API_URL || 'http://localhost:3000'}/api/:path*`,
+      },
+    ];
+  },
   images: {
     remotePatterns: [
       {

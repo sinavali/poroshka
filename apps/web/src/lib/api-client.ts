@@ -1,4 +1,6 @@
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+const API_BASE =
+  process.env.NEXT_PUBLIC_API_URL ??
+  (typeof window === 'undefined' ? (process.env.INTERNAL_API_URL || 'http://localhost:3000') : '');
 
 export function getClientUUID(): string {
   if (typeof window === 'undefined') return '';
@@ -12,7 +14,7 @@ export function getClientUUID(): string {
 
 export function getAuthToken(): string | null {
   if (typeof window === 'undefined') return null;
-  return localStorage.getItem('promptjoo_session_token');
+  return localStorage.getItem('promptjoo_session_token') || localStorage.getItem('promptjoo_admin_token');
 }
 
 export async function fetchFromApi<T>(path: string, options: RequestInit = {}): Promise<T> {

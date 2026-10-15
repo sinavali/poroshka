@@ -116,7 +116,7 @@ export function AuthModal({ isOpen, onClose, onLoginSuccess }: AuthModalProps) {
 
     setLoading(true);
     try {
-      const res = await fetchFromApi<{ session_token: string; phone: string }>(
+      const res = await fetchFromApi<{ session_token?: string; token?: string; phone?: string; user?: { phone_e164: string } }>(
         '/api/v1/identity/verify-otp',
         {
           method: 'POST',
@@ -127,10 +127,13 @@ export function AuthModal({ isOpen, onClose, onLoginSuccess }: AuthModalProps) {
         }
       );
 
-      if (res.session_token) {
-        localStorage.setItem('promptjoo_session_token', res.session_token);
-        localStorage.setItem('promptjoo_user_phone', res.phone);
-        onLoginSuccess(res.phone, res.session_token);
+      const sessionToken = res.session_token || res.token;
+      const userPhone = res.phone || res.user?.phone_e164 || phone.trim();
+
+      if (sessionToken) {
+        localStorage.setItem('promptjoo_session_token', sessionToken);
+        localStorage.setItem('promptjoo_user_phone', userPhone);
+        onLoginSuccess(userPhone, sessionToken);
         onClose();
       }
     } catch (err: unknown) {
@@ -146,7 +149,7 @@ export function AuthModal({ isOpen, onClose, onLoginSuccess }: AuthModalProps) {
     setErrorMsg('');
     setLoading(true);
     try {
-      const res = await fetchFromApi<{ session_token: string; phone: string }>(
+      const res = await fetchFromApi<{ session_token?: string; token?: string; phone?: string; user?: { phone_e164: string } }>(
         '/api/v1/identity/login-password',
         {
           method: 'POST',
@@ -157,10 +160,13 @@ export function AuthModal({ isOpen, onClose, onLoginSuccess }: AuthModalProps) {
         }
       );
 
-      if (res.session_token) {
-        localStorage.setItem('promptjoo_session_token', res.session_token);
-        localStorage.setItem('promptjoo_user_phone', res.phone);
-        onLoginSuccess(res.phone, res.session_token);
+      const sessionToken = res.session_token || res.token;
+      const userPhone = res.phone || res.user?.phone_e164 || phone.trim();
+
+      if (sessionToken) {
+        localStorage.setItem('promptjoo_session_token', sessionToken);
+        localStorage.setItem('promptjoo_user_phone', userPhone);
+        onLoginSuccess(userPhone, sessionToken);
         onClose();
       }
     } catch (err: unknown) {

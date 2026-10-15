@@ -162,6 +162,7 @@ identityRoutes.post('/verify-otp', async (c) => {
 
   return c.json({
     token: rawToken,
+    session_token: rawToken,
     expires_at: expiresAt.toISOString(),
     user: {
       id: user.id,
@@ -210,6 +211,7 @@ identityRoutes.post('/login-password', async (c) => {
 
   return c.json({
     token: rawToken,
+    session_token: rawToken,
     expires_at: expiresAt.toISOString(),
     user: {
       id: user.id,
