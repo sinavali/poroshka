@@ -1,0 +1,44 @@
+{
+  "name": "contracts",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "projectType": "library",
+  "sourceRoot": "packages/contracts/src",
+  "tags": ["profile:d", "scope:shared"],
+  "targets": {
+    "build": {
+      "executor": "@nx/js:tsc",
+      "options": {
+        "outputPath": "dist/packages/contracts",
+        "main": "packages/contracts/src/index.ts",
+        "tsConfig": "packages/contracts/tsconfig.lib.json"
+      }
+    },
+    "lint": {
+      "executor": "@nx/eslint:lint"
+    },
+    "test": {
+      "executor": "@nx/vitest:test",
+      "options": {
+        "coverage": true
+      }
+    },
+    "export-openapi": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "node packages/contracts/src/bin/export-openapi.ts"
+      }
+    },
+    "generate-dart": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "cd apps/mobile && dart run swagger_parser"
+      }
+    },
+    "audit": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "python3 scripts/audit-runner.py --scope packages/contracts"
+      }
+    }
+  }
+}

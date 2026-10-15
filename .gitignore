@@ -1,0 +1,47 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+.nx/cache/
+dist/
+build/
+coverage/
+.turbo/
+.next/
+out/
+
+# Environment & Secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# Database & Local Run
+*.db
+*.sqlite
+*.sqlite3
+pgdata/
+
+# IDE & OS
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Flutter / Dart
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+build/
+android/.gradle
+ios/Pods
+ios/.symlinks

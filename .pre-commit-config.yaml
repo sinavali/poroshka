@@ -1,0 +1,23 @@
+repos:
+  - repo: local
+    hooks:
+      - id: verify-nx-targets
+        name: Verify Nx Targets Contract
+        entry: python3 scripts/verify-nx-targets.py --root .
+        language: system
+        pass_filenames: false
+      - id: verify-agent-manifests
+        name: Verify AGENT.md Manifests
+        entry: python3 scripts/verify-agent-manifests.py --root .
+        language: system
+        pass_filenames: false
+      - id: check-nc-items
+        name: Check NC Protocol Items
+        entry: python3 scripts/check-nc-items.py --dir docs/nc --max-age 14
+        language: system
+        pass_filenames: false
+      - id: validate-change-surface
+        name: Validate Change Surface
+        entry: python3 scripts/validate-change-surface.py CHANGE_SURFACE.md
+        language: system
+        pass_filenames: false

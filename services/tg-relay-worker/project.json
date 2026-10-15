@@ -1,0 +1,31 @@
+{
+  "name": "tg-relay-worker",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "projectType": "application",
+  "sourceRoot": "services/tg-relay-worker/src",
+  "tags": ["profile:a", "scope:backend", "runtime:cloudflare-worker"],
+  "targets": {
+    "build": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "wrangler deploy --dry-run --outdir dist/services/tg-relay-worker",
+        "cwd": "services/tg-relay-worker"
+      }
+    },
+    "lint": {
+      "executor": "@nx/eslint:lint"
+    },
+    "test": {
+      "executor": "@nx/vitest:test",
+      "options": {
+        "coverage": true
+      }
+    },
+    "audit": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "python3 scripts/audit-runner.py --scope services/tg-relay-worker"
+      }
+    }
+  }
+}

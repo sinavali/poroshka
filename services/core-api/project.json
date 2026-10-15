@@ -1,0 +1,40 @@
+{
+  "name": "core-api",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "projectType": "application",
+  "sourceRoot": "services/core-api/src",
+  "tags": ["profile:a", "scope:backend"],
+  "targets": {
+    "build": {
+      "executor": "@nx/esbuild:esbuild",
+      "options": {
+        "outputPath": "dist/services/core-api",
+        "main": "services/core-api/src/bootstrap/main.ts",
+        "tsConfig": "services/core-api/tsconfig.app.json",
+        "target": "node22",
+        "bundle": true
+      }
+    },
+    "lint": {
+      "executor": "@nx/eslint:lint"
+    },
+    "test": {
+      "executor": "@nx/vitest:test",
+      "options": {
+        "coverage": true
+      }
+    },
+    "test:integration": {
+      "executor": "@nx/vitest:test",
+      "options": {
+        "config": "services/core-api/vitest.integration.config.ts"
+      }
+    },
+    "audit": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "python3 scripts/audit-runner.py --scope services/core-api"
+      }
+    }
+  }
+}
