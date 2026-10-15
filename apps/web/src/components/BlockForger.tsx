@@ -1,9 +1,10 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Hammer, Copy, Check, Sparkles, Wand2, Sliders } from 'lucide-react';
+import { Hammer, Copy, Check, Sparkles, Wand2, Sliders, Brain } from 'lucide-react';
 import { fetchFromApi } from '../lib/api-client';
 import { showDynamicToast } from './DynamicIslandToast';
+import { MemoryProfile } from './PersonalMemoryModal';
 
 interface ForgeResult {
   modality: string;
@@ -13,49 +14,65 @@ interface ForgeResult {
     slot_key: string;
     label_fa: string;
     default_value?: string;
-    default_value_en?: string;
     suggestions?: string[];
   }>;
-  resolved_slot_values: Record<string, string>;
+  resolved_slot_values?: Record<string, string>;
 }
 
 interface BlockForgerProps {
   initialQuery?: string;
+  onOpenMemoryModal?: () => void;
 }
 
-const MODALITY_QUICK_IDEAS: Record<string, string[]> = {
-  text_writing: [
-    'سناریو استوری معرفی دوره آموزشی برای اینستاگرام با قلاب کنجکاوی و دعوت به اقدام',
-    'پست لینکدین تحلیلی درباره نقش هوش مصنوعی در افزایش بازدهی کاری و مهارت‌های لازم',
-    'متن ایمیل مارکتینگ برای کمپین تخفیف با لحن فوری و جذاب',
-    'کپشن اینستاگرام برای معرفی محصول جدید با ایجاد تعامل در کامنت‌ها'
-  ],
-  text_to_image: [
-    'پرتره سینمایی واقع‌گرایانه از یک مهندس در دفتر کار مدرن با نور ملایم طلایی',
-    'عکاسی محصول استودیویی با کیفیت بالا از یک فنجان قهوه روی میز چوبی با بخار ملایم',
-    'طراحی کاراکتر فانتزی روباه سخنگو با عینک به سبک انیمیشن‌های سه‌بعدی',
-    'منظره شهری مدرن در غروب با انعکاس نور چراغ‌ها در خیابان باران‌خورده'
-  ],
-  code_tech: [
-    'طراحی و بهینه‌سازی کوئری در پایگاه داده همراه با شاخص‌ها برای سرعت بالا',
-    'کامپوننت فرم واکنش‌گرا و مدرن با اعتبارسنجی ورودی‌ها در ری‌اکت و تایپ‌اسکریپت',
-    'پیاده‌سازی تابع محدودکننده نرخ درخواست‌ها برای جلوگیری از اسپم در وب‌سرویس'
-  ],
-  data_structuring: [
-    'فرمول پیشرفته اکسل برای محاسبه پورسانت پلکانی فروشندگان با چند شرط همزمان',
-    'جدول بودجه‌بندی ماهانه با تفکیک هزینه‌های ثابت و متغیر و جمع کل خودکار',
-    'فرمول پاکسازی و استانداردسازی شماره‌های تماس نامعتبر در گوگل شیتس'
-  ]
-};
+const SAMPLE_IDEAS = [
+  'سناریو استوری معرفی دوره آموزشی برای اینستاگرام با قلاب کنجکاوی و دعوت به اقدام',
+  'پست لینکدین تحلیلی درباره نقش هوش مصنوعی در آینده مشاغل و راهکارهای ارتقای مهارت',
+  'متن ایمیل مارکتینگ برای کمپین تخفیف بلک فرایدی با لحن فوری و جذاب',
+  'پرتره سینمایی واقع‌گرایانه از یک مهندس نرم‌افزار در دفتر کاری مدرن با نور ملایم پنجره',
+  'عکاسی محصول استودیویی با کیفیت 8k از یک بطری عطر لوکس روی سنگ مرمر با بازتاب آب',
+  'طراحی و بهینه‌سازی کوئری PostgreSQL با ایندکس‌های BRIN و CTE برای ۱۰ میلیون رکورد',
+  'کامپوننت واکنش‌گرا فرم چندمرحله‌ای احراز هویت با اعتبارسنجی Zod در React و Tailwind',
+  'فرمول پیشرفته اکسل با ترکیب XLOOKUP و INDEX-MATCH برای محاسبه پورسانت پلکانی فروشندگان'
+];
 
-export function BlockForger({ initialQuery = '' }: BlockForgerProps) {
+export function BlockForger({ initialQuery = '', onOpenMemoryModal }: BlockForgerProps) {
   const [query, setQuery] = useState(initialQuery);
-  const [modality, setModality] = useState('text_writing');
   const [forceFarsi, setForceFarsi] = useState(true);
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<ForgeResult | null>(null);
   const [slotValues, setSlotValues] = useState<Record<string, string>>({});
   const [copied, setCopied] = useState(false);
+
+  // Multi-profile personal memory state
+  const [memoryProfiles, setMemoryProfiles] = useState<MemoryProfile[]>([]);
+  const [selectedMemoryId, setSelectedMemoryId] = useState<string>('none');
+
+  const loadMemories = () => {
+    try {
+      const cached = localStorage.getItem('promptjoo_memory_profiles');
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          setMemoryProfiles(parsed);
+          const activeId = localStorage.getItem('promptjoo_active_memory_id');
+          if (activeId && parsed.some((p: MemoryProfile) => p.id === activeId)) {
+            setSelectedMemoryId(activeId);
+          }
+          return;
+        }
+      }
+      setMemoryProfiles([]);
+    } catch {
+      setMemoryProfiles([]);
+    }
+  };
+
+  useEffect(() => {
+    loadMemories();
+    const handleUpdate = () => loadMemories();
+    window.addEventListener('promptjoo:memory-updated', handleUpdate);
+    return () => window.removeEventListener('promptjoo:memory-updated', handleUpdate);
+  }, []);
 
   useEffect(() => {
     if (initialQuery) {
@@ -64,10 +81,34 @@ export function BlockForger({ initialQuery = '' }: BlockForgerProps) {
   }, [initialQuery]);
 
   const handleShuffleIdea = () => {
-    const ideas = MODALITY_QUICK_IDEAS[modality] || MODALITY_QUICK_IDEAS['text_writing'];
-    const otherIdeas = ideas.filter((i) => i !== query);
-    const randomPick = otherIdeas[Math.floor(Math.random() * otherIdeas.length)] || ideas[0];
+    const otherIdeas = SAMPLE_IDEAS.filter((i) => i !== query);
+    const randomPick = otherIdeas[Math.floor(Math.random() * otherIdeas.length)] || SAMPLE_IDEAS[0];
     setQuery(randomPick);
+  };
+
+  const handleMemorySelect = (memId: string) => {
+    setSelectedMemoryId(memId);
+    if (memId === 'none') {
+      return;
+    }
+    const profile = memoryProfiles.find((p) => p.id === memId);
+    if (!profile) return;
+
+    // Apply memory profile parameters to current slots
+    setSlotValues((prev) => ({
+      ...prev,
+      brand_name: profile.brand_name || prev.brand_name || '',
+      topic: profile.niche_topic || prev.topic || '',
+      target_audience: profile.target_audience || prev.target_audience || '',
+      brand_tone: profile.brand_tone || prev.brand_tone || '',
+      call_to_action: profile.call_to_action || prev.call_to_action || ''
+    }));
+
+    showDynamicToast({
+      title: 'حافظه اعمال شد',
+      message: `اطلاعات «${profile.title}» جایگذاری گردید`,
+      type: 'memory'
+    });
   };
 
   const handleForge = async (e: React.FormEvent) => {
@@ -76,22 +117,31 @@ export function BlockForger({ initialQuery = '' }: BlockForgerProps) {
 
     setLoading(true);
     try {
-      const cachedProfile = localStorage.getItem('promptjoo_user_profile');
-      const profile = cachedProfile ? JSON.parse(cachedProfile) : {};
+      // Find active profile if chosen
+      const activeProfile = memoryProfiles.find((p) => p.id === selectedMemoryId);
 
       const data = await fetchFromApi<ForgeResult>('/api/v1/catalog/forge', {
         method: 'POST',
         body: JSON.stringify({
           query: query.trim(),
-          modality,
           force_farsi_output: forceFarsi,
-          profile,
+          profile: activeProfile || null,
           slot_values: slotValues
         })
       });
 
       setResult(data);
-      setSlotValues(data.resolved_slot_values || {});
+      const mergedVals = { ...(data.resolved_slot_values || {}) };
+
+      // Overwrite with active memory if selected
+      if (selectedMemoryId !== 'none' && activeProfile) {
+        if (activeProfile.brand_name) mergedVals.brand_name = activeProfile.brand_name;
+        if (activeProfile.target_audience) mergedVals.target_audience = activeProfile.target_audience;
+        if (activeProfile.brand_tone) mergedVals.brand_tone = activeProfile.brand_tone;
+        if (activeProfile.call_to_action) mergedVals.call_to_action = activeProfile.call_to_action;
+      }
+
+      setSlotValues(mergedVals);
       showDynamicToast({
         title: 'پرامپت بلوک‌چین ساخته شد',
         message: 'ترکیب اتمیک بلوک‌های مهندسی‌شده بدون هزینه توکن',
@@ -131,6 +181,17 @@ export function BlockForger({ initialQuery = '' }: BlockForgerProps) {
       type: 'copy'
     });
     setTimeout(() => setCopied(false), 2200);
+
+    // Persist to user_copied_prompts in backend for /my-prompts tracking
+    fetchFromApi('/api/v1/identity/copied-prompts', {
+      method: 'POST',
+      body: JSON.stringify({
+        title_fa: query.slice(0, 80),
+        modality: result.modality || 'text_writing',
+        custom_values_json: slotValues,
+        compiled_text: finalCompiled
+      })
+    }).catch(() => {});
   };
 
   return (
@@ -151,47 +212,64 @@ export function BlockForger({ initialQuery = '' }: BlockForgerProps) {
               </span>
             </h3>
             <p className="text-xs text-slate-500 mt-0.5">
-              ایده خود را بنویسید تا سیستم به‌صورت خودکار بلوک‌های استاندارد نقش، وظیفه و قیود را با هم ترکیب کند.
+              ایده یا نیاز خود را بنویسید تا سیستم به‌صورت خودکار بلوک‌های استاندارد نقش، وظیفه و قیود را ترکیب کند.
             </p>
           </div>
         </div>
 
-        {/* Shuffle Idea Action */}
-        <button
-          type="button"
-          onClick={handleShuffleIdea}
-          className="pressable inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold border border-slate-200/80"
-          title="قرار دادن یک ایده نمونه برای این دسته‌بندی"
-        >
-          <Sparkles className="w-3.5 h-3.5 text-blue-600" />
-          <span>ایده تصادفی</span>
-        </button>
+        {/* Action Controls */}
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={handleShuffleIdea}
+            className="pressable inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold border border-slate-200/80"
+          >
+            <Sparkles className="w-3.5 h-3.5 text-blue-600" />
+            <span>ایده تصادفی</span>
+          </button>
+        </div>
       </div>
 
       <form onSubmit={handleForge} className="space-y-4 relative">
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-          <div className="sm:col-span-2">
-            <input
-              type="text"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="مثلاً: سناریو معرفی لپ‌تاپ گیمینگ برای استوری اینستاگرام..."
-              className="w-full bg-slate-50 border border-slate-200/90 rounded-2xl px-4 py-3 text-xs text-slate-800 placeholder-slate-400 focus:bg-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10"
-            />
-          </div>
-
-          <div>
+        {/* Memory Profile Select Dropdown */}
+        <div className="flex items-center justify-between gap-3 p-3 bg-slate-50/80 border border-slate-200/70 rounded-2xl flex-wrap">
+          <div className="flex items-center gap-2">
+            <Brain className="w-4 h-4 text-indigo-600" />
+            <span className="text-xs font-bold text-slate-700">حافظه شخصی:</span>
             <select
-              value={modality}
-              onChange={(e) => setModality(e.target.value)}
-              className="w-full bg-slate-50 border border-slate-200/90 rounded-2xl px-4 py-3 text-xs text-slate-800 focus:bg-white focus:outline-none focus:border-blue-500"
+              value={selectedMemoryId}
+              onChange={(e) => handleMemorySelect(e.target.value)}
+              className="bg-white border border-slate-200 rounded-xl px-3 py-1.5 text-xs text-slate-800 font-medium focus:outline-none focus:border-indigo-500 shadow-xs"
             >
-              <option value="text_writing">تولید محتوا و کپشن</option>
-              <option value="text_to_image">تولید تصویر (میدجورنی)</option>
-              <option value="data_structuring">اکسل و داده</option>
-              <option value="code_tech">برنامه‌نویسی و SQL</option>
+              <option value="none">بدون حافظه (تکمیل دستی)</option>
+              {memoryProfiles.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.title} {p.brand_name ? `(${p.brand_name})` : ''}
+                </option>
+              ))}
             </select>
           </div>
+
+          {onOpenMemoryModal && (
+            <button
+              type="button"
+              onClick={onOpenMemoryModal}
+              className="text-[11px] font-bold text-indigo-600 hover:text-indigo-800"
+            >
+              مدیریت و افزودن حافظه‌ها
+            </button>
+          )}
+        </div>
+
+        {/* Query Input */}
+        <div>
+          <input
+            type="text"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="مثلاً: سناریو معرفی لپ‌تاپ گیمینگ برای استوری اینستاگرام، یا کوئری بهینه‌سازی داده‌ها..."
+            className="w-full bg-slate-50 border border-slate-200/90 rounded-2xl px-4 py-3 text-xs text-slate-800 placeholder-slate-400 focus:bg-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10"
+          />
         </div>
 
         <div className="flex items-center justify-between pt-1 flex-wrap gap-3">
@@ -218,73 +296,61 @@ export function BlockForger({ initialQuery = '' }: BlockForgerProps) {
 
       {/* Result Display & Live Slot Customization */}
       {result && (
-        <div className="mt-6 pt-6 border-t border-slate-200/80 space-y-4 relative animate-fade-in">
+        <div className="mt-8 pt-8 border-t border-slate-200/80 space-y-6 animate-fade-in relative">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-emerald-600 flex items-center gap-1.5">
-              <Sparkles className="w-4 h-4" />
-              پرامپت مهندسی‌شده آماده اجرا:
-            </span>
+            <h4 className="text-sm font-bold text-slate-800 flex items-center gap-2">
+              <Sliders className="w-4 h-4 text-blue-600" />
+              متغیرها و شخصی‌سازی پرامپت ساخته‌شده
+            </h4>
             <button
               onClick={handleCopy}
-              className={`pressable flex items-center gap-1.5 px-4 py-1.5 rounded-full text-xs font-bold spring-transition ${
-                copied ? 'bg-emerald-600 text-white' : 'bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-200'
-              }`}
+              className="pressable flex items-center gap-1.5 px-4 py-2 rounded-2xl text-xs font-bold bg-blue-600 text-white hover:bg-blue-500 shadow-md shadow-blue-500/20"
             >
-              {copied ? (
-                <>
-                  <Check className="w-3.5 h-3.5" />
-                  <span>کپی شد!</span>
-                </>
-              ) : (
-                <>
-                  <Copy className="w-3.5 h-3.5" />
-                  <span>کپی در کلیپ‌بورد</span>
-                </>
-              )}
+              {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+              <span>{copied ? 'کپی شد!' : 'کپی متن پرامپت'}</span>
             </button>
           </div>
 
-          {/* Optional Live Slots Editor with clickable suggestions */}
+          {/* Slots input grid with suggestion chips */}
           {result.slots && result.slots.length > 0 && (
-            <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/80 space-y-3">
-              <div className="flex items-center gap-2 text-xs font-bold text-indigo-700">
-                <Sliders className="w-4 h-4" />
-                <span>تنظیم و جایگذاری متغیرهای پرامپت:</span>
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-                {result.slots.map((s) => (
-                  <div key={s.slot_key} className="space-y-1.5">
-                    <label className="text-[11px] font-bold text-slate-700">{s.label_fa}</label>
-                    <input
-                      type="text"
-                      value={slotValues[s.slot_key] || ''}
-                      onChange={(e) => setSlotValues({ ...slotValues, [s.slot_key]: e.target.value })}
-                      placeholder={s.default_value || s.default_value_en || ''}
-                      className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-800 focus:outline-none focus:border-indigo-500 shadow-sm"
-                    />
-                    {s.suggestions && s.suggestions.length > 0 && (
-                      <div className="flex flex-wrap gap-1 pt-0.5">
-                        {s.suggestions.map((sug) => (
-                          <button
-                            key={sug}
-                            type="button"
-                            onClick={() => setSlotValues({ ...slotValues, [s.slot_key]: sug })}
-                            className="pressable text-[10px] px-2 py-0.5 rounded-lg bg-white border border-slate-200 text-slate-600 hover:text-blue-600 hover:border-blue-300"
-                          >
-                            {sug}
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-slate-50/70 p-5 rounded-2xl border border-slate-200/60">
+              {result.slots.map((s) => (
+                <div key={s.slot_key} className="space-y-1.5">
+                  <label className="block text-xs font-bold text-slate-700">{s.label_fa}</label>
+                  <input
+                    type="text"
+                    value={slotValues[s.slot_key] || ''}
+                    placeholder={s.default_value || s.label_fa}
+                    onChange={(e) => setSlotValues({ ...slotValues, [s.slot_key]: e.target.value })}
+                    className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-800 focus:outline-none focus:border-blue-500"
+                  />
+                  {s.suggestions && s.suggestions.length > 0 && (
+                    <div className="flex items-center gap-1 flex-wrap pt-1">
+                      <span className="text-[10px] text-slate-400 font-medium">پیشنهاد:</span>
+                      {s.suggestions.map((sug) => (
+                        <button
+                          key={sug}
+                          type="button"
+                          onClick={() => setSlotValues({ ...slotValues, [s.slot_key]: sug })}
+                          className="px-2 py-0.5 rounded-md text-[10px] font-medium bg-white hover:bg-blue-50 text-slate-600 hover:text-blue-700 border border-slate-200 shadow-2xs"
+                        >
+                          {sug}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ))}
             </div>
           )}
 
-          <pre className="bilingual-code text-xs bg-slate-100 p-4 rounded-2xl border border-slate-200 text-slate-800 max-h-56 overflow-y-auto leading-relaxed">
-            {getLiveCompiledText()}
-          </pre>
+          {/* Live Preview Box */}
+          <div className="space-y-2">
+            <span className="text-xs font-bold text-slate-700">پیش‌نمایش زنده پرامپت نهایی:</span>
+            <div className="p-4 rounded-2xl bg-white border border-slate-200 text-xs font-mono text-slate-800 leading-relaxed whitespace-pre-wrap max-h-72 overflow-y-auto select-all shadow-inner">
+              {getLiveCompiledText()}
+            </div>
+          </div>
         </div>
       )}
     </div>

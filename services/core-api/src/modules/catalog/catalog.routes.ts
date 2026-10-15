@@ -1,6 +1,7 @@
 import { Hono } from 'hono';
 import crypto from 'node:crypto';
 import { pool } from '../../infrastructure/database/client.ts';
+import { logger } from '../../infrastructure/observability/pino-logger.ts';
 import { detectModality, cleanSearchQuery } from '@promptjoo/persian-normalizer';
 import { compilePrompt, stitchAtomicBlocks } from '@promptjoo/prompt-compiler';
 import type { PromptSlot, SavedContextProfile } from '@promptjoo/contracts';
@@ -174,7 +175,8 @@ catalogRoutes.post('/prompts/:slug/copy', async (c) => {
         await pool.query(`
           INSERT INTO user_copied_prompts (user_id, client_uuid, prompt_id, custom_values_json, compiled_text, copy_count, last_copied_at)
           VALUES ($1, $2, $3, $4, $5, 1, NOW())
-          ON CONFLICT (user_id, prompt_id) DO UPDATE SET
+          ON CONFLICT (user_id, prompt_id) WHERE user_id IS NOT NULL AND prompt_id IS NOT NULL
+          DO UPDATE SET
             copy_count = user_copied_prompts.copy_count + 1,
             custom_values_json = EXCLUDED.custom_values_json,
             compiled_text = EXCLUDED.compiled_text,
@@ -184,14 +186,17 @@ catalogRoutes.post('/prompts/:slug/copy', async (c) => {
         await pool.query(`
           INSERT INTO user_copied_prompts (client_uuid, prompt_id, custom_values_json, compiled_text, copy_count, last_copied_at)
           VALUES ($1, $2, $3, $4, 1, NOW())
-          ON CONFLICT (client_uuid, prompt_id) DO UPDATE SET
+          ON CONFLICT (client_uuid, prompt_id) WHERE user_id IS NULL AND prompt_id IS NOT NULL
+          DO UPDATE SET
             copy_count = user_copied_prompts.copy_count + 1,
             custom_values_json = EXCLUDED.custom_values_json,
             compiled_text = EXCLUDED.compiled_text,
             last_copied_at = NOW();
         `, [clientUuid, prompt.id, JSON.stringify(userValues), compiled.compiledText]);
       }
-    } catch {}
+    } catch (copyErr) {
+      logger.warn({ copyErr }, 'Failed to record prompt copy metric');
+    }
   })();
 
   return c.json({
@@ -303,11 +308,11 @@ catalogRoutes.post('/forge', async (c) => {
   const forcedModality = body.modality;
   const profile: Partial<SavedContextProfile> = body.profile || {};
 
-  // Detect modality
+  // Detect or infer domain modality
   const detected = forcedModality || detectModality(queryText).modality;
 
-  // Retrieve top atomic blocks for this modality
-  const blocksRes = await pool.query(`
+  // Retrieve top atomic blocks for this modality, or fallback to top blocks across all domains
+  let blocksRes = await pool.query(`
     SELECT DISTINCT ON (block_type)
       block_type, title_fa, block_template_en, slots_schema_json
     FROM prompt_blocks
@@ -316,16 +321,18 @@ catalogRoutes.post('/forge', async (c) => {
   `, [detected]);
 
   if (blocksRes.rows.length === 0) {
-    return c.json({
-      error: 'NO_BLOCKS_FOUND',
-      message: 'بلوک‌های سازنده پرامپت برای این دسته‌بندی هنوز بارگذاری نشده است.'
-    }, 404);
+    blocksRes = await pool.query(`
+      SELECT DISTINCT ON (block_type)
+        block_type, title_fa, block_template_en, slots_schema_json
+      FROM prompt_blocks
+      ORDER BY block_type, usage_count DESC;
+    `);
   }
 
-  let roleText = '';
-  let taskText = '';
-  let constraintText = '';
-  let formatText = '';
+  let roleText = 'You are an elite, production-grade AI specialist.';
+  let taskText = queryText;
+  let constraintText = 'Ensure the output is comprehensive, rigorous, and directly actionable. Maintain high quality without fluff.';
+  let formatText = 'Provide a structured, step-by-step output with clear headings and bullet points where applicable.';
   const mergedSlots: (PromptSlot & { suggestions?: string[] })[] = [];
 
   for (const block of blocksRes.rows) {

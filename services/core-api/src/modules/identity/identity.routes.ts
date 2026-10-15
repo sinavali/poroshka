@@ -10,6 +10,7 @@ import {
   PasswordLoginRequestSchema,
   UpdateProfileRequestSchema
 } from '@promptjoo/contracts';
+import { sendMeliPayamakOtp } from '../../infrastructure/sms/melipayamak.client.ts';
 
 export const identityRoutes = new Hono();
 
@@ -79,20 +80,27 @@ identityRoutes.post('/send-otp', async (c) => {
     ON CONFLICT (bucket_key) DO UPDATE SET hit_count = rate_limit_buckets.hit_count + 1;
   `, [ipRateKey]);
 
-  // Log dispatch without PII
-  logger.info({ recipient_masked: maskPhone(phoneE164), purpose: parsed.data.purpose }, 'OTP generated and dispatched');
+  // Dispatch OTP via MeliPayamak official REST API
+  const smsResult = await sendMeliPayamakOtp(phoneE164, rawCode);
+  logger.info({
+    recipient_masked: maskPhone(phoneE164),
+    purpose: parsed.data.purpose,
+    sms_success: smsResult.success,
+    simulated: smsResult.simulated
+  }, 'OTP generated and dispatched');
 
   // Return messenger deep-links for domestic fallback
   return c.json({
     ok: true,
-    message: 'کد تایید با موفقیت ارسال شد.',
+    message: smsResult.success ? 'کد تایید با موفقیت ارسال شد.' : 'کد تایید صادر شد (ارسال پیامک با تاخیر مواجه شد).',
     expires_in_seconds: 180,
+    sms_delivered: smsResult.success,
     messenger_fallback: {
       telegram_bot_url: `https://t.me/promptjoo_bot?start=auth_${messengerToken}`,
       bale_bot_url: `https://ble.ir/promptjoo_bot?start=auth_${messengerToken}`
     },
     // In dev environment or test numbers, expose code for automated verification
-    ...(process.env.NODE_ENV !== 'production' ? { dev_code: rawCode } : {})
+    ...(process.env.NODE_ENV !== 'production' || smsResult.simulated ? { dev_code: rawCode } : {})
   });
 });
 
@@ -290,12 +298,16 @@ identityRoutes.get('/copied-prompts', async (c) => {
   const query = `
     SELECT 
       ucp.id, ucp.copy_count, ucp.custom_values_json, ucp.compiled_text, ucp.last_copied_at,
-      p.id as prompt_id, p.slug, p.title_fa, p.short_desc_fa, p.modality,
-      c.title_fa as category_title_fa
+      COALESCE(p.id, ucp.id) as prompt_id,
+      COALESCE(p.slug, '') as slug,
+      COALESCE(p.title_fa, ucp.custom_title_fa, 'پرامپت ساخته‌شده') as title_fa,
+      COALESCE(p.short_desc_fa, '') as short_desc_fa,
+      COALESCE(p.modality, ucp.custom_modality, 'text_writing') as modality,
+      COALESCE(c.title_fa, 'تولید محتوا و مهندسی پرامپت') as category_title_fa
     FROM user_copied_prompts ucp
-    JOIN prompts p ON ucp.prompt_id = p.id
-    JOIN categories c ON p.category_id = c.id
-    WHERE ($1::uuid IS NOT NULL AND ucp.user_id = $1::uuid)
+    LEFT JOIN prompts p ON ucp.prompt_id = p.id
+    LEFT JOIN categories c ON p.category_id = c.id
+    WHERE ($1::uuid IS NOT NULL AND (ucp.user_id = $1::uuid OR (ucp.client_uuid IS NOT NULL AND ucp.client_uuid = $2)))
        OR ($1::uuid IS NULL AND ucp.client_uuid = $2)
     ORDER BY ucp.last_copied_at DESC
     LIMIT 100;
@@ -303,4 +315,145 @@ identityRoutes.get('/copied-prompts', async (c) => {
 
   const rows = await pool.query(query, [userId, clientUuid]);
   return c.json(rows.rows);
+});
+
+// 7. Record Copied Prompt (Direct API for forged prompts & custom copies)
+identityRoutes.post('/copied-prompts', async (c) => {
+  const authHeader = c.req.header('authorization');
+  const clientUuid = c.req.header('x-client-uuid') || '';
+  let userId: string | null = null;
+
+  if (authHeader && authHeader.startsWith('Bearer ')) {
+    const rawToken = authHeader.slice(7).trim();
+    const tokenHash = crypto.createHash('sha256').update(rawToken).digest('hex');
+    const sRes = await pool.query('SELECT user_id FROM auth_sessions WHERE token_hash = $1 AND expires_at > NOW() LIMIT 1', [tokenHash]);
+    if (sRes.rows.length > 0) userId = sRes.rows[0].user_id;
+  }
+
+  const body = await c.req.json().catch(() => ({}));
+  const { prompt_id, title_fa, modality, custom_values_json = {}, compiled_text = '' } = body;
+
+  if (!compiled_text && !prompt_id) {
+    return c.json({ error: 'INVALID_INPUT', message: 'متن پرامپت یا شناسه پرامپت الزامی است.' }, 400);
+  }
+
+  try {
+    if (prompt_id) {
+      if (userId) {
+        await pool.query(`
+          INSERT INTO user_copied_prompts (user_id, client_uuid, prompt_id, custom_values_json, compiled_text, copy_count, last_copied_at)
+          VALUES ($1, $2, $3, $4, $5, 1, NOW())
+          ON CONFLICT (user_id, prompt_id) WHERE user_id IS NOT NULL AND prompt_id IS NOT NULL
+          DO UPDATE SET
+            copy_count = user_copied_prompts.copy_count + 1,
+            custom_values_json = EXCLUDED.custom_values_json,
+            compiled_text = EXCLUDED.compiled_text,
+            last_copied_at = NOW();
+        `, [userId, clientUuid || null, prompt_id, JSON.stringify(custom_values_json), compiled_text]);
+      } else if (clientUuid) {
+        await pool.query(`
+          INSERT INTO user_copied_prompts (client_uuid, prompt_id, custom_values_json, compiled_text, copy_count, last_copied_at)
+          VALUES ($1, $2, $3, $4, 1, NOW())
+          ON CONFLICT (client_uuid, prompt_id) WHERE user_id IS NULL AND prompt_id IS NOT NULL
+          DO UPDATE SET
+            copy_count = user_copied_prompts.copy_count + 1,
+            custom_values_json = EXCLUDED.custom_values_json,
+            compiled_text = EXCLUDED.compiled_text,
+            last_copied_at = NOW();
+        `, [clientUuid, prompt_id, JSON.stringify(custom_values_json), compiled_text]);
+      }
+    } else {
+      // Custom forged prompt without catalog prompt_id
+      const existing = await pool.query(`
+        SELECT id, copy_count FROM user_copied_prompts
+        WHERE compiled_text = $1 AND (($2::uuid IS NOT NULL AND user_id = $2::uuid) OR ($2::uuid IS NULL AND client_uuid = $3))
+        LIMIT 1;
+      `, [compiled_text, userId, clientUuid]);
+
+      if (existing.rows.length > 0) {
+        await pool.query(`
+          UPDATE user_copied_prompts
+          SET copy_count = copy_count + 1,
+              custom_values_json = $1,
+              custom_title_fa = COALESCE($2, custom_title_fa),
+              last_copied_at = NOW()
+          WHERE id = $3;
+        `, [JSON.stringify(custom_values_json), title_fa || 'پرامپت ساخته‌شده', existing.rows[0].id]);
+      } else {
+        await pool.query(`
+          INSERT INTO user_copied_prompts (user_id, client_uuid, custom_title_fa, custom_modality, custom_values_json, compiled_text, copy_count, last_copied_at)
+          VALUES ($1, $2, $3, $4, $5, $6, 1, NOW());
+        `, [userId, clientUuid || null, title_fa || 'پرامپت ساخته‌شده', modality || 'text_writing', JSON.stringify(custom_values_json), compiled_text]);
+      }
+    }
+
+    return c.json({ ok: true, message: 'پرامپت در آرشیو ثبت شد.' });
+  } catch (err) {
+    logger.error({ err }, 'Failed to record copied prompt');
+    return c.json({ ok: false }, 500);
+  }
+});
+
+// 8. User Profile & Saved Memory Profiles
+identityRoutes.get('/profile', async (c) => {
+  const authHeader = c.req.header('authorization');
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return c.json({ error: 'UNAUTHORIZED' }, 401);
+  }
+
+  const rawToken = authHeader.slice(7).trim();
+  const tokenHash = crypto.createHash('sha256').update(rawToken).digest('hex');
+  const res = await pool.query(`
+    SELECT u.id, u.phone_e164, u.role, u.saved_context_profile_json
+    FROM auth_sessions s
+    JOIN users u ON s.user_id = u.id
+    WHERE s.token_hash = $1 AND s.expires_at > NOW() AND u.is_blocked = false
+    LIMIT 1;
+  `, [tokenHash]);
+
+  if (res.rows.length === 0) {
+    return c.json({ error: 'UNAUTHORIZED' }, 401);
+  }
+
+  const user = res.rows[0];
+  return c.json({
+    user_id: user.id,
+    phone_e164: user.phone_e164,
+    role: user.role,
+    saved_context_profile_json: user.saved_context_profile_json || {}
+  });
+});
+
+// 9. Update User Profile & Memory Profiles
+identityRoutes.patch('/profile', async (c) => {
+  const authHeader = c.req.header('authorization');
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return c.json({ error: 'UNAUTHORIZED' }, 401);
+  }
+
+  const rawToken = authHeader.slice(7).trim();
+  const tokenHash = crypto.createHash('sha256').update(rawToken).digest('hex');
+  const sRes = await pool.query(`
+    SELECT user_id FROM auth_sessions WHERE token_hash = $1 AND expires_at > NOW() LIMIT 1
+  `, [tokenHash]);
+
+  if (sRes.rows.length === 0) {
+    return c.json({ error: 'UNAUTHORIZED' }, 401);
+  }
+
+  const userId = sRes.rows[0].user_id;
+  const body = await c.req.json().catch(() => ({}));
+  const profileData = body.saved_context_profile_json ?? body;
+
+  await pool.query(`
+    UPDATE users
+    SET saved_context_profile_json = $1, updated_at = NOW()
+    WHERE id = $2;
+  `, [JSON.stringify(profileData), userId]);
+
+  return c.json({
+    ok: true,
+    message: 'اطلاعات پروفایل و حافظه شخصی با موفقیت ذخیره شد.',
+    saved_context_profile_json: profileData
+  });
 });

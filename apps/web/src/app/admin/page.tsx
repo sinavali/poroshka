@@ -8,6 +8,7 @@ import {
 import { fetchFromApi } from '../../lib/api-client';
 import { showDynamicToast } from '../../components/DynamicIslandToast';
 import { AdminReportsView } from '../../components/AdminReportsView';
+import { AdminDatasetsView } from '../../components/AdminDatasetsView';
 
 interface SystemSettingItem {
   id: string;
@@ -32,7 +33,7 @@ interface UserItem {
 export default function AdminPage() {
   const [adminToken, setAdminToken] = useState('');
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [activeTab, setActiveTab] = useState<'overview' | 'users' | 'settings' | 'reports' | 'prompts'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'users' | 'settings' | 'reports' | 'prompts' | 'datasets'>('overview');
   
   // Dashboard Overview state
   const [stats, setStats] = useState<any>(null);
@@ -302,6 +303,14 @@ export default function AdminPage() {
           >
             تنظیمات متغیرها
           </button>
+          <button
+            onClick={() => setActiveTab('datasets')}
+            className={`pressable px-3.5 py-1.5 rounded-xl spring-transition whitespace-nowrap ${
+              activeTab === 'datasets' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-600 hover:text-slate-900'
+            }`}
+          >
+            دیتاست و همگام‌سازی
+          </button>
         </div>
       </div>
 
@@ -470,6 +479,9 @@ export default function AdminPage() {
           onRefresh={() => loadReport(reportType)}
         />
       )}
+
+      {/* 5. DATASETS & SYNC TAB */}
+      {activeTab === 'datasets' && <AdminDatasetsView />}
     </div>
   );
 }

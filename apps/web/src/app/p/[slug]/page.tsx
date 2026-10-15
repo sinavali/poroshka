@@ -7,6 +7,7 @@ import { fetchFromApi } from '../../../lib/api-client';
 import { PostCopyDrawer } from '../../../components/PostCopyDrawer';
 import { AdBanner } from '../../../components/AdBanner';
 import { showDynamicToast } from '../../../components/DynamicIslandToast';
+import { MemoryProfile } from '../../../components/PersonalMemoryModal';
 
 interface PromptDetailData {
   id: string;
@@ -44,31 +45,63 @@ export default function PromptDetailPage({ params }: { params: Promise<{ slug: s
   const [loading, setLoading] = useState(true);
   const [copied, setCopied] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
-  const [hasPersonalMemory, setHasPersonalMemory] = useState(false);
+  const [memoryProfiles, setMemoryProfiles] = useState<MemoryProfile[]>([]);
+  const [selectedMemoryId, setSelectedMemoryId] = useState<string>('none');
+
+  const loadMemories = () => {
+    try {
+      const cached = localStorage.getItem('promptjoo_memory_profiles');
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          setMemoryProfiles(parsed);
+          const activeId = localStorage.getItem('promptjoo_active_memory_id');
+          if (activeId && parsed.some((p: MemoryProfile) => p.id === activeId)) {
+            setSelectedMemoryId(activeId);
+          }
+          return;
+        }
+      }
+      setMemoryProfiles([]);
+    } catch {
+      setMemoryProfiles([]);
+    }
+  };
 
   useEffect(() => {
-    // Check if personal memory is available in storage
-    const cached = localStorage.getItem('promptjoo_user_profile');
-    if (cached) {
-      try {
-        const parsed = JSON.parse(cached);
-        if (Object.values(parsed).some(Boolean)) {
-          setHasPersonalMemory(true);
-        }
-      } catch {}
-    }
+    loadMemories();
+    const handleUpdate = () => loadMemories();
+    window.addEventListener('promptjoo:memory-updated', handleUpdate);
+    return () => window.removeEventListener('promptjoo:memory-updated', handleUpdate);
+  }, []);
 
+  useEffect(() => {
     fetchFromApi<PromptDetailData>(`/api/v1/catalog/prompts/${slug}`)
       .then((data) => {
         setPrompt(data);
 
-        // Load personal memory from localStorage if available
+        // Load personal memory from active profile or legacy localStorage if available
         let profile: Record<string, string> = {};
-        if (cached) {
-          try {
-            profile = JSON.parse(cached);
-          } catch {}
-        }
+        try {
+          const cachedProfiles = localStorage.getItem('promptjoo_memory_profiles');
+          const activeId = localStorage.getItem('promptjoo_active_memory_id');
+          if (cachedProfiles) {
+            const list = JSON.parse(cachedProfiles);
+            const active = list.find((p: MemoryProfile) => p.id === activeId) || list[0];
+            if (active) {
+              profile = {
+                brand_name: active.brand_name || '',
+                target_audience: active.target_audience || '',
+                brand_tone: active.brand_tone || '',
+                call_to_action: active.call_to_action || '',
+                niche_topic: active.niche_topic || '',
+              };
+            }
+          } else {
+            const legacy = localStorage.getItem('promptjoo_personal_memory');
+            if (legacy) profile = JSON.parse(legacy);
+          }
+        } catch {}
 
         // Initialize slot values with personal profile overrides
         const initialSlots: Record<string, string> = {};
@@ -114,24 +147,27 @@ export default function PromptDetailPage({ params }: { params: Promise<{ slug: s
       });
   }, [prompt, slotValues, forceFarsi]);
 
-  const handleApplyPersonalMemory = () => {
-    const cached = localStorage.getItem('promptjoo_user_profile');
-    if (!cached) return;
-    try {
-      const profile = JSON.parse(cached);
-      setSlotValues((prev) => ({
-        ...prev,
-        ...(profile.brand_name ? { brand_name: profile.brand_name } : {}),
-        ...(profile.target_audience ? { target_audience: profile.target_audience } : {}),
-        ...(profile.brand_tone ? { brand_tone: profile.brand_tone } : {}),
-        ...(profile.call_to_action ? { call_to_action: profile.call_to_action } : {}),
-      }));
-      showDynamicToast({
-        title: 'حافظه شخصی جایگذاری شد',
-        message: 'متغیرهای برند شما به فرم افزوده شدند',
-        type: 'memory'
-      });
-    } catch {}
+  const handleMemorySelect = (memId: string) => {
+    setSelectedMemoryId(memId);
+    if (memId === 'none') {
+      return;
+    }
+    const profile = memoryProfiles.find((p) => p.id === memId);
+    if (!profile) return;
+
+    setSlotValues((prev) => ({
+      ...prev,
+      ...(profile.brand_name ? { brand_name: profile.brand_name } : {}),
+      ...(profile.target_audience ? { target_audience: profile.target_audience } : {}),
+      ...(profile.brand_tone ? { brand_tone: profile.brand_tone } : {}),
+      ...(profile.call_to_action ? { call_to_action: profile.call_to_action } : {}),
+    }));
+
+    showDynamicToast({
+      title: 'حافظه شخصی اعمال شد',
+      message: `اطلاعات «${profile.title}» جایگذاری گردید`,
+      type: 'memory'
+    });
   };
 
   if (loading) {
@@ -166,6 +202,15 @@ export default function PromptDetailPage({ params }: { params: Promise<{ slug: s
     });
     setTimeout(() => setCopied(false), 2200);
     setDrawerOpen(true);
+
+    // Call server API to record copy and store in user_copied_prompts
+    fetchFromApi(`/api/v1/catalog/prompts/${prompt.slug}/copy`, {
+      method: 'POST',
+      body: JSON.stringify({
+        slot_values: slotValues,
+        force_farsi_output: forceFarsi
+      })
+    }).catch(() => {});
   };
 
   const estimatedTokens = Math.ceil((compiledText || '').length / 4);
@@ -245,15 +290,22 @@ export default function PromptDetailPage({ params }: { params: Promise<{ slug: s
               <h3 className="text-base font-bold text-slate-900">تنظیم و شخصی‌سازی متغیرهای پرامپت</h3>
             </div>
 
-            {hasPersonalMemory && (
-              <button
-                onClick={handleApplyPersonalMemory}
-                className="pressable flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200 hover:bg-indigo-100 shadow-sm"
+            <div className="flex items-center gap-2">
+              <Brain className="w-4 h-4 text-indigo-600" />
+              <span className="text-xs font-bold text-slate-700">حافظه شخصی:</span>
+              <select
+                value={selectedMemoryId}
+                onChange={(e) => handleMemorySelect(e.target.value)}
+                className="bg-white border border-slate-200 rounded-xl px-3 py-1.5 text-xs text-slate-800 font-medium focus:outline-none focus:border-indigo-500 shadow-xs"
               >
-                <Brain className="w-3.5 h-3.5 text-indigo-600" />
-                <span>جایگذاری از حافظه من</span>
-              </button>
-            )}
+                <option value="none">بدون حافظه (تکمیل دستی)</option>
+                {memoryProfiles.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.title} {p.brand_name ? `(${p.brand_name})` : ''}
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

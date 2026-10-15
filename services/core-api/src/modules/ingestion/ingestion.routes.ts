@@ -177,3 +177,167 @@ ingestionRoutes.get('/export/snapshot', async (c) => {
     }
   });
 });
+
+// 5. Export Clean CSV Dataset (with UTF-8 BOM for Persian Excel support)
+ingestionRoutes.get('/export/csv', async () => {
+  const res = await pool.query(`
+    SELECT 
+      p.slug, p.title_fa, c.slug as category_slug, p.modality, p.short_desc_fa,
+      p.direct_answer_summary_fa, p.search_keywords_fa,
+      p.template_en, p.slots_schema_json, p.faq_schema_json, p.copy_count, p.view_count
+    FROM prompts p
+    JOIN categories c ON p.category_id = c.id
+    WHERE p.is_published = true
+    ORDER BY p.copy_count DESC;
+  `);
+
+  const headers = [
+    'slug', 'title_fa', 'category_slug', 'modality', 'short_desc_fa',
+    'direct_answer_summary_fa', 'search_keywords_fa', 'template_en',
+    'slots_schema_json', 'faq_schema_json', 'copy_count', 'view_count'
+  ];
+
+  const escapeCsv = (val: unknown): string => {
+    if (val === null || val === undefined) return '';
+    const str = typeof val === 'object' ? JSON.stringify(val) : String(val);
+    if (str.includes(',') || str.includes('"') || str.includes('\n') || str.includes('\r')) {
+      return `"${str.replace(/"/g, '""')}"`;
+    }
+    return str;
+  };
+
+  const csvRows = [headers.join(',')];
+  for (const row of res.rows) {
+    csvRows.push(headers.map(h => escapeCsv((row as Record<string, unknown>)[h])).join(','));
+  }
+
+  // Prepend UTF-8 BOM (\uFEFF)
+  const csvContent = '\uFEFF' + csvRows.join('\r\n');
+
+  return new Response(csvContent, {
+    headers: {
+      'Content-Type': 'text/csv; charset=utf-8',
+      'Content-Disposition': `attachment; filename="promptjoo-dataset-${Date.now()}.csv"`
+    }
+  });
+});
+
+// 6. Export Clean JSON Dataset
+ingestionRoutes.get('/export/json', async (c) => {
+  const res = await pool.query(`
+    SELECT 
+      p.slug, p.title_fa, c.slug as category_slug, p.modality, p.short_desc_fa,
+      p.direct_answer_summary_fa, p.search_keywords_fa, p.template_en,
+      p.slots_schema_json, p.faq_schema_json, p.copy_count, p.view_count
+    FROM prompts p
+    JOIN categories c ON p.category_id = c.id
+    WHERE p.is_published = true
+    ORDER BY p.copy_count DESC;
+  `);
+
+  return c.json(res.rows);
+});
+
+// 7. Idempotent Dataset Importer (Zero Duplication, Dev <-> Prod Sync)
+ingestionRoutes.post('/import', async (c) => {
+  const body = await c.req.json().catch(() => ({}));
+  let items: any[] = [];
+
+  if (Array.isArray(body)) {
+    items = body;
+  } else if (Array.isArray(body.items)) {
+    items = body.items;
+  } else if (typeof body.csv_text === 'string') {
+    // Simple CSV parser
+    const csvLines = body.csv_text.replace(/^\uFEFF/, '').split(/\r?\n/).filter((l: string) => l.trim().length > 0);
+    if (csvLines.length > 1) {
+      const headerCols = csvLines[0].split(',').map((h: string) => h.replace(/^"|"$/g, '').trim());
+      for (let i = 1; i < csvLines.length; i++) {
+        // Simple comma split
+        const values = csvLines[i].split(',').map((v: string) => v.replace(/^"|"$/g, '').trim());
+        const itemObj: Record<string, any> = {};
+        for (let h = 0; h < headerCols.length; h++) {
+          itemObj[headerCols[h]] = values[h] || '';
+        }
+        items.push(itemObj);
+      }
+    }
+  }
+
+  if (items.length === 0) {
+    return c.json({ error: 'INVALID_INPUT', message: 'محتوای دیتاست برای بارگذاری یافت نشد.' }, 400);
+  }
+
+  // Fetch categories map
+  const catsRes = await pool.query('SELECT id, slug FROM categories');
+  const catMap = new Map<string, string>();
+  for (const cat of catsRes.rows) {
+    catMap.set(cat.slug, cat.id);
+  }
+  const defaultCategoryId = catsRes.rows[0]?.id;
+
+  let inserted = 0;
+  let skippedDuplicates = 0;
+  let updated = 0;
+  const errors: string[] = [];
+
+  for (const item of items) {
+    try {
+      const template = (item.template_en || item.raw_template_en || '').trim();
+      const titleFa = (item.title_fa || 'پرامپت جدید').trim();
+      if (!template) continue;
+
+      const hash = crypto.createHash('sha256').update(template).digest('hex');
+      const slug = (item.slug || titleFa.replace(/[\s\-_]+/g, '-').slice(0, 80) + '-' + hash.slice(0, 6)).toLowerCase();
+
+      // Check for duplicate by content_hash or slug
+      const checkRes = await pool.query(
+        'SELECT id, template_en, title_fa FROM prompts WHERE content_hash = $1 OR slug = $2 LIMIT 1',
+        [hash, slug]
+      );
+
+      if (checkRes.rows.length > 0) {
+        skippedDuplicates++;
+        continue;
+      }
+
+      const categoryId = catMap.get(item.category_slug) || defaultCategoryId;
+      const detected = item.modality || detectModality(titleFa || template).modality;
+      const slots = typeof item.slots_schema_json === 'string' ? JSON.parse(item.slots_schema_json || '[]') : (item.slots_schema_json || []);
+      const faqs = typeof item.faq_schema_json === 'string' ? JSON.parse(item.faq_schema_json || '[]') : (item.faq_schema_json || []);
+      const keywords = Array.isArray(item.search_keywords_fa)
+        ? item.search_keywords_fa
+        : (item.search_keywords_fa ? String(item.search_keywords_fa).split(',').map((k: string) => k.trim()) : []);
+
+      await pool.query(`
+        INSERT INTO prompts (
+          slug, category_id, modality, title_fa, short_desc_fa, direct_answer_summary_fa,
+          search_keywords_fa, template_en, content_hash, slots_schema_json, faq_schema_json,
+          is_published
+        )
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, true)
+      `, [
+        slug, categoryId, detected, titleFa,
+        item.short_desc_fa || titleFa,
+        item.direct_answer_summary_fa || '',
+        keywords, template, hash, JSON.stringify(slots), JSON.stringify(faqs)
+      ]);
+
+      inserted++;
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      errors.push(msg);
+    }
+  }
+
+  return c.json({
+    ok: true,
+    message: 'فرایند بارگذاری و همگام‌سازی دیتاست به اتمام رسید.',
+    total_processed: items.length,
+    inserted,
+    skipped_duplicates: skippedDuplicates,
+    updated,
+    error_count: errors.length,
+    sample_errors: errors.slice(0, 3)
+  });
+});
