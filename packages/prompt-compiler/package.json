@@ -1,0 +1,14 @@
+{
+  "name": "@promptjoo/prompt-compiler",
+  "version": "1.0.0",
+  "type": "module",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "dependencies": {
+    "@promptjoo/contracts": "workspace:*",
+    "@promptjoo/persian-normalizer": "workspace:*"
+  },
+  "scripts": {
+    "test": "node --experimental-strip-types --test tests/*.spec.ts"
+  }
+}

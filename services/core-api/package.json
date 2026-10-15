@@ -1,0 +1,32 @@
+{
+  "name": "@promptjoo/core-api",
+  "version": "1.0.0",
+  "type": "module",
+  "main": "src/bootstrap/main.ts",
+  "scripts": {
+    "start": "node --experimental-strip-types src/bootstrap/main.ts",
+    "dev": "node --watch --experimental-strip-types src/bootstrap/main.ts",
+    "db:migrate": "node --experimental-strip-types src/infrastructure/database/migrate.ts",
+    "db:seed": "node --experimental-strip-types src/modules/ingestion/seed-fixtures.ts",
+    "test": "node --experimental-strip-types --test tests/*.spec.ts"
+  },
+  "dependencies": {
+    "@asteasolutions/zod-to-openapi": "^7.3.0",
+    "@hono/node-server": "^2.1.5",
+    "@promptjoo/contracts": "workspace:*",
+    "@promptjoo/persian-normalizer": "workspace:*",
+    "@promptjoo/prompt-compiler": "workspace:*",
+    "argon2": "^0.45.1",
+    "better-sqlite3": "^13.0.3",
+    "drizzle-orm": "^0.45.4",
+    "hono": "^4.13.13",
+    "pg": "^8.23.1",
+    "pino": "^10.4.0",
+    "zod": "^3.24.2"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^9.6.0",
+    "@types/pg": "^8.23.1",
+    "typescript": "^5.7.3"
+  }
+}

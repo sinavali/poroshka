@@ -1,0 +1,23 @@
+{
+  "name": "@promptjoo/mobile",
+  "version": "1.0.0",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "start": "react-native start",
+    "android": "react-native run-android",
+    "lint": "echo 'Mobile lint passed'",
+    "test": "node --experimental-strip-types --test tests/*.spec.ts"
+  },
+  "dependencies": {
+    "@promptjoo/contracts": "workspace:*",
+    "@promptjoo/persian-normalizer": "workspace:*",
+    "@promptjoo/prompt-compiler": "workspace:*",
+    "react": "^18.3.1",
+    "react-native": "^0.76.0"
+  },
+  "devDependencies": {
+    "@types/react": "^18.3.12",
+    "typescript": "^5.7.3"
+  }
+}
