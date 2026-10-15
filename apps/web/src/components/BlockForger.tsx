@@ -85,22 +85,22 @@ export function BlockForger() {
   };
 
   return (
-    <div className="glass-panel rounded-3xl p-6 sm:p-8 border border-white/10 relative overflow-hidden mb-12">
+    <div className="glass-panel rounded-3xl p-6 sm:p-8 border border-slate-200/80 relative overflow-hidden mb-12 shadow-sm">
       {/* Background Ambient Glow */}
-      <div className="absolute top-0 right-0 w-80 h-80 bg-blue-600/10 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute top-0 right-0 w-80 h-80 bg-blue-500/5 rounded-full blur-3xl pointer-events-none" />
 
       <div className="flex items-center gap-3.5 mb-6 relative">
-        <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-blue-600 to-indigo-500 flex items-center justify-center text-white shadow-lg shadow-blue-500/20">
+        <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center text-white shadow-md shadow-blue-500/20">
           <Hammer className="w-6 h-6" />
         </div>
         <div>
-          <h3 className="text-xl font-black text-white flex items-center gap-2">
+          <h3 className="text-xl font-black text-slate-900 flex items-center gap-2">
             موتور بلوک‌چین پرامپت (Zero-LLM Block Forger)
-            <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-blue-500/20 text-blue-300 border border-blue-500/30">
+            <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-blue-100 text-blue-700 border border-blue-200">
               رایگان و بدون هزینه
             </span>
           </h3>
-          <p className="text-xs text-gray-400 mt-0.5">
+          <p className="text-xs text-slate-500 mt-0.5">
             ایده خود را بنویسید تا سیستم به‌صورت آنی بلوک‌های استاندارد (نقش، وظیفه، قیود و فرمت) را ترکیب کند.
           </p>
         </div>
@@ -114,7 +114,7 @@ export function BlockForger() {
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="مثلاً: سناریو معرفی لپ‌تاپ گیمینگ برای استوری اینستاگرام..."
-              className="w-full bg-slate-900/90 border border-white/10 rounded-2xl px-4 py-3 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-blue-500/60 focus:ring-1 focus:ring-blue-500/50"
+              className="w-full bg-slate-50 border border-slate-200/90 rounded-2xl px-4 py-3 text-xs text-slate-800 placeholder-slate-400 focus:bg-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10"
             />
           </div>
 
@@ -122,7 +122,7 @@ export function BlockForger() {
             <select
               value={modality}
               onChange={(e) => setModality(e.target.value)}
-              className="w-full bg-slate-900/90 border border-white/10 rounded-2xl px-4 py-3 text-xs text-white focus:outline-none focus:border-blue-500/60"
+              className="w-full bg-slate-50 border border-slate-200/90 rounded-2xl px-4 py-3 text-xs text-slate-800 focus:bg-white focus:outline-none focus:border-blue-500"
             >
               <option value="text_writing">تولید محتوا و کپشن</option>
               <option value="text_to_image">تولید تصویر (میدجورنی)</option>
@@ -133,12 +133,12 @@ export function BlockForger() {
         </div>
 
         <div className="flex items-center justify-between pt-1 flex-wrap gap-3">
-          <label className="flex items-center gap-2 text-xs text-gray-300 cursor-pointer select-none">
+          <label className="flex items-center gap-2 text-xs text-slate-600 cursor-pointer select-none">
             <input
               type="checkbox"
               checked={forceFarsi}
               onChange={(e) => setForceFarsi(e.target.checked)}
-              className="w-4 h-4 rounded text-blue-600 focus:ring-0 bg-slate-900 border-white/20"
+              className="w-4 h-4 rounded text-blue-600 focus:ring-0 bg-slate-50 border-slate-300"
             />
             <span>دستور خروجی کاملاً فارسی روان (fa-IR) اضافه شود</span>
           </label>
@@ -146,7 +146,7 @@ export function BlockForger() {
           <button
             type="submit"
             disabled={loading || !query.trim()}
-            className="pressable flex items-center gap-2 px-6 py-2.5 rounded-2xl text-xs font-bold bg-blue-600 hover:bg-blue-500 text-white shadow-lg shadow-blue-600/30 disabled:opacity-50"
+            className="pressable flex items-center gap-2 px-6 py-2.5 rounded-2xl text-xs font-bold bg-blue-600 hover:bg-blue-500 text-white shadow-md shadow-blue-600/25 disabled:opacity-50"
           >
             <Wand2 className="w-4 h-4" />
             <span>{loading ? 'در حال ساخت پرامپت...' : 'ساخت آنی پرامپت'}</span>
@@ -156,16 +156,16 @@ export function BlockForger() {
 
       {/* Result Display & Live Slot Customization */}
       {result && (
-        <div className="mt-6 pt-6 border-t border-white/10 space-y-4 relative animate-fade-in">
+        <div className="mt-6 pt-6 border-t border-slate-200/80 space-y-4 relative animate-fade-in">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-emerald-400 flex items-center gap-1.5">
+            <span className="text-xs font-bold text-emerald-600 flex items-center gap-1.5">
               <Sparkles className="w-4 h-4" />
               پرامپت مهندسی‌شده آماده است:
             </span>
             <button
               onClick={handleCopy}
               className={`pressable flex items-center gap-1.5 px-4 py-1.5 rounded-full text-xs font-bold spring-transition ${
-                copied ? 'bg-emerald-600 text-white' : 'bg-white/10 text-white hover:bg-white/20 border border-white/10'
+                copied ? 'bg-emerald-600 text-white' : 'bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-200'
               }`}
             >
               {copied ? (
@@ -184,21 +184,21 @@ export function BlockForger() {
 
           {/* Optional Live Slots Editor */}
           {result.slots && result.slots.length > 0 && (
-            <div className="p-4 rounded-2xl bg-white/5 border border-white/10 space-y-3">
-              <div className="flex items-center gap-2 text-xs font-bold text-indigo-300">
+            <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/80 space-y-3">
+              <div className="flex items-center gap-2 text-xs font-bold text-indigo-700">
                 <Sliders className="w-4 h-4" />
                 <span>تنظیم متغیرهای پرامپت ساخته شده:</span>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 {result.slots.map((s) => (
                   <div key={s.slot_key} className="space-y-1">
-                    <label className="text-[11px] font-bold text-gray-300">{s.label_fa}</label>
+                    <label className="text-[11px] font-bold text-slate-600">{s.label_fa}</label>
                     <input
                       type="text"
                       value={slotValues[s.slot_key] || ''}
                       onChange={(e) => setSlotValues({ ...slotValues, [s.slot_key]: e.target.value })}
                       placeholder={s.default_value_en}
-                      className="w-full bg-slate-900 border border-white/10 rounded-xl px-3 py-1.5 text-xs text-white focus:outline-none focus:border-indigo-500"
+                      className="w-full bg-white border border-slate-200 rounded-xl px-3 py-1.5 text-xs text-slate-800 focus:outline-none focus:border-indigo-500"
                     />
                   </div>
                 ))}
@@ -206,7 +206,7 @@ export function BlockForger() {
             </div>
           )}
 
-          <pre className="bilingual-code text-xs bg-slate-950/80 p-4 rounded-2xl border border-white/10 text-gray-200 max-h-56 overflow-y-auto leading-relaxed">
+          <pre className="bilingual-code text-xs bg-slate-100 p-4 rounded-2xl border border-slate-200 text-slate-800 max-h-56 overflow-y-auto leading-relaxed">
             {getLiveCompiledText()}
           </pre>
         </div>

@@ -273,3 +273,34 @@ identityRoutes.post('/quota/consume-anonymous', async (c) => {
     copies_remaining: Math.max(0, 15 - copiesUsed)
   });
 });
+
+// 6. User Copied Prompts Archive (Used Prompts with Counter)
+identityRoutes.get('/copied-prompts', async (c) => {
+  const authHeader = c.req.header('authorization');
+  const clientUuid = c.req.header('x-client-uuid') || '';
+  let userId: string | null = null;
+
+  if (authHeader && authHeader.startsWith('Bearer ')) {
+    const rawToken = authHeader.slice(7).trim();
+    const tokenHash = crypto.createHash('sha256').update(rawToken).digest('hex');
+    const sRes = await pool.query('SELECT user_id FROM auth_sessions WHERE token_hash = $1 AND expires_at > NOW() LIMIT 1', [tokenHash]);
+    if (sRes.rows.length > 0) userId = sRes.rows[0].user_id;
+  }
+
+  const query = `
+    SELECT 
+      ucp.id, ucp.copy_count, ucp.custom_values_json, ucp.compiled_text, ucp.last_copied_at,
+      p.id as prompt_id, p.slug, p.title_fa, p.short_desc_fa, p.modality,
+      c.title_fa as category_title_fa
+    FROM user_copied_prompts ucp
+    JOIN prompts p ON ucp.prompt_id = p.id
+    JOIN categories c ON p.category_id = c.id
+    WHERE ($1::uuid IS NOT NULL AND ucp.user_id = $1::uuid)
+       OR ($1::uuid IS NULL AND ucp.client_uuid = $2)
+    ORDER BY ucp.last_copied_at DESC
+    LIMIT 100;
+  `;
+
+  const rows = await pool.query(query, [userId, clientUuid]);
+  return c.json(rows.rows);
+});

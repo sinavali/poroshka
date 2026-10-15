@@ -1,4 +1,5 @@
 import { Hono } from 'hono';
+import crypto from 'node:crypto';
 import { pool } from '../../infrastructure/database/client.ts';
 import { detectModality, cleanSearchQuery } from '@promptjoo/persian-normalizer';
 import { compilePrompt, stitchAtomicBlocks } from '@promptjoo/prompt-compiler';
@@ -139,6 +140,44 @@ catalogRoutes.post('/prompts/:slug/copy', async (c) => {
     INSERT INTO prompt_metrics_buffer (prompt_id, metric_type)
     VALUES ($1, 'COPY')
   `, [prompt.id]).catch(() => {});
+
+  // Persist to user_copied_prompts (tracks user copy count and saved slot values)
+  const authHeader = c.req.header('authorization');
+  const clientUuid = c.req.header('x-client-uuid') || '';
+
+  (async () => {
+    try {
+      let userId: string | null = null;
+      if (authHeader && authHeader.startsWith('Bearer ')) {
+        const rawToken = authHeader.slice(7).trim();
+        const tokenHash = crypto.createHash('sha256').update(rawToken).digest('hex');
+        const sRes = await pool.query('SELECT user_id FROM auth_sessions WHERE token_hash = $1 AND expires_at > NOW() LIMIT 1', [tokenHash]);
+        if (sRes.rows.length > 0) userId = sRes.rows[0].user_id;
+      }
+
+      if (userId) {
+        await pool.query(`
+          INSERT INTO user_copied_prompts (user_id, client_uuid, prompt_id, custom_values_json, compiled_text, copy_count, last_copied_at)
+          VALUES ($1, $2, $3, $4, $5, 1, NOW())
+          ON CONFLICT (user_id, prompt_id) DO UPDATE SET
+            copy_count = user_copied_prompts.copy_count + 1,
+            custom_values_json = EXCLUDED.custom_values_json,
+            compiled_text = EXCLUDED.compiled_text,
+            last_copied_at = NOW();
+        `, [userId, clientUuid || null, prompt.id, JSON.stringify(userValues), compiled.compiledText]);
+      } else if (clientUuid) {
+        await pool.query(`
+          INSERT INTO user_copied_prompts (client_uuid, prompt_id, custom_values_json, compiled_text, copy_count, last_copied_at)
+          VALUES ($1, $2, $3, $4, 1, NOW())
+          ON CONFLICT (client_uuid, prompt_id) DO UPDATE SET
+            copy_count = user_copied_prompts.copy_count + 1,
+            custom_values_json = EXCLUDED.custom_values_json,
+            compiled_text = EXCLUDED.compiled_text,
+            last_copied_at = NOW();
+        `, [clientUuid, prompt.id, JSON.stringify(userValues), compiled.compiledText]);
+      }
+    } catch {}
+  })();
 
   return c.json({
     compiled_text: compiled.compiledText,

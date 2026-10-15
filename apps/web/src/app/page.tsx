@@ -101,28 +101,28 @@ export default function HomePage() {
     <div className="space-y-12 animate-fade-in">
       {/* Apple-Grade Hero Header */}
       <section className="text-center py-10 sm:py-16 relative">
-        <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-bold bg-blue-500/10 text-blue-400 border border-blue-500/20 mb-6 shadow-sm">
-          <Sparkles className="w-3.5 h-3.5" />
+        <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-bold bg-blue-50 text-blue-700 border border-blue-200/80 mb-6 shadow-sm">
+          <Sparkles className="w-3.5 h-3.5 text-blue-600" />
           <span>مرجع تخصصی پرامپت‌های مهندسی‌شده هوش مصنوعی در ایران</span>
         </div>
 
-        <h1 className="text-3xl sm:text-6xl font-black text-white tracking-tight leading-tight mb-5">
+        <h1 className="text-3xl sm:text-6xl font-black text-slate-900 tracking-tight leading-tight mb-5">
           بهترین خروجی را از{' '}
-          <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-indigo-300 to-purple-400">
+          <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600">
             هوش مصنوعی
           </span>{' '}
           بگیرید
         </h1>
-        <p className="text-sm sm:text-base text-gray-300 max-w-2xl mx-auto leading-relaxed font-normal">
+        <p className="text-sm sm:text-base text-slate-600 max-w-2xl mx-auto leading-relaxed font-normal">
           بدون نیاز به فرمول‌های پیچیده انگلیسی؛ پرامپت آماده را انتخاب، اطلاعات اختصاصی برندتان را درج و با ۱ کلیک در مدل هوش مصنوعی دلخواه اجرا کنید.
         </p>
 
         {searchQuery && (
-          <div className="mt-6 inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-slate-800/80 border border-white/10 text-xs text-gray-300">
+          <div className="mt-6 inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-slate-100 border border-slate-200 text-xs text-slate-700">
             <span>نتایج جستجو برای: <strong>{searchQuery}</strong></span>
             <button
               onClick={handleClearQuery}
-              className="pressable p-0.5 rounded-full hover:bg-white/10 text-gray-400 hover:text-white"
+              className="pressable p-0.5 rounded-full hover:bg-slate-200 text-slate-500 hover:text-slate-800"
             >
               <X className="w-3.5 h-3.5" />
             </button>
@@ -135,22 +135,22 @@ export default function HomePage() {
 
       {/* Catalog & Filter Section */}
       <section className="space-y-6">
-        <div className="flex flex-col gap-4 border-b border-white/10 pb-5">
+        <div className="flex flex-col gap-4 border-b border-slate-200/80 pb-5">
           {/* Header & Sort Controls */}
           <div className="flex items-center justify-between flex-wrap gap-4">
             <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-400">
+              <div className="w-8 h-8 rounded-xl bg-blue-50 border border-blue-200 flex items-center justify-center text-blue-600">
                 <TrendingUp className="w-4 h-4" />
               </div>
-              <h2 className="text-lg font-bold text-white tracking-tight">پرامپت‌های برگزیده و کاربردی</h2>
+              <h2 className="text-lg font-bold text-slate-900 tracking-tight">پرامپت‌های برگزیده و کاربردی</h2>
             </div>
 
             {/* Sort Segmented Control */}
-            <div className="flex items-center gap-1 p-1 rounded-2xl bg-white/5 border border-white/10 text-xs">
+            <div className="flex items-center gap-1 p-1 rounded-2xl bg-slate-100 border border-slate-200/80 text-xs">
               <button
                 onClick={() => setSortBy('trending')}
                 className={`pressable px-3 py-1 rounded-xl font-bold spring-transition ${
-                  sortBy === 'trending' ? 'bg-blue-600 text-white shadow' : 'text-gray-400 hover:text-white'
+                  sortBy === 'trending' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-600 hover:text-slate-900'
                 }`}
               >
                 ترند
@@ -158,7 +158,7 @@ export default function HomePage() {
               <button
                 onClick={() => setSortBy('popular')}
                 className={`pressable px-3 py-1 rounded-xl font-bold spring-transition ${
-                  sortBy === 'popular' ? 'bg-blue-600 text-white shadow' : 'text-gray-400 hover:text-white'
+                  sortBy === 'popular' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-600 hover:text-slate-900'
                 }`}
               >
                 بیشترین کپی
@@ -166,7 +166,7 @@ export default function HomePage() {
               <button
                 onClick={() => setSortBy('newest')}
                 className={`pressable px-3 py-1 rounded-xl font-bold spring-transition ${
-                  sortBy === 'newest' ? 'bg-blue-600 text-white shadow' : 'text-gray-400 hover:text-white'
+                  sortBy === 'newest' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-600 hover:text-slate-900'
                 }`}
               >
                 جدیدترین
@@ -182,8 +182,8 @@ export default function HomePage() {
                 onClick={() => setSelectedModality(mod.id)}
                 className={`pressable px-4 py-2 rounded-2xl text-xs font-bold whitespace-nowrap spring-transition ${
                   selectedModality === mod.id
-                    ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/25 border border-blue-400/30'
-                    : 'bg-white/5 text-gray-400 hover:text-white hover:bg-white/10 border border-white/5'
+                    ? 'bg-blue-600 text-white shadow-md shadow-blue-500/20'
+                    : 'bg-white text-slate-600 hover:text-slate-900 hover:bg-slate-50 border border-slate-200/90 shadow-sm'
                 }`}
               >
                 {mod.label}
@@ -192,16 +192,16 @@ export default function HomePage() {
           </div>
 
           {/* AI Model Sub-Filters */}
-          <div className="flex items-center gap-2 overflow-x-auto pb-1 max-w-full text-xs text-gray-400">
-            <span className="flex-shrink-0 text-[11px] font-semibold text-gray-500">مدل هوش مصنوعی:</span>
+          <div className="flex items-center gap-2 overflow-x-auto pb-1 max-w-full text-xs text-slate-500">
+            <span className="flex-shrink-0 text-[11px] font-semibold text-slate-500">مدل هوش مصنوعی:</span>
             {AI_MODELS.map((model) => (
               <button
                 key={model.id}
                 onClick={() => setSelectedModel(model.id)}
                 className={`pressable px-3 py-1 rounded-full text-[11px] font-medium whitespace-nowrap spring-transition ${
                   selectedModel === model.id
-                    ? 'bg-indigo-600/30 text-indigo-300 border border-indigo-500/40'
-                    : 'bg-white/5 text-gray-400 hover:text-gray-200 border border-transparent'
+                    ? 'bg-indigo-50 text-indigo-700 border border-indigo-200'
+                    : 'bg-white text-slate-600 hover:text-slate-900 border border-slate-200/70 shadow-sm'
                 }`}
               >
                 {model.label}
@@ -214,11 +214,11 @@ export default function HomePage() {
         {loading && (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {[1, 2, 3, 4, 5, 6].map((n) => (
-              <div key={n} className="glass-panel rounded-3xl p-6 h-56 animate-pulse space-y-4">
-                <div className="h-4 bg-white/10 rounded-full w-1/4" />
-                <div className="h-6 bg-white/10 rounded-full w-3/4" />
-                <div className="h-4 bg-white/10 rounded-full w-full" />
-                <div className="h-4 bg-white/10 rounded-full w-2/3" />
+              <div key={n} className="glass-panel rounded-3xl p-6 h-56 animate-pulse space-y-4 border border-slate-200/80">
+                <div className="h-4 bg-slate-200 rounded-full w-1/4" />
+                <div className="h-6 bg-slate-200 rounded-full w-3/4" />
+                <div className="h-4 bg-slate-200 rounded-full w-full" />
+                <div className="h-4 bg-slate-200 rounded-full w-2/3" />
               </div>
             ))}
           </div>
@@ -226,13 +226,13 @@ export default function HomePage() {
 
         {/* 4-State UI: Error State */}
         {!loading && error && (
-          <div className="glass-panel rounded-3xl p-8 text-center border border-red-500/20 max-w-md mx-auto space-y-4">
-            <AlertCircle className="w-10 h-10 text-red-400 mx-auto" />
-            <h3 className="text-sm font-bold text-white">خطا در بارگذاری پرامپت‌ها</h3>
-            <p className="text-xs text-gray-400">{error}</p>
+          <div className="glass-panel rounded-3xl p-8 text-center border border-red-200 bg-red-50/30 max-w-md mx-auto space-y-4">
+            <AlertCircle className="w-10 h-10 text-red-500 mx-auto" />
+            <h3 className="text-sm font-bold text-slate-900">خطا در بارگذاری پرامپت‌ها</h3>
+            <p className="text-xs text-slate-500">{error}</p>
             <button
               onClick={loadPrompts}
-              className="pressable inline-flex items-center gap-2 px-5 py-2.5 rounded-2xl text-xs font-bold bg-white/10 hover:bg-white/15 text-white border border-white/10"
+              className="pressable inline-flex items-center gap-2 px-5 py-2.5 rounded-2xl text-xs font-bold bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 shadow-sm"
             >
               <RefreshCw className="w-3.5 h-3.5" />
               <span>تلاش مجدد</span>
@@ -242,10 +242,10 @@ export default function HomePage() {
 
         {/* 4-State UI: Empty State */}
         {!loading && !error && prompts.length === 0 && (
-          <div className="glass-panel rounded-3xl p-12 text-center border border-white/10 max-w-md mx-auto space-y-4">
-            <Filter className="w-10 h-10 text-gray-500 mx-auto" />
-            <h3 className="text-sm font-bold text-white">پرامپتی با این مشخصات یافت نشد</h3>
-            <p className="text-xs text-gray-400 leading-relaxed">
+          <div className="glass-panel rounded-3xl p-12 text-center border border-slate-200 max-w-md mx-auto space-y-4">
+            <Filter className="w-10 h-10 text-slate-400 mx-auto" />
+            <h3 className="text-sm font-bold text-slate-900">پرامپتی با این مشخصات یافت نشد</h3>
+            <p className="text-xs text-slate-500 leading-relaxed">
               فیلتر انتخابی یا عبارت جستجو را تغییر دهید یا از موتور بلوک‌چین برای ساخت خودکار پرامپت استفاده کنید.
             </p>
             <button
@@ -254,7 +254,7 @@ export default function HomePage() {
                 setSelectedModel('all');
                 handleClearQuery();
               }}
-              className="pressable px-4 py-2 rounded-2xl bg-white/10 text-xs font-bold text-white hover:bg-white/15 border border-white/10"
+              className="pressable px-4 py-2 rounded-2xl bg-white text-xs font-bold text-slate-700 hover:bg-slate-50 border border-slate-200 shadow-sm"
             >
               نمایش همه پرامپت‌ها
             </button>

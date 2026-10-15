@@ -71,27 +71,27 @@ export function PersonalMemoryModal({ isOpen, onClose, onSaved }: PersonalMemory
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-md animate-fade-in">
-      <div className="w-full max-w-lg glass-dropdown rounded-3xl p-6 sm:p-8 border border-white/10 shadow-2xl relative">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-md animate-fade-in">
+      <div className="w-full max-w-lg glass-dropdown rounded-3xl p-6 sm:p-8 border border-slate-200/90 shadow-2xl relative">
         {/* Close Button */}
         <button
           onClick={onClose}
-          className="pressable absolute top-5 left-5 p-1.5 rounded-full text-gray-400 hover:text-white hover:bg-white/10"
+          className="pressable absolute top-5 left-5 p-1.5 rounded-full text-slate-400 hover:text-slate-700 hover:bg-slate-100"
         >
           <X className="w-5 h-5" />
         </button>
 
         {/* Header */}
         <div className="flex items-center gap-3.5 mb-6">
-          <div className="w-12 h-12 rounded-2xl bg-indigo-500/10 border border-indigo-500/30 flex items-center justify-center text-indigo-400 shadow-md">
+          <div className="w-12 h-12 rounded-2xl bg-indigo-50 border border-indigo-200 flex items-center justify-center text-indigo-600 shadow-sm">
             <Brain className="w-6 h-6" />
           </div>
           <div>
-            <h3 className="text-lg font-black text-white flex items-center gap-2">
+            <h3 className="text-lg font-black text-slate-900 flex items-center gap-2">
               حافظه شخصی من (Personal Memory)
-              <Sparkles className="w-4 h-4 text-amber-400" />
+              <Sparkles className="w-4 h-4 text-amber-500" />
             </h3>
-            <p className="text-xs text-gray-400 mt-0.5">
+            <p className="text-xs text-slate-500 mt-0.5">
               این اطلاعات یک‌بار وارد شده و به صورت خودکار در تمام پرامپت‌ها جایگذاری می‌شود.
             </p>
           </div>
@@ -100,7 +100,7 @@ export function PersonalMemoryModal({ isOpen, onClose, onSaved }: PersonalMemory
         {/* Form */}
         <form onSubmit={handleSave} className="space-y-4">
           <div>
-            <label className="block text-xs font-bold text-gray-300 mb-1.5">
+            <label className="block text-xs font-bold text-slate-700 mb-1.5">
               نام برند یا کسب‌وکار (Brand Name)
             </label>
             <input
@@ -108,12 +108,12 @@ export function PersonalMemoryModal({ isOpen, onClose, onSaved }: PersonalMemory
               value={formData.brand_name}
               onChange={(e) => setFormData({ ...formData, brand_name: e.target.value })}
               placeholder="مثلاً: دیجی‌کالا، آکادمی وب‌آموز، کافه لاته"
-              className="w-full bg-slate-900 border border-white/10 rounded-2xl px-4 py-2.5 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-indigo-500"
+              className="w-full bg-slate-50 border border-slate-200/90 rounded-2xl px-4 py-2.5 text-xs text-slate-800 placeholder-slate-400 focus:bg-white focus:outline-none focus:border-indigo-500"
             />
           </div>
 
           <div>
-            <label className="block text-xs font-bold text-gray-300 mb-1.5">
+            <label className="block text-xs font-bold text-slate-700 mb-1.5">
               حوزه فعالیت یا نیچ تخصصی (Niche Topic)
             </label>
             <input
@@ -121,12 +121,12 @@ export function PersonalMemoryModal({ isOpen, onClose, onSaved }: PersonalMemory
               value={formData.niche_topic}
               onChange={(e) => setFormData({ ...formData, niche_topic: e.target.value })}
               placeholder="مثلاً: آموزش سئو و هوش مصنوعی، فروش پوشاک زنانه"
-              className="w-full bg-slate-900 border border-white/10 rounded-2xl px-4 py-2.5 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-indigo-500"
+              className="w-full bg-slate-50 border border-slate-200/90 rounded-2xl px-4 py-2.5 text-xs text-slate-800 placeholder-slate-400 focus:bg-white focus:outline-none focus:border-indigo-500"
             />
           </div>
 
           <div>
-            <label className="block text-xs font-bold text-gray-300 mb-1.5">
+            <label className="block text-xs font-bold text-slate-700 mb-1.5">
               مخاطبان هدف (Target Audience)
             </label>
             <input
@@ -134,19 +134,19 @@ export function PersonalMemoryModal({ isOpen, onClose, onSaved }: PersonalMemory
               value={formData.target_audience}
               onChange={(e) => setFormData({ ...formData, target_audience: e.target.value })}
               placeholder="مثلاً: مدیران استارتاپ‌ها، نوجوانان ۱۶ تا ۲۵ سال، مادران شاغل"
-              className="w-full bg-slate-900 border border-white/10 rounded-2xl px-4 py-2.5 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-indigo-500"
+              className="w-full bg-slate-50 border border-slate-200/90 rounded-2xl px-4 py-2.5 text-xs text-slate-800 placeholder-slate-400 focus:bg-white focus:outline-none focus:border-indigo-500"
             />
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-bold text-gray-300 mb-1.5">
+              <label className="block text-xs font-bold text-slate-700 mb-1.5">
                 لحن برند (Brand Tone)
               </label>
               <select
                 value={formData.brand_tone}
                 onChange={(e) => setFormData({ ...formData, brand_tone: e.target.value })}
-                className="w-full bg-slate-900 border border-white/10 rounded-2xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-indigo-500"
+                className="w-full bg-slate-50 border border-slate-200/90 rounded-2xl px-3.5 py-2.5 text-xs text-slate-800 focus:bg-white focus:outline-none focus:border-indigo-500"
               >
                 <option value="صمیمی و دوستانه">صمیمی و دوستانه</option>
                 <option value="رسمی و متخصص">رسمی و متخصص</option>
@@ -157,7 +157,7 @@ export function PersonalMemoryModal({ isOpen, onClose, onSaved }: PersonalMemory
             </div>
 
             <div>
-              <label className="block text-xs font-bold text-gray-300 mb-1.5">
+              <label className="block text-xs font-bold text-slate-700 mb-1.5">
                 دعوت به اقدام پیش‌فرض (CTA)
               </label>
               <input
@@ -165,7 +165,7 @@ export function PersonalMemoryModal({ isOpen, onClose, onSaved }: PersonalMemory
                 value={formData.call_to_action}
                 onChange={(e) => setFormData({ ...formData, call_to_action: e.target.value })}
                 placeholder="مثلاً: همین الان دایرکت پیام بده"
-                className="w-full bg-slate-900 border border-white/10 rounded-2xl px-4 py-2.5 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-indigo-500"
+                className="w-full bg-slate-50 border border-slate-200/90 rounded-2xl px-4 py-2.5 text-xs text-slate-800 placeholder-slate-400 focus:bg-white focus:outline-none focus:border-indigo-500"
               />
             </div>
           </div>
@@ -174,17 +174,17 @@ export function PersonalMemoryModal({ isOpen, onClose, onSaved }: PersonalMemory
             <button
               type="button"
               onClick={onClose}
-              className="pressable px-4 py-2.5 rounded-2xl text-xs font-semibold text-gray-400 hover:text-white"
+              className="pressable px-4 py-2.5 rounded-2xl text-xs font-semibold text-slate-500 hover:text-slate-800 hover:bg-slate-100"
             >
               انصراف
             </button>
             <button
               type="submit"
               disabled={loading}
-              className={`pressable flex items-center gap-2 px-6 py-2.5 rounded-2xl text-xs font-bold text-white shadow-lg spring-transition ${
+              className={`pressable flex items-center gap-2 px-6 py-2.5 rounded-2xl text-xs font-bold text-white shadow-md spring-transition ${
                 savedSuccess
                   ? 'bg-emerald-600 shadow-emerald-600/30'
-                  : 'bg-indigo-600 hover:bg-indigo-500 shadow-indigo-600/30'
+                  : 'bg-indigo-600 hover:bg-indigo-500 shadow-indigo-600/25'
               }`}
             >
               {savedSuccess ? (

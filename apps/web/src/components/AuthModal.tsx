@@ -189,21 +189,21 @@ export function AuthModal({ isOpen, onClose, onLoginSuccess }: AuthModalProps) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-md">
-      <div className="w-full max-w-md glass-dropdown rounded-3xl p-6 sm:p-8 border border-white/10 shadow-2xl relative">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-md">
+      <div className="w-full max-w-md glass-dropdown rounded-3xl p-6 sm:p-8 border border-slate-200/90 shadow-2xl relative">
         <button
           onClick={onClose}
-          className="absolute top-5 left-5 p-1.5 rounded-full text-gray-400 hover:text-white hover:bg-slate-800 spring-transition"
+          className="absolute top-5 left-5 p-1.5 rounded-full text-slate-400 hover:text-slate-700 hover:bg-slate-100 spring-transition"
         >
           <X className="w-5 h-5" />
         </button>
 
         {/* Tab Selection */}
-        <div className="flex items-center gap-2 border-b border-white/10 pb-4 mb-6">
+        <div className="flex items-center gap-2 border-b border-slate-200/80 pb-4 mb-6">
           <button
             onClick={() => { setTab('otp'); setStep('phone'); setErrorMsg(''); }}
             className={`text-xs font-bold pb-2 relative spring-transition ${
-              tab === 'otp' ? 'text-blue-400 border-b-2 border-blue-400' : 'text-gray-400 hover:text-white'
+              tab === 'otp' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-slate-500 hover:text-slate-900'
             }`}
           >
             ورود با کد یکبار مصرف (پیامک / پیام‌رسان)
@@ -211,7 +211,7 @@ export function AuthModal({ isOpen, onClose, onLoginSuccess }: AuthModalProps) {
           <button
             onClick={() => { setTab('password'); setErrorMsg(''); }}
             className={`text-xs font-bold pb-2 relative spring-transition ${
-              tab === 'password' ? 'text-blue-400 border-b-2 border-blue-400' : 'text-gray-400 hover:text-white'
+              tab === 'password' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-slate-500 hover:text-slate-900'
             }`}
           >
             ورود با کلمه عبور
@@ -219,7 +219,7 @@ export function AuthModal({ isOpen, onClose, onLoginSuccess }: AuthModalProps) {
         </div>
 
         {errorMsg && (
-          <div className="mb-4 p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-xs">
+          <div className="mb-4 p-3 rounded-xl bg-red-50 border border-red-200 text-red-600 text-xs">
             {errorMsg}
           </div>
         )}
@@ -227,7 +227,7 @@ export function AuthModal({ isOpen, onClose, onLoginSuccess }: AuthModalProps) {
         {tab === 'otp' && step === 'phone' && (
           <form onSubmit={handleSendOtp} className="space-y-4">
             <div>
-              <label className="block text-xs font-bold text-gray-300 mb-1.5">
+              <label className="block text-xs font-bold text-slate-700 mb-1.5">
                 شماره تلفن همراه
               </label>
               <div className="relative">
@@ -237,21 +237,21 @@ export function AuthModal({ isOpen, onClose, onLoginSuccess }: AuthModalProps) {
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
                   placeholder="09123456789"
-                  className="w-full bg-slate-900 border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-blue-500"
+                  className="w-full bg-slate-50 border border-slate-200/90 rounded-xl px-4 py-3 text-sm text-slate-800 placeholder-slate-400 focus:bg-white focus:outline-none focus:border-blue-500"
                 />
-                <Phone className="w-4 h-4 text-gray-400 absolute left-3 top-3.5" />
+                <Phone className="w-4 h-4 text-slate-400 absolute left-3 top-3.5" />
               </div>
             </div>
 
-            <div className="flex items-center gap-2 text-[11px] text-gray-400 bg-slate-900/60 p-2.5 rounded-lg border border-white/5">
-              <ShieldCheck className="w-4 h-4 text-emerald-400 flex-shrink-0" />
+            <div className="flex items-center gap-2 text-[11px] text-slate-500 bg-slate-100 p-2.5 rounded-lg border border-slate-200/60">
+              <ShieldCheck className="w-4 h-4 text-emerald-600 flex-shrink-0" />
               <span>احراز هویت بدون نیاز به کپچای آزاردهنده با سیستم ضداسپم Altcha PoW</span>
             </div>
 
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-3 rounded-xl text-xs font-bold bg-blue-600 hover:bg-blue-500 text-white shadow-lg shadow-blue-600/30 spring-transition"
+              className="w-full py-3 rounded-xl text-xs font-bold bg-blue-600 hover:bg-blue-500 text-white shadow-md shadow-blue-600/25 spring-transition"
             >
               {loading ? 'در حال ارسال کد...' : 'دریافت کد تایید یکبار مصرف'}
             </button>
@@ -261,7 +261,7 @@ export function AuthModal({ isOpen, onClose, onLoginSuccess }: AuthModalProps) {
         {tab === 'otp' && step === 'code' && (
           <form onSubmit={handleVerifyOtp} className="space-y-4">
             <div className="text-center mb-2">
-              <p className="text-xs text-gray-300">
+              <p className="text-xs text-slate-700">
                 کد ۵ رقمی ارسال‌شده به شماره <span className="font-bold font-mono" dir="ltr">{phone}</span> را وارد کنید:
               </p>
             </div>
@@ -274,16 +274,16 @@ export function AuthModal({ isOpen, onClose, onLoginSuccess }: AuthModalProps) {
                 value={code}
                 onChange={(e) => setCode(e.target.value)}
                 placeholder="• • • • •"
-                className="w-full text-center tracking-[1em] font-mono text-xl bg-slate-900 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-blue-500"
+                className="w-full text-center tracking-[1em] font-mono text-xl bg-slate-50 border border-slate-200/90 rounded-xl px-4 py-3 text-slate-900 focus:bg-white focus:outline-none focus:border-blue-500"
               />
             </div>
 
-            <div className="flex items-center justify-between text-xs text-gray-400">
+            <div className="flex items-center justify-between text-xs text-slate-500">
               <span>زمان باقی‌مانده: {Math.floor(timer / 60)}:{(timer % 60).toString().padStart(2, '0')}</span>
               <button
                 type="button"
                 onClick={() => setStep('phone')}
-                className="text-blue-400 hover:underline"
+                className="text-blue-600 hover:underline"
               >
                 تغییر شماره
               </button>
@@ -292,21 +292,21 @@ export function AuthModal({ isOpen, onClose, onLoginSuccess }: AuthModalProps) {
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-3 rounded-xl text-xs font-bold bg-blue-600 hover:bg-blue-500 text-white shadow-lg shadow-blue-600/30 spring-transition"
+              className="w-full py-3 rounded-xl text-xs font-bold bg-blue-600 hover:bg-blue-500 text-white shadow-md shadow-blue-600/25 spring-transition"
             >
               {loading ? 'در حال بررسی...' : 'تایید و ورود به پرامپت‌جو'}
             </button>
 
             {/* Fallback Messenger Auth */}
             {messengerToken && (
-              <div className="pt-2 border-t border-white/5 space-y-2">
-                <p className="text-[11px] text-gray-400 text-center">پیامک نرسید؟ از پیام‌رسان‌ها با ۱ کلیک وارد شوید:</p>
+              <div className="pt-2 border-t border-slate-200/60 space-y-2">
+                <p className="text-[11px] text-slate-500 text-center">پیامک نرسید؟ از پیام‌رسان‌ها با ۱ کلیک وارد شوید:</p>
                 <div className="grid grid-cols-2 gap-2">
                   <a
                     href={`https://ble.ir/promptjoo_bot?start=auth_${messengerToken}`}
                     target="_blank"
                     rel="noreferrer"
-                    className="flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg text-xs font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 hover:bg-emerald-500/20"
+                    className="flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100"
                   >
                     <Send className="w-3.5 h-3.5" />
                     <span>تایید در بله</span>
@@ -315,7 +315,7 @@ export function AuthModal({ isOpen, onClose, onLoginSuccess }: AuthModalProps) {
                     href={`https://t.me/promptjoo_bot?start=auth_${messengerToken}`}
                     target="_blank"
                     rel="noreferrer"
-                    className="flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg text-xs font-medium bg-sky-500/10 text-sky-400 border border-sky-500/20 hover:bg-sky-500/20"
+                    className="flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg text-xs font-medium bg-sky-50 text-sky-700 border border-sky-200 hover:bg-sky-100"
                   >
                     <Send className="w-3.5 h-3.5" />
                     <span>تایید در تلگرام</span>
@@ -329,7 +329,7 @@ export function AuthModal({ isOpen, onClose, onLoginSuccess }: AuthModalProps) {
         {tab === 'password' && (
           <form onSubmit={handlePasswordLogin} className="space-y-4">
             <div>
-              <label className="block text-xs font-bold text-gray-300 mb-1.5">
+              <label className="block text-xs font-bold text-slate-700 mb-1.5">
                 شماره تلفن همراه
               </label>
               <input
@@ -338,12 +338,12 @@ export function AuthModal({ isOpen, onClose, onLoginSuccess }: AuthModalProps) {
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
                 placeholder="09123456789"
-                className="w-full bg-slate-900 border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-blue-500"
+                className="w-full bg-slate-50 border border-slate-200/90 rounded-xl px-4 py-3 text-sm text-slate-800 focus:bg-white focus:outline-none focus:border-blue-500"
               />
             </div>
 
             <div>
-              <label className="block text-xs font-bold text-gray-300 mb-1.5">
+              <label className="block text-xs font-bold text-slate-700 mb-1.5">
                 کلمه عبور
               </label>
               <input
@@ -352,14 +352,14 @@ export function AuthModal({ isOpen, onClose, onLoginSuccess }: AuthModalProps) {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••"
-                className="w-full bg-slate-900 border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-blue-500"
+                className="w-full bg-slate-50 border border-slate-200/90 rounded-xl px-4 py-3 text-sm text-slate-800 focus:bg-white focus:outline-none focus:border-blue-500"
               />
             </div>
 
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-3 rounded-xl text-xs font-bold bg-blue-600 hover:bg-blue-500 text-white shadow-lg shadow-blue-600/30 spring-transition"
+              className="w-full py-3 rounded-xl text-xs font-bold bg-blue-600 hover:bg-blue-500 text-white shadow-md shadow-blue-600/25 spring-transition"
             >
               {loading ? 'در حال ورود...' : 'ورود با کلمه عبور'}
             </button>

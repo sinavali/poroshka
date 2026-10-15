@@ -137,9 +137,9 @@ export default function PromptDetailPage({ params }: { params: Promise<{ slug: s
   if (loading) {
     return (
       <div className="max-w-4xl mx-auto py-12 space-y-6 animate-pulse">
-        <div className="h-6 bg-white/10 rounded-full w-1/3" />
-        <div className="h-10 bg-white/10 rounded-full w-3/4" />
-        <div className="h-48 bg-white/5 rounded-3xl" />
+        <div className="h-6 bg-slate-200 rounded-full w-1/3" />
+        <div className="h-10 bg-slate-200 rounded-full w-3/4" />
+        <div className="h-48 bg-slate-100 rounded-3xl border border-slate-200" />
       </div>
     );
   }
@@ -147,9 +147,9 @@ export default function PromptDetailPage({ params }: { params: Promise<{ slug: s
   if (!prompt) {
     return (
       <div className="max-w-md mx-auto py-20 text-center space-y-4">
-        <h2 className="text-xl font-bold text-white">پرامپت مورد نظر یافت نشد</h2>
-        <p className="text-xs text-gray-400">ممکن است پرامپت حذف شده یا آدرس اشتباه باشد.</p>
-        <Link href="/" className="pressable inline-block px-5 py-2.5 bg-blue-600 rounded-2xl text-xs font-bold text-white">
+        <h2 className="text-xl font-bold text-slate-900">پرامپت مورد نظر یافت نشد</h2>
+        <p className="text-xs text-slate-500">ممکن است پرامپت حذف شده یا آدرس اشتباه باشد.</p>
+        <Link href="/" className="pressable inline-block px-5 py-2.5 bg-blue-600 rounded-2xl text-xs font-bold text-white shadow-md shadow-blue-500/20">
           بازگشت به صفحه اصلی
         </Link>
       </div>
@@ -194,39 +194,39 @@ export default function PromptDetailPage({ params }: { params: Promise<{ slug: s
       )}
 
       {/* Navigation Breadcrumb */}
-      <div className="flex items-center gap-2 text-xs text-gray-400">
-        <Link href="/" className="hover:text-white spring-transition">صفحه اصلی</Link>
+      <div className="flex items-center gap-2 text-xs text-slate-500">
+        <Link href="/" className="hover:text-slate-900 spring-transition">صفحه اصلی</Link>
         <span>/</span>
-        <span className="text-blue-400">{prompt.category_title_fa || 'دسته‌بندی'}</span>
+        <span className="text-blue-600 font-medium">{prompt.category_title_fa || 'دسته‌بندی'}</span>
         <span>/</span>
-        <span className="text-gray-300 truncate">{prompt.title_fa}</span>
+        <span className="text-slate-700 truncate">{prompt.title_fa}</span>
       </div>
 
       {/* Header Info Card */}
       <div className="space-y-4">
         <div className="flex items-center gap-2.5 flex-wrap">
-          <span className="text-[11px] font-bold px-3 py-1 rounded-full bg-blue-500/10 text-blue-400 border border-blue-500/20">
+          <span className="text-[11px] font-bold px-3 py-1 rounded-full bg-blue-50 text-blue-700 border border-blue-200">
             {prompt.modality}
           </span>
-          <span className="text-xs text-gray-400 font-mono" dir="ltr">
+          <span className="text-xs text-slate-500 font-mono" dir="ltr">
             {prompt.copy_count.toLocaleString('fa-IR')} بار کپی شده
           </span>
         </div>
 
-        <h1 className="text-2xl sm:text-4xl font-black text-white leading-tight tracking-tight">
+        <h1 className="text-2xl sm:text-4xl font-black text-slate-900 leading-tight tracking-tight">
           {prompt.title_fa}
         </h1>
 
-        <p className="text-sm text-gray-300 leading-relaxed max-w-3xl">
+        <p className="text-sm text-slate-600 leading-relaxed max-w-3xl">
           {prompt.short_desc_fa}
         </p>
 
         {/* Supported Models */}
         {prompt.supported_models && prompt.supported_models.length > 0 && (
           <div className="flex items-center gap-2 pt-1 flex-wrap">
-            <span className="text-xs text-gray-400">سازگار با:</span>
+            <span className="text-xs text-slate-500">سازگار با:</span>
             {prompt.supported_models.map((m) => (
-              <span key={m} className="text-[11px] uppercase font-mono px-3 py-0.5 rounded-full bg-white/5 text-gray-300 border border-white/10">
+              <span key={m} className="text-[11px] uppercase font-mono px-3 py-0.5 rounded-full bg-slate-100 text-slate-700 border border-slate-200">
                 {m}
               </span>
             ))}
@@ -236,21 +236,21 @@ export default function PromptDetailPage({ params }: { params: Promise<{ slug: s
 
       {/* Interactive Slot Customizer Panel */}
       {prompt.slots_schema_json && prompt.slots_schema_json.length > 0 && (
-        <div className="glass-panel rounded-3xl p-6 sm:p-8 border border-white/10 space-y-6">
-          <div className="flex items-center justify-between border-b border-white/10 pb-4 flex-wrap gap-3">
+        <div className="glass-panel rounded-3xl p-6 sm:p-8 border border-slate-200/80 space-y-6 shadow-sm">
+          <div className="flex items-center justify-between border-b border-slate-200/80 pb-4 flex-wrap gap-3">
             <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400">
+              <div className="w-8 h-8 rounded-xl bg-indigo-50 border border-indigo-200 flex items-center justify-center text-indigo-600">
                 <Sliders className="w-4 h-4" />
               </div>
-              <h3 className="text-base font-bold text-white">تنظیم و شخصی‌سازی متغیرهای پرامپت</h3>
+              <h3 className="text-base font-bold text-slate-900">تنظیم و شخصی‌سازی متغیرهای پرامپت</h3>
             </div>
 
             {hasPersonalMemory && (
               <button
                 onClick={handleApplyPersonalMemory}
-                className="pressable flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-semibold bg-indigo-500/15 text-indigo-300 border border-indigo-500/30 hover:bg-indigo-500/25"
+                className="pressable flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200 hover:bg-indigo-100 shadow-sm"
               >
-                <Brain className="w-3.5 h-3.5 text-indigo-400" />
+                <Brain className="w-3.5 h-3.5 text-indigo-600" />
                 <span>جایگذاری از حافظه من</span>
               </button>
             )}
@@ -259,15 +259,15 @@ export default function PromptDetailPage({ params }: { params: Promise<{ slug: s
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {prompt.slots_schema_json.map((slot) => (
               <div key={slot.slot_key} className="space-y-1.5">
-                <label className="block text-xs font-bold text-gray-300">
-                  {slot.label_fa} {slot.is_required && <span className="text-red-400">*</span>}
+                <label className="block text-xs font-bold text-slate-700">
+                  {slot.label_fa} {slot.is_required && <span className="text-red-500">*</span>}
                 </label>
 
                 {slot.input_type === 'select' && slot.options ? (
                   <select
                     value={slotValues[slot.slot_key] || ''}
                     onChange={(e) => setSlotValues({ ...slotValues, [slot.slot_key]: e.target.value })}
-                    className="w-full bg-slate-900 border border-white/10 rounded-2xl px-4 py-2.5 text-xs text-white focus:outline-none focus:border-indigo-500/60"
+                    className="w-full bg-slate-50 border border-slate-200/90 rounded-2xl px-4 py-2.5 text-xs text-slate-800 focus:bg-white focus:outline-none focus:border-indigo-500"
                   >
                     {slot.options.map((opt) => (
                       <option key={opt} value={opt}>{opt}</option>
@@ -279,7 +279,7 @@ export default function PromptDetailPage({ params }: { params: Promise<{ slug: s
                     value={slotValues[slot.slot_key] || ''}
                     onChange={(e) => setSlotValues({ ...slotValues, [slot.slot_key]: e.target.value })}
                     placeholder={slot.placeholder}
-                    className="w-full bg-slate-900 border border-white/10 rounded-2xl px-4 py-2.5 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-indigo-500/60"
+                    className="w-full bg-slate-50 border border-slate-200/90 rounded-2xl px-4 py-2.5 text-xs text-slate-800 placeholder-slate-400 focus:bg-white focus:outline-none focus:border-indigo-500"
                   />
                 ) : (
                   <input
@@ -287,7 +287,7 @@ export default function PromptDetailPage({ params }: { params: Promise<{ slug: s
                     value={slotValues[slot.slot_key] || ''}
                     onChange={(e) => setSlotValues({ ...slotValues, [slot.slot_key]: e.target.value })}
                     placeholder={slot.placeholder}
-                    className="w-full bg-slate-900 border border-white/10 rounded-2xl px-4 py-2.5 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-indigo-500/60"
+                    className="w-full bg-slate-50 border border-slate-200/90 rounded-2xl px-4 py-2.5 text-xs text-slate-800 placeholder-slate-400 focus:bg-white focus:outline-none focus:border-indigo-500"
                   />
                 )}
               </div>
@@ -295,12 +295,12 @@ export default function PromptDetailPage({ params }: { params: Promise<{ slug: s
           </div>
 
           <div className="flex items-center justify-between pt-2">
-            <label className="flex items-center gap-2 text-xs text-gray-300 cursor-pointer select-none">
+            <label className="flex items-center gap-2 text-xs text-slate-600 cursor-pointer select-none">
               <input
                 type="checkbox"
                 checked={forceFarsi}
                 onChange={(e) => setForceFarsi(e.target.checked)}
-                className="w-4 h-4 rounded text-blue-600 focus:ring-0 bg-slate-900 border-white/20"
+                className="w-4 h-4 rounded text-blue-600 focus:ring-0 bg-slate-50 border-slate-300"
               />
               <span>دستور زبان فارسی روان به انتهای پرامپت الصاق شود</span>
             </label>
@@ -309,22 +309,22 @@ export default function PromptDetailPage({ params }: { params: Promise<{ slug: s
       )}
 
       {/* Live Bilingual Preview & Copy Action */}
-      <div className="glass-panel rounded-3xl p-6 sm:p-8 border border-white/10 space-y-4">
+      <div className="glass-panel rounded-3xl p-6 sm:p-8 border border-slate-200/80 space-y-4 shadow-sm">
         <div className="flex items-center justify-between flex-wrap gap-3">
           <div className="flex items-center gap-2.5">
-            <Sparkles className="w-5 h-5 text-blue-400" />
-            <h3 className="text-base font-bold text-white">پیش‌نمایش زنده پرامپت آماده اجرا</h3>
-            <span className="text-[11px] text-gray-400 font-mono" dir="ltr">
+            <Sparkles className="w-5 h-5 text-blue-600" />
+            <h3 className="text-base font-bold text-slate-900">پیش‌نمایش زنده پرامپت آماده اجرا</h3>
+            <span className="text-[11px] text-slate-500 font-mono" dir="ltr">
               (~{estimatedTokens} توکن)
             </span>
           </div>
 
           <button
             onClick={handleCopyClick}
-            className={`pressable flex items-center gap-2 px-6 py-2.5 rounded-2xl text-xs font-bold shadow-lg spring-transition ${
+            className={`pressable flex items-center gap-2 px-6 py-2.5 rounded-2xl text-xs font-bold shadow-md spring-transition ${
               copied
                 ? 'bg-emerald-600 text-white'
-                : 'bg-blue-600 hover:bg-blue-500 text-white shadow-blue-600/30 border border-blue-400/30'
+                : 'bg-blue-600 hover:bg-blue-500 text-white shadow-blue-500/25 border border-blue-500'
             }`}
           >
             {copied ? (
@@ -342,19 +342,19 @@ export default function PromptDetailPage({ params }: { params: Promise<{ slug: s
         </div>
 
         {/* Bilingual Code Isolation */}
-        <pre className="bilingual-code text-xs bg-slate-950/80 p-5 rounded-2xl border border-white/10 text-gray-200 leading-relaxed overflow-x-auto max-h-72">
+        <pre className="bilingual-code text-xs bg-slate-100 p-5 rounded-2xl border border-slate-200 text-slate-800 leading-relaxed overflow-x-auto max-h-72">
           {compiledText || prompt.template_en}
         </pre>
       </div>
 
       {/* Direct Answer Summary for SEO/AIO */}
       {prompt.direct_answer_summary_fa && (
-        <div className="glass-panel rounded-3xl p-6 sm:p-8 border border-white/10 space-y-3">
-          <h3 className="text-sm font-bold text-white flex items-center gap-2">
-            <Layers className="w-4 h-4 text-emerald-400" />
+        <div className="glass-panel rounded-3xl p-6 sm:p-8 border border-slate-200/80 space-y-3 shadow-sm">
+          <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+            <Layers className="w-4 h-4 text-emerald-600" />
             راهنمای کاربردی و پاسخ مستقیم
           </h3>
-          <p className="text-xs text-gray-300 leading-relaxed">
+          <p className="text-xs text-slate-600 leading-relaxed">
             {prompt.direct_answer_summary_fa}
           </p>
         </div>
@@ -362,17 +362,17 @@ export default function PromptDetailPage({ params }: { params: Promise<{ slug: s
 
       {/* FAQ Accordion */}
       {prompt.faq_schema_json && prompt.faq_schema_json.length > 0 && (
-        <div className="glass-panel rounded-3xl p-6 sm:p-8 border border-white/10 space-y-4">
-          <h3 className="text-base font-bold text-white flex items-center gap-2 mb-2">
-            <HelpCircle className="w-5 h-5 text-amber-400" />
+        <div className="glass-panel rounded-3xl p-6 sm:p-8 border border-slate-200/80 space-y-4 shadow-sm">
+          <h3 className="text-base font-bold text-slate-900 flex items-center gap-2 mb-2">
+            <HelpCircle className="w-5 h-5 text-amber-600" />
             پرسش‌های متداول درباره این پرامپت
           </h3>
 
           <div className="space-y-3">
             {prompt.faq_schema_json.map((faq, idx) => (
-              <div key={idx} className="p-4 rounded-2xl bg-white/5 border border-white/5 space-y-1.5">
-                <h4 className="text-xs font-bold text-white">{faq.question}</h4>
-                <p className="text-xs text-gray-400 leading-relaxed">{faq.answer}</p>
+              <div key={idx} className="p-4 rounded-2xl bg-slate-50 border border-slate-200/70 space-y-1.5">
+                <h4 className="text-xs font-bold text-slate-900">{faq.question}</h4>
+                <p className="text-xs text-slate-600 leading-relaxed">{faq.answer}</p>
               </div>
             ))}
           </div>
