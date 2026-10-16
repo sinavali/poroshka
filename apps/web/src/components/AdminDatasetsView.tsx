@@ -1,15 +1,19 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Database, Download, Upload, CheckCircle2, AlertCircle, RefreshCw, FileText, ArrowDownToLine } from 'lucide-react';
+import { Database, Download, Upload, CheckCircle2, AlertCircle, RefreshCw, FileText, ArrowDownToLine, Plus, Code } from 'lucide-react';
 import { fetchFromApi } from '../lib/api-client';
 import { showDynamicToast } from './DynamicIslandToast';
+import { AdminPromptCreatorModal } from './AdminPromptCreatorModal';
 
 export function AdminDatasetsView() {
   const [fileContent, setFileContent] = useState<string>('');
   const [fileName, setFileName] = useState<string>('');
   const [loading, setLoading] = useState(false);
   const [syncResult, setSyncResult] = useState<any>(null);
+  const [isCreatorOpen, setIsCreatorOpen] = useState(false);
+  const [rawText, setRawText] = useState('');
+  const [activeMode, setActiveMode] = useState<'file' | 'raw'>('file');
 
   const handleDownloadCsv = () => {
     window.open('/api/v1/ingestion/export/csv', '_blank');
@@ -85,7 +89,14 @@ export function AdminDatasetsView() {
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
+          <button
+            onClick={() => setIsCreatorOpen(true)}
+            className="pressable flex items-center gap-1.5 px-3.5 py-2 rounded-2xl text-xs font-bold bg-blue-600 hover:bg-blue-500 text-white shadow-sm shadow-blue-500/20"
+          >
+            <Plus className="w-3.5 h-3.5" />
+            <span>افزودن پرامپت تکی</span>
+          </button>
           <button
             onClick={handleDownloadCsv}
             className="pressable flex items-center gap-1.5 px-3.5 py-2 rounded-2xl text-xs font-bold bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 shadow-sm"
@@ -103,37 +114,82 @@ export function AdminDatasetsView() {
         </div>
       </div>
 
+      {/* Mode Switcher */}
+      <div className="flex items-center gap-2 border-b border-slate-200 pb-2">
+        <button
+          onClick={() => setActiveMode('file')}
+          className={`px-4 py-2 rounded-xl text-xs font-bold spring-transition ${
+            activeMode === 'file'
+              ? 'bg-blue-600 text-white shadow-xs'
+              : 'text-slate-600 hover:bg-slate-100'
+          }`}
+        >
+          بارگذاری فایل (CSV / JSON)
+        </button>
+        <button
+          onClick={() => setActiveMode('raw')}
+          className={`px-4 py-2 rounded-xl text-xs font-bold spring-transition ${
+            activeMode === 'raw'
+              ? 'bg-blue-600 text-white shadow-xs'
+              : 'text-slate-600 hover:bg-slate-100'
+          }`}
+        >
+          استودیو درج مستقیم کد (JSON Array یا CSV)
+        </button>
+      </div>
+
       {/* Upload and Sync Card */}
       <div className="glass-panel rounded-3xl p-6 border border-slate-200/80 shadow-sm space-y-6">
-        <div>
-          <h4 className="text-xs font-bold text-slate-800 mb-1">بارگذاری فایل دیتاست جدید</h4>
-          <p className="text-xs text-slate-500 mb-4">
-            فایل CSV یا JSON استخراج‌شده از محیط لوکال یا منابع داده را انتخاب کنید. سیستم به‌طور خودکار موارد تکراری را نادیده گرفته و فقط رکوردهای جدید را ثبت می‌کند.
-          </p>
+        {activeMode === 'file' ? (
+          <div>
+            <h4 className="text-xs font-bold text-slate-800 mb-1">بارگذاری فایل دیتاست جدید</h4>
+            <p className="text-xs text-slate-500 mb-4">
+              فایل CSV یا JSON استخراج‌شده از محیط لوکال یا منابع داده را انتخاب کنید. سیستم به‌طور خودکار موارد تکراری را نادیده گرفته و فقط رکوردهای جدید را ثبت می‌کند.
+            </p>
 
-          <div className="flex flex-col sm:flex-row items-center gap-4">
-            <label className="pressable flex items-center gap-2 px-5 py-3 rounded-2xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold border border-slate-200 cursor-pointer">
-              <Upload className="w-4 h-4 text-blue-600" />
-              <span>انتخاب فایل CSV یا JSON</span>
-              <input
-                type="file"
-                accept=".csv,.json"
-                onChange={handleFileUpload}
-                className="hidden"
-              />
-            </label>
+            <div className="flex flex-col sm:flex-row items-center gap-4">
+              <label className="pressable flex items-center gap-2 px-5 py-3 rounded-2xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold border border-slate-200 cursor-pointer">
+                <Upload className="w-4 h-4 text-blue-600" />
+                <span>انتخاب فایل CSV یا JSON</span>
+                <input
+                  type="file"
+                  accept=".csv,.json"
+                  onChange={handleFileUpload}
+                  className="hidden"
+                />
+              </label>
 
-            {fileName && (
-              <span className="text-xs font-mono text-slate-600 flex items-center gap-1.5">
-                <FileText className="w-4 h-4 text-slate-400" />
-                {fileName} ({Math.round(fileContent.length / 1024)} KB)
-              </span>
-            )}
+              {fileName && (
+                <span className="text-xs font-mono text-slate-600 flex items-center gap-1.5">
+                  <FileText className="w-4 h-4 text-slate-400" />
+                  {fileName} ({Math.round(fileContent.length / 1024)} KB)
+                </span>
+              )}
+            </div>
           </div>
-        </div>
+        ) : (
+          <div className="space-y-3">
+            <h4 className="text-xs font-bold text-slate-800">درج مستقیم محتوای متنی دیتاست</h4>
+            <p className="text-xs text-slate-500">
+              آرایه رکوردهای پرامپت را به فرمت JSON Array یا خطوط CSV اینجا الصاق کنید:
+            </p>
+            <textarea
+              rows={6}
+              value={rawText}
+              onChange={(e) => {
+                setRawText(e.target.value);
+                setFileContent(e.target.value);
+                setFileName('raw_input.json');
+              }}
+              dir="ltr"
+              placeholder={`[\n  {\n    "title_fa": "کپشن اینستاگرام برای معرفی محصول",\n    "template_en": "Write an engaging caption about {{product}}..."\n  }\n]`}
+              className="w-full font-mono text-xs bg-slate-50 border border-slate-200 rounded-xl p-3 text-slate-800 focus:bg-white focus:outline-none focus:border-blue-500"
+            />
+          </div>
+        )}
 
         {/* Text preview */}
-        {fileContent && (
+        {activeMode === 'file' && fileContent && (
           <div className="space-y-2">
             <span className="text-xs font-bold text-slate-700">پیش‌نمایش محتوای فایل:</span>
             <pre className="text-[11px] font-mono bg-slate-50 p-4 rounded-2xl border border-slate-200 text-slate-700 max-h-48 overflow-y-auto whitespace-pre-wrap">
@@ -195,6 +251,11 @@ export function AdminDatasetsView() {
           </div>
         )}
       </div>
+
+      <AdminPromptCreatorModal
+        isOpen={isCreatorOpen}
+        onClose={() => setIsCreatorOpen(false)}
+      />
     </div>
   );
 }

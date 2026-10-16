@@ -15,11 +15,20 @@ export const metadata: Metadata = {
     siteName: 'پرامپت‌جو',
     locale: 'fa_IR',
     type: 'website',
+    images: [
+      {
+        url: '/og-image.png',
+        width: 1200,
+        height: 630,
+        alt: 'پرامپت‌جو — مرجع تخصصی پرامپت‌های هوش مصنوعی',
+      },
+    ],
   },
   twitter: {
     card: 'summary_large_image',
     title: 'پرامپت‌جو — پرامپت‌های مهندسی‌شده هوش مصنوعی',
     description: 'کامل‌ترین آرشیو پرامپت‌های کاربردی برای بازار ایران',
+    images: ['/og-image.png'],
   },
 };
 

@@ -154,47 +154,8 @@ export default function HomePage() {
         )}
       </section>
 
-      {/* SEARCH RESULTS MODE: Two-Row Carousel of Closest Matching Prompts, followed by Block Forger */}
-      {searchQuery && prompts.length > 0 && (
-        <section className="space-y-4 animate-fade-in">
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-base sm:text-lg font-black text-slate-900 flex items-center gap-2">
-                <Sparkles className="w-4 h-4 text-blue-600" />
-                <span>نزدیک‌ترین پرامپت‌های آماده به جستجوی شما</span>
-              </h2>
-              <p className="text-xs text-slate-500 mt-0.5">
-                پرامپت‌های زیر بیشترین تطابق را با عبارت «{searchQuery}» دارند و آماده استفاده هستند.
-              </p>
-            </div>
-            <span className="text-xs font-bold text-blue-600 bg-blue-50 border border-blue-200 px-3 py-1 rounded-full">
-              {totalCount.toLocaleString('fa-IR')} مورد یافت شد
-            </span>
-          </div>
-
-          {/* 2-Row Carousel / Slider */}
-          <div className="grid grid-rows-2 grid-flow-col auto-cols-[290px] sm:auto-cols-[360px] gap-4 overflow-x-auto pb-4 snap-x snap-mandatory no-scrollbar scroll-smooth">
-            {prompts.slice(0, 10).map((prompt) => (
-              <div key={prompt.id} className="snap-start h-full">
-                <PromptCard prompt={prompt} onQuickCopied={handleQuickCopied} />
-              </div>
-            ))}
-          </div>
-
-          <div className="pt-4 border-t border-slate-200/80">
-            <h3 className="text-sm sm:text-base font-bold text-slate-900 mb-1">
-              یا پرامپت اختصاصی خود را بسازید:
-            </h3>
-            <p className="text-xs text-slate-500 mb-4">
-              اگر خروجی مدنظرتان متفاوت است، موتور زیر بر اساس متن جستجوی شما پرامپتی استاندارد می‌سازد.
-            </p>
-            <BlockForger initialQuery={searchQuery} />
-          </div>
-        </section>
-      )}
-
-      {/* DEFAULT LANDING MODE: Block Forger shown directly at top if no search */}
-      {!searchQuery && <BlockForger />}
+      {/* Unified Prompt Engine & Search Carousel */}
+      <BlockForger initialQuery={searchQuery} />
 
       {/* Catalog & Filter Section */}
       <section id="catalog-section" className="space-y-6 pt-4">

@@ -1,223 +1,159 @@
-'use client';
+import React from 'react';
+import type { Metadata } from 'next';
+import { notFound } from 'next/navigation';
+import { PromptDetailClient, PromptDetailData } from '../../../components/PromptDetailClient';
 
-import React, { useState, useEffect, use } from 'react';
-import Link from 'next/link';
-import { ArrowRight, Copy, Check, Sparkles, HelpCircle, Layers, Sliders, ExternalLink, Brain, Zap } from 'lucide-react';
-import { fetchFromApi } from '../../../lib/api-client';
-import { PostCopyDrawer } from '../../../components/PostCopyDrawer';
-import { AdBanner } from '../../../components/AdBanner';
-import { showDynamicToast } from '../../../components/DynamicIslandToast';
-import { MemoryProfile } from '../../../components/PersonalMemoryModal';
-
-interface PromptDetailData {
-  id: string;
-  slug: string;
-  modality: string;
-  category_slug?: string;
-  category_title_fa?: string;
-  title_fa: string;
-  short_desc_fa: string;
-  direct_answer_summary_fa: string;
-  template_en: string;
-  slots_schema_json: Array<{
-    slot_key: string;
-    label_fa: string;
-    input_type: string;
-    options?: string[];
-    default_value?: string;
-    placeholder?: string;
-    is_required?: boolean;
-  }>;
-  faq_schema_json?: Array<{ question: string; answer: string }>;
-  supported_models: string[];
-  copy_count: number;
-  view_count: number;
+interface PageProps {
+  params: Promise<{ slug: string }>;
 }
 
-export default function PromptDetailPage({ params }: { params: Promise<{ slug: string }> }) {
-  const resolvedParams = use(params);
-  const slug = resolvedParams.slug;
-
-  const [prompt, setPrompt] = useState<PromptDetailData | null>(null);
-  const [slotValues, setSlotValues] = useState<Record<string, string>>({});
-  const [forceFarsi, setForceFarsi] = useState(true);
-  const [compiledText, setCompiledText] = useState('');
-  const [loading, setLoading] = useState(true);
-  const [copied, setCopied] = useState(false);
-  const [drawerOpen, setDrawerOpen] = useState(false);
-  const [memoryProfiles, setMemoryProfiles] = useState<MemoryProfile[]>([]);
-  const [selectedMemoryId, setSelectedMemoryId] = useState<string>('none');
-
-  const loadMemories = () => {
-    try {
-      const cached = localStorage.getItem('promptjoo_memory_profiles');
-      if (cached) {
-        const parsed = JSON.parse(cached);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          setMemoryProfiles(parsed);
-          const activeId = localStorage.getItem('promptjoo_active_memory_id');
-          if (activeId && parsed.some((p: MemoryProfile) => p.id === activeId)) {
-            setSelectedMemoryId(activeId);
-          }
-          return;
-        }
-      }
-      setMemoryProfiles([]);
-    } catch {
-      setMemoryProfiles([]);
-    }
-  };
-
-  useEffect(() => {
-    loadMemories();
-    const handleUpdate = () => loadMemories();
-    window.addEventListener('promptjoo:memory-updated', handleUpdate);
-    return () => window.removeEventListener('promptjoo:memory-updated', handleUpdate);
-  }, []);
-
-  useEffect(() => {
-    fetchFromApi<PromptDetailData>(`/api/v1/catalog/prompts/${slug}`)
-      .then((data) => {
-        setPrompt(data);
-
-        // Load personal memory from active profile or legacy localStorage if available
-        let profile: Record<string, string> = {};
-        try {
-          const cachedProfiles = localStorage.getItem('promptjoo_memory_profiles');
-          const activeId = localStorage.getItem('promptjoo_active_memory_id');
-          if (cachedProfiles) {
-            const list = JSON.parse(cachedProfiles);
-            const active = list.find((p: MemoryProfile) => p.id === activeId) || list[0];
-            if (active) {
-              profile = {
-                brand_name: active.brand_name || '',
-                target_audience: active.target_audience || '',
-                brand_tone: active.brand_tone || '',
-                call_to_action: active.call_to_action || '',
-                niche_topic: active.niche_topic || '',
-              };
-            }
-          } else {
-            const legacy = localStorage.getItem('promptjoo_personal_memory');
-            if (legacy) profile = JSON.parse(legacy);
-          }
-        } catch {}
-
-        // Initialize slot values with personal profile overrides
-        const initialSlots: Record<string, string> = {};
-        if (Array.isArray(data.slots_schema_json)) {
-          for (const s of data.slots_schema_json) {
-            initialSlots[s.slot_key] = profile[s.slot_key] || s.default_value || '';
-          }
-        }
-        setSlotValues(initialSlots);
-      })
-      .catch(() => {
-        setPrompt(null);
-      })
-      .finally(() => {
-        setLoading(false);
-      });
-  }, [slug]);
-
-  // Live compilation whenever slots change
-  useEffect(() => {
-    if (!prompt) return;
-
-    fetchFromApi<{ compiled_text: string }>(`/api/v1/catalog/prompts/${prompt.slug}/copy`, {
-      method: 'POST',
-      body: JSON.stringify({
-        slot_values: slotValues,
-        force_farsi_output: forceFarsi
-      })
-    })
-      .then((res) => {
-        setCompiledText(res.compiled_text);
-      })
-      .catch(() => {
-        // Fallback simple template slot replacement
-        let text = prompt.template_en;
-        for (const [k, v] of Object.entries(slotValues)) {
-          text = text.replace(new RegExp(`\\{\\{${k}\\}\\}`, 'g'), v || '');
-        }
-        if (forceFarsi && !text.includes('پاسخ را به زبان فارسی روان بنویسید.')) {
-          text += '\n\nImportant: لطفا تمام پاسخ را به زبان فارسی روان، شیوا و استاندارد بنویسید.';
-        }
-        setCompiledText(text);
-      });
-  }, [prompt, slotValues, forceFarsi]);
-
-  const handleMemorySelect = (memId: string) => {
-    setSelectedMemoryId(memId);
-    if (memId === 'none') {
-      return;
-    }
-    const profile = memoryProfiles.find((p) => p.id === memId);
-    if (!profile) return;
-
-    setSlotValues((prev) => ({
-      ...prev,
-      ...(profile.brand_name ? { brand_name: profile.brand_name } : {}),
-      ...(profile.target_audience ? { target_audience: profile.target_audience } : {}),
-      ...(profile.brand_tone ? { brand_tone: profile.brand_tone } : {}),
-      ...(profile.call_to_action ? { call_to_action: profile.call_to_action } : {}),
-    }));
-
-    showDynamicToast({
-      title: 'حافظه شخصی اعمال شد',
-      message: `اطلاعات «${profile.title}» جایگذاری گردید`,
-      type: 'memory'
+async function getPromptData(slug: string): Promise<PromptDetailData | null> {
+  const apiUrl = process.env.INTERNAL_API_URL || process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:4000';
+  try {
+    const res = await fetch(`${apiUrl}/api/v1/catalog/prompts/${slug}`, {
+      next: { revalidate: 1800 }
     });
-  };
-
-  if (loading) {
-    return (
-      <div className="max-w-4xl mx-auto py-12 space-y-6 animate-pulse">
-        <div className="h-6 bg-slate-200 rounded-full w-1/3" />
-        <div className="h-10 bg-slate-200 rounded-full w-3/4" />
-        <div className="h-48 bg-slate-100 rounded-3xl border border-slate-200" />
-      </div>
-    );
+    if (!res.ok) return null;
+    return await res.json();
+  } catch {
+    return null;
   }
+}
+
+export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+  const { slug } = await params;
+  const prompt = await getPromptData(slug);
 
   if (!prompt) {
-    return (
-      <div className="max-w-md mx-auto py-20 text-center space-y-4">
-        <h2 className="text-xl font-bold text-slate-900">پرامپت مورد نظر یافت نشد</h2>
-        <p className="text-xs text-slate-500">ممکن است پرامپت حذف شده یا آدرس اشتباه باشد.</p>
-        <Link href="/" className="pressable inline-block px-5 py-2.5 bg-blue-600 rounded-2xl text-xs font-bold text-white shadow-md shadow-blue-500/20">
-          بازگشت به صفحه اصلی
-        </Link>
-      </div>
-    );
+    return {
+      title: 'پرامپت یافت نشد | پرامپت‌جو',
+      description: 'پرامپت مورد نظر در کاتالوگ پرامپت‌جو یافت نشد.',
+    };
   }
 
-  const handleCopyClick = async () => {
-    await navigator.clipboard.writeText(compiledText);
-    setCopied(true);
-    showDynamicToast({
-      title: 'پرامپت در کلیپ‌بورد کپی شد',
-      message: prompt.title_fa,
-      type: 'copy'
-    });
-    setTimeout(() => setCopied(false), 2200);
-    setDrawerOpen(true);
+  const title = `${prompt.title_fa} | پرامپت‌جو`;
+  const description = prompt.short_desc_fa || `${prompt.title_fa} — کپی و شخصی‌سازی پرامپت مهندسی‌شده هوش مصنوعی در پرامپت‌جو.`;
+  const pageUrl = `https://promptjoo.ir/p/${slug}`;
+  const ogImageUrl = 'https://promptjoo.ir/og-image.png';
 
-    // Call server API to record copy and store in user_copied_prompts
-    fetchFromApi(`/api/v1/catalog/prompts/${prompt.slug}/copy`, {
-      method: 'POST',
-      body: JSON.stringify({
-        slot_values: slotValues,
-        force_farsi_output: forceFarsi
-      })
-    }).catch(() => {});
+  return {
+    title,
+    description,
+    alternates: {
+      canonical: pageUrl,
+    },
+    openGraph: {
+      title,
+      description,
+      url: pageUrl,
+      siteName: 'پرامپت‌جو',
+      locale: 'fa_IR',
+      type: 'article',
+      images: [
+        {
+          url: ogImageUrl,
+          width: 1200,
+          height: 630,
+          alt: prompt.title_fa,
+        },
+      ],
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title,
+      description,
+      images: [ogImageUrl],
+    },
+  };
+}
+
+export default async function PromptDetailPage({ params }: PageProps) {
+  const { slug } = await params;
+  const prompt = await getPromptData(slug);
+
+  if (!prompt) {
+    notFound();
+  }
+
+  // Structured Data (JSON-LD) for Maximum SEO & AIO
+  const breadcrumbLd = {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: [
+      {
+        '@type': 'ListItem',
+        position: 1,
+        name: 'صفحه اصلی',
+        item: 'https://promptjoo.ir',
+      },
+      {
+        '@type': 'ListItem',
+        position: 2,
+        name: prompt.category_title_fa || 'کاتالوگ پرامپت',
+        item: `https://promptjoo.ir/?category=${prompt.category_slug || ''}`,
+      },
+      {
+        '@type': 'ListItem',
+        position: 3,
+        name: prompt.title_fa,
+        item: `https://promptjoo.ir/p/${prompt.slug}`,
+      },
+    ],
   };
 
-  const estimatedTokens = Math.ceil((compiledText || '').length / 4);
+  const softwareLd = {
+    '@context': 'https://schema.org',
+    '@type': 'SoftwareApplication',
+    name: prompt.title_fa,
+    description: prompt.short_desc_fa,
+    applicationCategory: 'BusinessApplication',
+    operatingSystem: 'All',
+    url: `https://promptjoo.ir/p/${prompt.slug}`,
+    offers: {
+      '@type': 'Offer',
+      price: '0',
+      priceCurrency: 'IRR',
+    },
+  };
+
+  const howToLd = {
+    '@context': 'https://schema.org',
+    '@type': 'HowTo',
+    name: `نحوه استفاده از پرامپت ${prompt.title_fa}`,
+    description: `راهنمای گام‌به‌گام کپی و اجرای پرامپت در مدل‌های هوش مصنوعی`,
+    step: [
+      {
+        '@type': 'HowToStep',
+        name: 'شخصی‌سازی متغیرها',
+        text: 'مقادیر مورد نظر خود را در فیلدهای متغیر وارد کنید یا از حافظه شخصی خود استفاده نمایید.',
+      },
+      {
+        '@type': 'HowToStep',
+        name: 'کپی پرامپت نهایی',
+        text: 'دکمه کپی پرامپت را بزنید تا متن بهینه‌شده به کلیپ‌بورد سیستم منتقل شود.',
+      },
+      {
+        '@type': 'HowToStep',
+        name: 'اجرا در هوش مصنوعی',
+        text: 'متن را در ChatGPT، Midjourney، Claude یا Gemini الصاق کرده و ارسال کنید.',
+      },
+    ],
+  };
 
   return (
-    <div className="max-w-4xl mx-auto space-y-8 animate-fade-in">
-      {/* Schema.org FAQPage Structured Data */}
+    <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbLd) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(softwareLd) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(howToLd) }}
+      />
       {prompt.faq_schema_json && prompt.faq_schema_json.length > 0 && (
         <script
           type="application/ld+json"
@@ -237,207 +173,7 @@ export default function PromptDetailPage({ params }: { params: Promise<{ slug: s
           }}
         />
       )}
-
-      {/* Navigation Breadcrumb */}
-      <div className="flex items-center gap-2 text-xs text-slate-500">
-        <Link href="/" className="hover:text-slate-900 spring-transition">صفحه اصلی</Link>
-        <span>/</span>
-        <span className="text-blue-600 font-medium">{prompt.category_title_fa || 'دسته‌بندی'}</span>
-        <span>/</span>
-        <span className="text-slate-700 truncate">{prompt.title_fa}</span>
-      </div>
-
-      {/* Header Info Card */}
-      <div className="space-y-4">
-        <div className="flex items-center gap-2.5 flex-wrap">
-          <span className="text-[11px] font-bold px-3 py-1 rounded-full bg-blue-50 text-blue-700 border border-blue-200">
-            {prompt.modality}
-          </span>
-          <span className="text-xs text-slate-500 font-mono" dir="ltr">
-            {prompt.copy_count.toLocaleString('fa-IR')} بار کپی شده
-          </span>
-        </div>
-
-        <h1 className="text-2xl sm:text-4xl font-black text-slate-900 leading-tight tracking-tight">
-          {prompt.title_fa}
-        </h1>
-
-        <p className="text-sm text-slate-600 leading-relaxed max-w-3xl">
-          {prompt.short_desc_fa}
-        </p>
-
-        {/* Supported Models */}
-        {prompt.supported_models && prompt.supported_models.length > 0 && (
-          <div className="flex items-center gap-2 pt-1 flex-wrap">
-            <span className="text-xs text-slate-500">سازگار با:</span>
-            {prompt.supported_models.map((m) => (
-              <span key={m} className="text-[11px] uppercase font-mono px-3 py-0.5 rounded-full bg-slate-100 text-slate-700 border border-slate-200">
-                {m}
-              </span>
-            ))}
-          </div>
-        )}
-      </div>
-
-      {/* Interactive Slot Customizer Panel */}
-      {prompt.slots_schema_json && prompt.slots_schema_json.length > 0 && (
-        <div className="glass-panel rounded-3xl p-6 sm:p-8 border border-slate-200/80 space-y-6 shadow-sm">
-          <div className="flex items-center justify-between border-b border-slate-200/80 pb-4 flex-wrap gap-3">
-            <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-xl bg-indigo-50 border border-indigo-200 flex items-center justify-center text-indigo-600">
-                <Sliders className="w-4 h-4" />
-              </div>
-              <h3 className="text-base font-bold text-slate-900">تنظیم و شخصی‌سازی متغیرهای پرامپت</h3>
-            </div>
-
-            <div className="flex items-center gap-2">
-              <Brain className="w-4 h-4 text-indigo-600" />
-              <span className="text-xs font-bold text-slate-700">حافظه شخصی:</span>
-              <select
-                value={selectedMemoryId}
-                onChange={(e) => handleMemorySelect(e.target.value)}
-                className="bg-white border border-slate-200 rounded-xl px-3 py-1.5 text-xs text-slate-800 font-medium focus:outline-none focus:border-indigo-500 shadow-xs"
-              >
-                <option value="none">بدون حافظه (تکمیل دستی)</option>
-                {memoryProfiles.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.title} {p.brand_name ? `(${p.brand_name})` : ''}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {prompt.slots_schema_json.map((slot) => (
-              <div key={slot.slot_key} className="space-y-1.5">
-                <label className="block text-xs font-bold text-slate-700">
-                  {slot.label_fa} {slot.is_required && <span className="text-red-500">*</span>}
-                </label>
-
-                {slot.input_type === 'select' && slot.options ? (
-                  <select
-                    value={slotValues[slot.slot_key] || ''}
-                    onChange={(e) => setSlotValues({ ...slotValues, [slot.slot_key]: e.target.value })}
-                    className="w-full bg-slate-50 border border-slate-200/90 rounded-2xl px-4 py-2.5 text-xs text-slate-800 focus:bg-white focus:outline-none focus:border-indigo-500"
-                  >
-                    {slot.options.map((opt) => (
-                      <option key={opt} value={opt}>{opt}</option>
-                    ))}
-                  </select>
-                ) : slot.input_type === 'textarea' ? (
-                  <textarea
-                    rows={3}
-                    value={slotValues[slot.slot_key] || ''}
-                    onChange={(e) => setSlotValues({ ...slotValues, [slot.slot_key]: e.target.value })}
-                    placeholder={slot.placeholder}
-                    className="w-full bg-slate-50 border border-slate-200/90 rounded-2xl px-4 py-2.5 text-xs text-slate-800 placeholder-slate-400 focus:bg-white focus:outline-none focus:border-indigo-500"
-                  />
-                ) : (
-                  <input
-                    type="text"
-                    value={slotValues[slot.slot_key] || ''}
-                    onChange={(e) => setSlotValues({ ...slotValues, [slot.slot_key]: e.target.value })}
-                    placeholder={slot.placeholder}
-                    className="w-full bg-slate-50 border border-slate-200/90 rounded-2xl px-4 py-2.5 text-xs text-slate-800 placeholder-slate-400 focus:bg-white focus:outline-none focus:border-indigo-500"
-                  />
-                )}
-              </div>
-            ))}
-          </div>
-
-          <div className="flex items-center justify-between pt-2">
-            <label className="flex items-center gap-2 text-xs text-slate-600 cursor-pointer select-none">
-              <input
-                type="checkbox"
-                checked={forceFarsi}
-                onChange={(e) => setForceFarsi(e.target.checked)}
-                className="w-4 h-4 rounded text-blue-600 focus:ring-0 bg-slate-50 border-slate-300"
-              />
-              <span>دستور زبان فارسی روان به انتهای پرامپت الصاق شود</span>
-            </label>
-          </div>
-        </div>
-      )}
-
-      {/* Live Bilingual Preview & Copy Action */}
-      <div className="glass-panel rounded-3xl p-6 sm:p-8 border border-slate-200/80 space-y-4 shadow-sm">
-        <div className="flex items-center justify-between flex-wrap gap-3">
-          <div className="flex items-center gap-2.5">
-            <Sparkles className="w-5 h-5 text-blue-600" />
-            <h3 className="text-base font-bold text-slate-900">پیش‌نمایش زنده پرامپت آماده اجرا</h3>
-            <span className="text-[11px] text-slate-500 font-mono" dir="ltr">
-              (~{estimatedTokens} توکن)
-            </span>
-          </div>
-
-          <button
-            onClick={handleCopyClick}
-            className={`pressable flex items-center gap-2 px-6 py-2.5 rounded-2xl text-xs font-bold shadow-md spring-transition ${
-              copied
-                ? 'bg-emerald-600 text-white'
-                : 'bg-blue-600 hover:bg-blue-500 text-white shadow-blue-500/25 border border-blue-500'
-            }`}
-          >
-            {copied ? (
-              <>
-                <Check className="w-4 h-4" />
-                <span>کپی شد!</span>
-              </>
-            ) : (
-              <>
-                <Copy className="w-4 h-4" />
-                <span>کپی پرامپت نهایی</span>
-              </>
-            )}
-          </button>
-        </div>
-
-        {/* Bilingual Code Isolation */}
-        <pre className="bilingual-code text-xs bg-slate-100 p-5 rounded-2xl border border-slate-200 text-slate-800 leading-relaxed overflow-x-auto max-h-72">
-          {compiledText || prompt.template_en}
-        </pre>
-      </div>
-
-      {/* Direct Answer Summary for SEO/AIO */}
-      {prompt.direct_answer_summary_fa && (
-        <div className="glass-panel rounded-3xl p-6 sm:p-8 border border-slate-200/80 space-y-3 shadow-sm">
-          <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
-            <Layers className="w-4 h-4 text-emerald-600" />
-            راهنمای کاربردی و پاسخ مستقیم
-          </h3>
-          <p className="text-xs text-slate-600 leading-relaxed">
-            {prompt.direct_answer_summary_fa}
-          </p>
-        </div>
-      )}
-
-      {/* FAQ Accordion */}
-      {prompt.faq_schema_json && prompt.faq_schema_json.length > 0 && (
-        <div className="glass-panel rounded-3xl p-6 sm:p-8 border border-slate-200/80 space-y-4 shadow-sm">
-          <h3 className="text-base font-bold text-slate-900 flex items-center gap-2 mb-2">
-            <HelpCircle className="w-5 h-5 text-amber-600" />
-            پرسش‌های متداول درباره این پرامپت
-          </h3>
-
-          <div className="space-y-3">
-            {prompt.faq_schema_json.map((faq, idx) => (
-              <div key={idx} className="p-4 rounded-2xl bg-slate-50 border border-slate-200/70 space-y-1.5">
-                <h4 className="text-xs font-bold text-slate-900">{faq.question}</h4>
-                <p className="text-xs text-slate-600 leading-relaxed">{faq.answer}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Post Copy Drawer */}
-      <PostCopyDrawer
-        isOpen={drawerOpen}
-        onClose={() => setDrawerOpen(false)}
-        compiledText={compiledText}
-        promptTitle={prompt.title_fa}
-      />
-    </div>
+      <PromptDetailClient initialPrompt={prompt} />
+    </>
   );
 }

@@ -302,7 +302,7 @@ identityRoutes.get('/copied-prompts', async (c) => {
       COALESCE(p.slug, '') as slug,
       COALESCE(p.title_fa, ucp.custom_title_fa, 'پرامپت ساخته‌شده') as title_fa,
       COALESCE(p.short_desc_fa, '') as short_desc_fa,
-      COALESCE(p.modality, ucp.custom_modality, 'text_writing') as modality,
+      COALESCE(p.modality::text, ucp.custom_modality, 'text_writing') as modality,
       COALESCE(c.title_fa, 'تولید محتوا و مهندسی پرامپت') as category_title_fa
     FROM user_copied_prompts ucp
     LEFT JOIN prompts p ON ucp.prompt_id = p.id

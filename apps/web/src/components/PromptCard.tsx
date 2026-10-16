@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { Copy, Check, ArrowLeft } from 'lucide-react';
 import { fetchFromApi } from '../lib/api-client';
 import { showDynamicToast } from './DynamicIslandToast';
+import { ShareButton } from './ShareButton';
 
 export interface PromptCardData {
   id: string;
@@ -115,38 +116,42 @@ export function PromptCard({ prompt, onQuickCopied }: PromptCardProps) {
       </Link>
 
       {/* Card Action Footer */}
-      <div className="px-6 py-3.5 border-t border-slate-100 bg-slate-50/70 flex items-center justify-between gap-2">
+      <div className="px-5 py-3 border-t border-slate-100 bg-slate-50/70 flex items-center justify-between gap-2">
         <Link
           href={`/p/${prompt.slug}`}
           className="text-xs font-semibold text-slate-500 hover:text-slate-900 flex items-center gap-1 group-hover:text-blue-600 spring-transition"
         >
-          <span>تنظیم متغیرها</span>
+          <span>تنظیم و کپی</span>
           <ArrowLeft className="w-3.5 h-3.5 group-hover:-translate-x-1 spring-transition" />
         </Link>
 
-        {/* 1-Click Quick Copy Button with Tactile Press */}
-        <button
-          onClick={handleQuickCopy}
-          disabled={loading}
-          className={`pressable flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold spring-transition ${
-            copied
-              ? 'bg-emerald-600 text-white'
-              : 'bg-blue-600 hover:bg-blue-500 text-white shadow-sm shadow-blue-600/30'
-          }`}
-          title="کپی سریع متن پرامپت در حافظه"
-        >
-          {copied ? (
-            <>
-              <Check className="w-3.5 h-3.5" />
-              <span>کپی شد!</span>
-            </>
-          ) : (
-            <>
-              <Copy className="w-3.5 h-3.5" />
-              <span>کپی سریع</span>
-            </>
-          )}
-        </button>
+        <div className="flex items-center gap-1.5">
+          <ShareButton slug={prompt.slug} title={prompt.title_fa} size="sm" />
+
+          {/* 1-Click Quick Copy Button with Tactile Press */}
+          <button
+            onClick={handleQuickCopy}
+            disabled={loading}
+            className={`pressable flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold spring-transition ${
+              copied
+                ? 'bg-emerald-600 text-white'
+                : 'bg-blue-600 hover:bg-blue-500 text-white shadow-sm shadow-blue-600/30'
+            }`}
+            title="کپی سریع متن پرامپت در حافظه"
+          >
+            {copied ? (
+              <>
+                <Check className="w-3.5 h-3.5" />
+                <span>کپی شد!</span>
+              </>
+            ) : (
+              <>
+                <Copy className="w-3.5 h-3.5" />
+                <span>کپی سریع</span>
+              </>
+            )}
+          </button>
+        </div>
       </div>
     </div>
   );

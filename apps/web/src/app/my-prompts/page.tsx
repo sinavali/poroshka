@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { History, Copy, Check, ExternalLink, Sparkles, Search, Sliders, ArrowLeft, Filter } from 'lucide-react';
 import { fetchFromApi } from '../../lib/api-client';
 import { showDynamicToast } from '../../components/DynamicIslandToast';
+import { ShareButton } from '../../components/ShareButton';
 
 interface CopiedPromptItem {
   id: string;
@@ -211,33 +212,38 @@ export default function MyPromptsPage() {
               {/* Action Buttons */}
               <div className="pt-3 border-t border-slate-100 flex items-center justify-between gap-2">
                 <Link
-                  href={`/p/${item.slug}`}
+                  href={item.slug ? `/p/${item.slug}` : '/'}
                   className="pressable text-xs font-semibold text-slate-600 hover:text-blue-600 flex items-center gap-1"
                 >
                   <Sliders className="w-3.5 h-3.5" />
                   <span>تنظیم مجدد</span>
                 </Link>
 
-                <button
-                  onClick={() => handleReCopy(item)}
-                  className={`pressable flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold spring-transition ${
-                    copiedId === item.id
-                      ? 'bg-emerald-600 text-white'
-                      : 'bg-blue-600 hover:bg-blue-500 text-white shadow-sm shadow-blue-600/20'
-                  }`}
-                >
-                  {copiedId === item.id ? (
-                    <>
-                      <Check className="w-3.5 h-3.5" />
-                      <span>کپی شد!</span>
-                    </>
-                  ) : (
-                    <>
-                      <Copy className="w-3.5 h-3.5" />
-                      <span>کپی مجدد</span>
-                    </>
+                <div className="flex items-center gap-1.5">
+                  {item.slug && (
+                    <ShareButton slug={item.slug} title={item.title_fa} size="sm" />
                   )}
-                </button>
+                  <button
+                    onClick={() => handleReCopy(item)}
+                    className={`pressable flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold spring-transition ${
+                      copiedId === item.id
+                        ? 'bg-emerald-600 text-white'
+                        : 'bg-blue-600 hover:bg-blue-500 text-white shadow-sm shadow-blue-600/20'
+                    }`}
+                  >
+                    {copiedId === item.id ? (
+                      <>
+                        <Check className="w-3.5 h-3.5" />
+                        <span>کپی شد!</span>
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="w-3.5 h-3.5" />
+                        <span>کپی مجدد</span>
+                      </>
+                    )}
+                  </button>
+                </div>
               </div>
             </div>
           ))}

@@ -195,6 +195,52 @@ export function Header({ onOpenMemory, onOpenAuth, userPhone }: HeaderProps) {
                 ورود یا ثبت‌نام با شماره موبایل
               </button>
             )}
+
+            {/* Quick Links to Legal and Informational Pages */}
+            <div className="pt-3 border-t border-slate-200/80 grid grid-cols-2 gap-2 text-[11px] font-medium text-slate-600">
+              <Link
+                href="/faq"
+                onClick={() => setMobileMenuOpen(false)}
+                className="px-2.5 py-1.5 rounded-lg hover:bg-slate-100 transition-colors"
+              >
+                سوالات متداول
+              </Link>
+              <Link
+                href="/about"
+                onClick={() => setMobileMenuOpen(false)}
+                className="px-2.5 py-1.5 rounded-lg hover:bg-slate-100 transition-colors"
+              >
+                درباره پرامپت‌جو
+              </Link>
+              <Link
+                href="/contact"
+                onClick={() => setMobileMenuOpen(false)}
+                className="px-2.5 py-1.5 rounded-lg hover:bg-slate-100 transition-colors"
+              >
+                ارتباط با ما
+              </Link>
+              <Link
+                href="/api-docs"
+                onClick={() => setMobileMenuOpen(false)}
+                className="px-2.5 py-1.5 rounded-lg hover:bg-slate-100 transition-colors"
+              >
+                مستندات API
+              </Link>
+              <Link
+                href="/terms"
+                onClick={() => setMobileMenuOpen(false)}
+                className="px-2.5 py-1.5 rounded-lg hover:bg-slate-100 transition-colors"
+              >
+                قوانین و مقررات
+              </Link>
+              <Link
+                href="/privacy"
+                onClick={() => setMobileMenuOpen(false)}
+                className="px-2.5 py-1.5 rounded-lg hover:bg-slate-100 transition-colors"
+              >
+                حریم خصوصی
+              </Link>
+            </div>
           </div>
         </div>
       )}

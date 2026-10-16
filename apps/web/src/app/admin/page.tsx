@@ -9,6 +9,7 @@ import { fetchFromApi } from '../../lib/api-client';
 import { showDynamicToast } from '../../components/DynamicIslandToast';
 import { AdminReportsView } from '../../components/AdminReportsView';
 import { AdminDatasetsView } from '../../components/AdminDatasetsView';
+import { AdminUserProfileModal } from '../../components/AdminUserProfileModal';
 
 interface SystemSettingItem {
   id: string;
@@ -44,6 +45,7 @@ export default function AdminPage() {
   // User Management state
   const [users, setUsers] = useState<UserItem[]>([]);
   const [userSearch, setUserSearch] = useState('');
+  const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
   
   // Settings Management state
   const [settingsList, setSettingsList] = useState<SystemSettingItem[]>([]);
@@ -414,18 +416,24 @@ export default function AdminPage() {
                     </td>
                     <td className="p-3.5 flex items-center gap-2">
                       <button
+                        onClick={() => setSelectedUserId(u.id)}
+                        className="pressable px-2.5 py-1 rounded-lg bg-blue-50 text-blue-700 text-[11px] font-bold hover:bg-blue-100"
+                      >
+                        پرونده
+                      </button>
+                      <button
                         onClick={() => handleToggleBlockUser(u.id, u.is_blocked)}
                         className={`pressable px-2.5 py-1 rounded-lg text-[11px] font-bold ${
                           u.is_blocked ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-700'
                         }`}
                       >
-                        {u.is_blocked ? 'رفع مسدودی' : 'مسدود کردن'}
+                        {u.is_blocked ? 'رفع مسدودی' : 'مسدود'}
                       </button>
                       <button
                         onClick={() => handleToggleUserRole(u.id, u.role)}
                         className="pressable px-2.5 py-1 rounded-lg bg-slate-100 text-slate-700 text-[11px] font-bold hover:bg-slate-200"
                       >
-                        {u.role === 'ADMIN' ? 'تبدیل به کاربر عادی' : 'ارتقا به ادمین'}
+                        {u.role === 'ADMIN' ? 'کاربر عادی' : 'ادمین'}
                       </button>
                     </td>
                   </tr>
@@ -435,6 +443,13 @@ export default function AdminPage() {
           </div>
         </div>
       )}
+
+      {/* User Profile Modal */}
+      <AdminUserProfileModal
+        userId={selectedUserId}
+        onClose={() => setSelectedUserId(null)}
+        onUserUpdated={loadUsers}
+      />
 
       {/* 3. SETTINGS MANAGEMENT TAB */}
       {activeTab === 'settings' && (

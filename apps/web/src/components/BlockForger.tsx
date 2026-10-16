@@ -5,6 +5,7 @@ import { Hammer, Copy, Check, Sparkles, Wand2, Sliders, Brain } from 'lucide-rea
 import { fetchFromApi } from '../lib/api-client';
 import { showDynamicToast } from './DynamicIslandToast';
 import { MemoryProfile } from './PersonalMemoryModal';
+import { PromptSearchCarousel } from './PromptSearchCarousel';
 
 interface ForgeResult {
   modality: string;
@@ -199,20 +200,17 @@ export function BlockForger({ initialQuery = '', onOpenMemoryModal }: BlockForge
       {/* Background Ambient Glow */}
       <div className="absolute top-0 right-0 w-80 h-80 bg-blue-500/5 rounded-full blur-3xl pointer-events-none" />
 
-      <div className="flex items-center justify-between mb-6 relative flex-wrap gap-4">
+      <div className="flex items-center justify-between mb-4 relative flex-wrap gap-4">
         <div className="flex items-center gap-3.5">
-          <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center text-white shadow-md shadow-blue-500/20">
-            <Hammer className="w-6 h-6" />
+          <div className="w-11 h-11 rounded-2xl bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center text-white shadow-md shadow-blue-500/20">
+            <Hammer className="w-5 h-5" />
           </div>
           <div>
-            <h3 className="text-xl font-black text-slate-900 flex items-center gap-2">
-              موتور بلوک‌چین ساخت هوشمند پرامپت
-              <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-blue-100 text-blue-700 border border-blue-200">
-                رایگان و بدون هزینه توکن
-              </span>
+            <h3 className="text-xl font-black text-slate-900 tracking-tight">
+              ساخت پرامپت اختصاصی
             </h3>
             <p className="text-xs text-slate-500 mt-0.5">
-              ایده یا نیاز خود را بنویسید تا سیستم به‌صورت خودکار بلوک‌های استاندارد نقش، وظیفه و قیود را ترکیب کند.
+              ایده یا سناریوی مد نظرت رو بنویس؛ نزدیک‌ترین پرامپت‌های کاتالوگ رو بررسی کن یا پرامپت سفارشی بساز.
             </p>
           </div>
         </div>
@@ -225,9 +223,14 @@ export function BlockForger({ initialQuery = '', onOpenMemoryModal }: BlockForge
             className="pressable inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold border border-slate-200/80"
           >
             <Sparkles className="w-3.5 h-3.5 text-blue-600" />
-            <span>ایده تصادفی</span>
+            <span>ایده پیشنهادی</span>
           </button>
         </div>
+      </div>
+
+      {/* Top 12 Closest Existing Prompts Carousel */}
+      <div className="mb-6 pb-6 border-b border-slate-200/70">
+        <PromptSearchCarousel query={query} />
       </div>
 
       <form onSubmit={handleForge} className="space-y-4 relative">

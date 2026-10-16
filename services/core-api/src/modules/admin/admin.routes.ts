@@ -123,14 +123,16 @@ adminRoutes.get('/users', async (c) => {
 // 3. User Details: Sessions & Copied History
 adminRoutes.get('/users/:id', async (c) => {
   const id = c.req.param('id');
-  const userRes = await pool.query('SELECT id, phone_e164, role, is_phone_verified, is_blocked, last_login_at, created_at FROM users WHERE id = $1', [id]);
+  const userRes = await pool.query('SELECT id, phone_e164, role, is_phone_verified, is_blocked, saved_context_profile_json, last_login_at, created_at FROM users WHERE id = $1', [id]);
   if (userRes.rows.length === 0) return c.json({ error: 'USER_NOT_FOUND' }, 404);
 
   const historyRes = await pool.query(`
     SELECT ucp.id, ucp.copy_count, ucp.custom_values_json, ucp.compiled_text, ucp.last_copied_at,
-           p.slug, p.title_fa, p.modality
+           COALESCE(p.slug, '') as slug,
+           COALESCE(p.title_fa, ucp.custom_title_fa, 'پرامپت شخصی') as title_fa,
+           COALESCE(p.modality::text, ucp.custom_modality, 'text_writing') as modality
     FROM user_copied_prompts ucp
-    JOIN prompts p ON ucp.prompt_id = p.id
+    LEFT JOIN prompts p ON ucp.prompt_id = p.id
     WHERE ucp.user_id = $1
     ORDER BY ucp.last_copied_at DESC
     LIMIT 50;

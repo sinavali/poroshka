@@ -341,3 +341,95 @@ ingestionRoutes.post('/import', async (c) => {
     sample_errors: errors.slice(0, 3)
   });
 });
+
+// 8. Create Single Catalog Prompt (Admin Direct Creation)
+ingestionRoutes.post('/prompt', async (c) => {
+  const body = await c.req.json().catch(() => ({}));
+  const {
+    title_fa,
+    short_desc_fa,
+    direct_answer_summary_fa = '',
+    category_slug,
+    modality,
+    template_en,
+    slots_schema_json = [],
+    supported_models = ['chatgpt', 'claude'],
+    search_keywords_fa = []
+  } = body;
+
+  if (!title_fa || !template_en) {
+    return c.json({ error: 'INVALID_INPUT', message: 'عنوان فارسی و متن انگلیسی پرامپت الزامی هستند.' }, 400);
+  }
+
+  const template = String(template_en).trim();
+  const hash = crypto.createHash('sha256').update(template).digest('hex');
+
+  // Check duplicate
+  const dup = await pool.query('SELECT id, slug FROM prompts WHERE content_hash = $1 LIMIT 1', [hash]);
+  if (dup.rows.length > 0) {
+    return c.json({ error: 'DUPLICATE_PROMPT', message: 'این پرامپت قبلاً در کاتالوگ ثبت شده است.', existing_id: dup.rows[0].id }, 409);
+  }
+
+  // Resolve category
+  let categoryId = null;
+  if (category_slug) {
+    const cRes = await pool.query('SELECT id FROM categories WHERE slug = $1 LIMIT 1', [category_slug]);
+    if (cRes.rows.length > 0) categoryId = cRes.rows[0].id;
+  }
+  if (!categoryId) {
+    const defCat = await pool.query('SELECT id FROM categories ORDER BY sort_order ASC LIMIT 1');
+    categoryId = defCat.rows[0]?.id;
+  }
+
+  // Generate slug
+  const cleanTitle = String(title_fa)
+    .toLowerCase()
+    .replace(/[^\u0600-\u06FFa-z0-9\s-]/g, '')
+    .trim()
+    .replace(/\s+/g, '-')
+    .slice(0, 70);
+  const slug = `${cleanTitle}-${hash.slice(0, 6)}`;
+
+  // Automatically extract slots if not provided
+  let slots = Array.isArray(slots_schema_json) ? slots_schema_json : [];
+  if (slots.length === 0) {
+    const matches = [...template.matchAll(/\{\{([a-zA-Z0-9_]+)\}\}/g)];
+    const uniqueKeys = Array.from(new Set(matches.map(m => m[1])));
+    slots = uniqueKeys.map(k => ({
+      slot_key: k,
+      label_fa: k.replace(/_/g, ' '),
+      default_value: '',
+      is_required: true
+    }));
+  }
+
+  const detectedModality = modality || detectModality(title_fa + ' ' + template).modality || 'text_writing';
+
+  const insertRes = await pool.query(`
+    INSERT INTO prompts (
+      slug, category_id, modality, title_fa, short_desc_fa, direct_answer_summary_fa,
+      search_keywords_fa, template_en, content_hash, slots_schema_json, supported_models,
+      is_published, is_featured
+    )
+    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, true, false)
+    RETURNING id, slug, title_fa, modality;
+  `, [
+    slug,
+    categoryId,
+    detectedModality,
+    String(title_fa).trim(),
+    String(short_desc_fa || title_fa).trim(),
+    String(direct_answer_summary_fa).trim(),
+    Array.isArray(search_keywords_fa) ? search_keywords_fa : [],
+    template,
+    hash,
+    JSON.stringify(slots),
+    supported_models
+  ]);
+
+  return c.json({
+    ok: true,
+    message: 'پرامپت با موفقیت به کاتالوگ اضافه شد.',
+    prompt: insertRes.rows[0]
+  }, 201);
+});

@@ -56,10 +56,13 @@ export function Footer() {
           <div>
             <h4 className="text-sm font-bold text-slate-900 mb-4">قوانین و راهنما</h4>
             <ul className="space-y-2 text-xs text-slate-500">
+              <li><Link href="/faq" className="hover:text-blue-600 spring-transition">پرسش‌های متداول (FAQ)</Link></li>
+              <li><Link href="/about" className="hover:text-blue-600 spring-transition">درباره پرامپت‌جو</Link></li>
+              <li><Link href="/contact" className="hover:text-blue-600 spring-transition">تماس و پشتیبانی</Link></li>
               <li><Link href="/terms" className="hover:text-blue-600 spring-transition">شرایط استفاده و کپی‌رایت</Link></li>
               <li><Link href="/privacy" className="hover:text-blue-600 spring-transition">حریم خصوصی کاربران</Link></li>
-              <li><Link href="/api-docs" className="hover:text-blue-600 spring-transition">مستندات OpenAPI پرامپت‌جو</Link></li>
-              <li><Link href="/admin" className="hover:text-blue-600 spring-transition">پنل مدیریت سیستم</Link></li>
+              <li><Link href="/api-docs" className="hover:text-blue-600 spring-transition">مستندات OpenAPI و وب‌سرویس</Link></li>
+              <li><Link href="/admin" className="hover:text-blue-600 spring-transition">ورود به پنل مدیریت</Link></li>
             </ul>
           </div>
 
@@ -67,15 +70,15 @@ export function Footer() {
           <div className="space-y-3">
             <h4 className="text-sm font-bold text-slate-900 mb-4 flex items-center gap-1.5">
               <ShieldCheck className="w-4 h-4 text-emerald-600" />
-              <span>پایداری شبکه ملی</span>
+              <span>کیفیت و مهندسی پرامپت</span>
             </h4>
             <p className="text-xs text-slate-500 leading-relaxed">
-              تمام پردازش‌های الگوها و کامپایل پرامپت به صورت لوکال با هزینه صفر توکن هوش مصنوعی و میزبانی توزیع‌شده بر بستر شبکه ملی اطلاعات انجام می‌شود.
+              پرامپت‌های کاتالوگ با تکنیک‌های پیشرفته مهندسی پرامپت تنظیم شده‌اند تا خروجی دقیق، حرفه‌ای و به زبان فارسی روان را در ChatGPT، Midjourney و Claude تحویل دهند.
             </p>
             <div className="pt-2 text-[11px] text-slate-500 flex items-center gap-1">
-              <span>توسعه‌یافته با</span>
+              <span>طراحی‌شده با</span>
               <Heart className="w-3 h-3 text-red-500 fill-red-500 inline" />
-              <span>برای تولیدکنندگان محتوا و متخصصان ایران</span>
+              <span>برای تولیدکنندگان محتوا و متخصصان ایرانی</span>
             </div>
           </div>
         </div>
