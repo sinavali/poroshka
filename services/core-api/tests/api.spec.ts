@@ -121,4 +121,24 @@ describe('Promptjoo Core API Integration Tests', () => {
     assert.equal(data.total_processed, 1);
     assert.ok(data.inserted === 1 || data.skipped_duplicates === 1);
   });
+
+  it('POST /api/v1/ingestion/parse-llm enriches prompt with slots schema', async () => {
+    const res = await app.request('/api/v1/ingestion/parse-llm', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        raw_template_en: 'Act as a senior engineer. Review the following [code_snippet] for [programming_language].',
+        title_hint: 'Code Reviewer'
+      })
+    });
+    assert.equal(res.status, 200);
+    const data = await res.json();
+    assert.ok(data.ok);
+    assert.ok(data.result);
+    assert.ok(data.result.template_en.includes('{{code_snippet}}'));
+    assert.ok(data.result.title_fa);
+    assert.ok(Array.isArray(data.result.slots_schema_json));
+    assert.ok(data.result.slots_schema_json.length >= 2);
+  });
 });
+

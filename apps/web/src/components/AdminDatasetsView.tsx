@@ -29,8 +29,16 @@ export function AdminDatasetsView() {
   const [syncResult, setSyncResult] = useState<any>(null);
   const [isCreatorOpen, setIsCreatorOpen] = useState(false);
   const [rawText, setRawText] = useState('');
-  const [activeTab, setActiveTab] = useState<'upload' | 'raw' | 'schema'>('upload');
+  const [activeTab, setActiveTab] = useState<'upload' | 'raw' | 'ai_parser' | 'schema'>('upload');
   const [copiedSample, setCopiedSample] = useState<string | null>(null);
+  const [enrichWithLlm, setEnrichWithLlm] = useState(true);
+
+  // AI Semantic Parser Studio state
+  const [aiPromptInput, setAiPromptInput] = useState('');
+  const [aiTitleHint, setAiTitleHint] = useState('');
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiResult, setAiResult] = useState<any>(null);
+  const [aiSaving, setAiSaving] = useState(false);
 
   // Pre-parser analysis state
   const [parsedPreview, setParsedPreview] = useState<{
@@ -38,6 +46,66 @@ export function AdminDatasetsView() {
     totalCount: number;
     sampleRows: Array<{ title: string; prompt: string; modality?: string }>;
   } | null>(null);
+
+  const handleAiParse = async () => {
+    if (!aiPromptInput.trim()) {
+      showDynamicToast({ title: 'لطفاً متن اولیه پرامپت را وارد کنید', type: 'error' });
+      return;
+    }
+    setAiLoading(true);
+    setAiResult(null);
+    try {
+      const res = await fetchFromApi<any>('/api/v1/ingestion/parse-llm', {
+        method: 'POST',
+        body: JSON.stringify({
+          raw_template_en: aiPromptInput.trim(),
+          title_hint: aiTitleHint.trim() || undefined
+        })
+      });
+      if (res && res.result) {
+        setAiResult(res.result);
+        showDynamicToast({
+          title: res.result.enriched_by_llm ? 'غنی‌سازی هوش مصنوعی با موفقیت انجام شد' : 'استخراج و نرمال‌سازی با موفقیت انجام شد',
+          type: 'success'
+        });
+      }
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'خطا در ارتباط با سرور';
+      showDynamicToast({ title: 'خطا در پارس هوش مصنوعی', message: msg, type: 'error' });
+    } finally {
+      setAiLoading(false);
+    }
+  };
+
+  const handleSaveAiPrompt = async () => {
+    if (!aiResult) return;
+    setAiSaving(true);
+    try {
+      await fetchFromApi('/api/v1/ingestion/prompt', {
+        method: 'POST',
+        body: JSON.stringify({
+          title_fa: aiResult.title_fa,
+          short_desc_fa: aiResult.short_desc_fa,
+          direct_answer_summary_fa: aiResult.direct_answer_summary_fa,
+          category_slug: aiResult.category_slug,
+          modality: aiResult.modality,
+          template_en: aiResult.template_en,
+          slots_schema_json: aiResult.slots_schema_json,
+          supported_models: aiResult.supported_models || ['chatgpt', 'gemini'],
+          search_keywords_fa: aiResult.search_keywords_fa || []
+        })
+      });
+      showDynamicToast({ title: 'پرامپت با موفقیت در کاتالوگ ذخیره شد', type: 'success' });
+      setAiResult(null);
+      setAiPromptInput('');
+      setAiTitleHint('');
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'خطا در ذخیره';
+      showDynamicToast({ title: 'خطا در ذخیره پرامپت', message: msg, type: 'error' });
+    } finally {
+      setAiSaving(false);
+    }
+  };
 
   const handleDownloadCsv = () => {
     window.open('/api/v1/ingestion/export/csv', '_blank');
@@ -136,9 +204,12 @@ export function AdminDatasetsView() {
       let payload: any;
       const trimmed = fileContent.trim();
       if (fileName.endsWith('.json') || trimmed.startsWith('[')) {
-        payload = JSON.parse(trimmed);
+        const parsed = JSON.parse(trimmed);
+        payload = Array.isArray(parsed)
+          ? { items: parsed, enrich_with_llm: enrichWithLlm }
+          : { ...parsed, enrich_with_llm: enrichWithLlm };
       } else {
-        payload = { csv_text: trimmed };
+        payload = { csv_text: trimmed, enrich_with_llm: enrichWithLlm };
       }
 
       const res = await fetchFromApi<any>('/api/v1/ingestion/import', {
@@ -261,6 +332,17 @@ export function AdminDatasetsView() {
           <span>ویرایشگر مستقیم کد (JSON Array یا متن CSV)</span>
         </button>
         <button
+          onClick={() => setActiveTab('ai_parser')}
+          className={`flex items-center gap-2 px-4 py-2 rounded-2xl text-xs font-bold spring-transition pressable ${
+            activeTab === 'ai_parser'
+              ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-sm shadow-indigo-500/25'
+              : 'text-slate-600 hover:text-slate-900 bg-slate-100 hover:bg-slate-200/70'
+          }`}
+        >
+          <Sparkles className="w-3.5 h-3.5 text-amber-300" />
+          <span>استودیوی هوش مصنوعی (AI Semantic Studio)</span>
+        </button>
+        <button
           onClick={() => setActiveTab('schema')}
           className={`flex items-center gap-2 px-4 py-2 rounded-2xl text-xs font-bold spring-transition pressable ${
             activeTab === 'schema'
@@ -337,6 +419,161 @@ export function AdminDatasetsView() {
             placeholder={`"act","prompt"\n"Linux Terminal","I want you to act as a linux terminal. I will type commands and you will reply with what the terminal should show. My first command is {{command}}."\n"Python Developer","Act as a senior Python developer. Optimize the following function: {{code}}."`}
             className="w-full font-mono text-xs bg-slate-50 border border-slate-200 rounded-2xl p-4 text-slate-800 focus:bg-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10"
           />
+        </div>
+      )}
+
+      {/* TAB 2.5: AI SEMANTIC PARSER STUDIO */}
+      {activeTab === 'ai_parser' && (
+        <div className="glass-panel rounded-3xl p-6 border border-slate-200/80 shadow-sm space-y-6 animate-fade-in">
+          <div className="flex items-start justify-between gap-4 flex-wrap">
+            <div>
+              <div className="flex items-center gap-2">
+                <Sparkles className="w-5 h-5 text-indigo-600" />
+                <h4 className="text-sm font-bold text-slate-900">
+                  استودیوی اختصاصی پارس و غنی‌سازی هوشمند پرامپت‌ها (AI Semantic Parser Studio)
+                </h4>
+              </div>
+              <p className="text-xs text-slate-500 mt-1 leading-relaxed">
+                هر پرامپت خام انگلیسی از ردیت، گیت‌هاب یا دیسکورد را جایگذاری کنید تا هوش مصنوعی متغیرها را با ساختار <code className="bg-slate-100 px-1 py-0.5 rounded text-blue-600" dir="ltr">{'{{slot}}'}</code> استخراج کرده و عنوان فارسی، تگ‌ها و فیلدهای سئو را بسازد.
+              </p>
+            </div>
+            <span className="text-[11px] font-bold px-3 py-1 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200">
+              مدل فعال: Gemini / OpenAI / Heuristic Fallback
+            </span>
+          </div>
+
+          <div className="space-y-4">
+            <div>
+              <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                عنوان یا سرنخ نقش (اختیاری):
+              </label>
+              <input
+                type="text"
+                value={aiTitleHint}
+                onChange={(e) => setAiTitleHint(e.target.value)}
+                placeholder="مثال: Senior Python Developer یا Cyberpunk Architect"
+                className="w-full bg-slate-50 border border-slate-200 rounded-2xl p-3 text-xs text-slate-800 focus:bg-white focus:outline-none focus:border-indigo-500"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                متن خام انگلیسی پرامپت (حتی بدون براکت متغیرها):
+              </label>
+              <textarea
+                rows={6}
+                value={aiPromptInput}
+                onChange={(e) => setAiPromptInput(e.target.value)}
+                dir="ltr"
+                placeholder="I want you to act as an interviewer. You will ask me technical questions for a senior React engineer position. Ask one question at a time and wait for my answer. My first sentence is 'Hi, I am ready'."
+                className="w-full font-mono text-xs bg-slate-50 border border-slate-200 rounded-2xl p-4 text-slate-800 focus:bg-white focus:outline-none focus:border-indigo-500"
+              />
+            </div>
+
+            <button
+              onClick={handleAiParse}
+              disabled={aiLoading}
+              className="pressable flex items-center gap-2 px-6 py-2.5 rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white text-xs font-bold shadow-md shadow-indigo-600/20 disabled:opacity-40"
+            >
+              <Sparkles className={`w-4 h-4 ${aiLoading ? 'animate-spin' : ''}`} />
+              <span>{aiLoading ? 'در حال تحلیل هوشمند و استخراج متغیرها...' : 'استخراج متغیرها و محلی‌سازی با هوش مصنوعی (AI Enrich)'}</span>
+            </button>
+          </div>
+
+          {/* AI Result Card */}
+          {aiResult && (
+            <div className="p-6 rounded-3xl bg-indigo-50/50 border border-indigo-200 space-y-5 animate-fade-in">
+              <div className="flex items-center justify-between flex-wrap gap-2">
+                <div className="flex items-center gap-2">
+                  <CheckCircle2 className="w-5 h-5 text-indigo-600" />
+                  <span className="text-sm font-bold text-indigo-950">نتیجه غنی‌سازی هوشمند: {aiResult.title_fa}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-[11px] font-bold px-2.5 py-1 rounded-lg bg-indigo-100 text-indigo-800">
+                    {aiResult.modality}
+                  </span>
+                  <span className="text-[11px] font-bold px-2.5 py-1 rounded-lg bg-white border border-indigo-200 text-slate-700">
+                    امتیاز کیفیت: {aiResult.quality_score}/۱۰
+                  </span>
+                </div>
+              </div>
+
+              {/* Template English */}
+              <div>
+                <span className="text-xs font-bold text-slate-700 block mb-1">قالب پارامتریک بهینه‌شده (English Template):</span>
+                <pre className="text-xs font-mono bg-white p-3.5 rounded-2xl border border-indigo-100 text-slate-800 whitespace-pre-wrap" dir="ltr">
+                  {aiResult.template_en}
+                </pre>
+              </div>
+
+              {/* Extracted Slots Schema Table */}
+              {Array.isArray(aiResult.slots_schema_json) && aiResult.slots_schema_json.length > 0 && (
+                <div>
+                  <span className="text-xs font-bold text-slate-700 block mb-1.5">
+                    متغیرهای استخراج‌شده ({aiResult.slots_schema_json.length} متغیر):
+                  </span>
+                  <div className="overflow-x-auto rounded-2xl bg-white border border-indigo-100 shadow-2xs">
+                    <table className="w-full text-xs text-right border-collapse">
+                      <thead>
+                        <tr className="bg-slate-50 text-slate-600 font-bold border-b border-indigo-100">
+                          <th className="p-2.5">شناسه متغیر (Key)</th>
+                          <th className="p-2.5">برچسب فارسی روان</th>
+                          <th className="p-2.5">مقدار پیش‌فرض نمونه</th>
+                          <th className="p-2.5">الزامی؟</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100 text-slate-700">
+                        {aiResult.slots_schema_json.map((s: any, idx: number) => (
+                          <tr key={idx}>
+                            <td className="p-2.5 font-mono text-blue-600 font-bold" dir="ltr">{s.slot_key}</td>
+                            <td className="p-2.5 font-medium">{s.label_fa}</td>
+                            <td className="p-2.5 text-slate-500">{s.default_value || '—'}</td>
+                            <td className="p-2.5">{s.is_required ? <span className="text-emerald-600 font-bold">بله</span> : 'اختیاری'}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+
+              {/* Descriptions & SEO */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+                <div className="bg-white p-3.5 rounded-2xl border border-indigo-100">
+                  <span className="font-bold text-slate-700 block mb-1">توضیحات فارسی کارت:</span>
+                  <p className="text-slate-600 leading-relaxed">{aiResult.short_desc_fa}</p>
+                </div>
+                <div className="bg-white p-3.5 rounded-2xl border border-indigo-100">
+                  <span className="font-bold text-slate-700 block mb-1">پاسخ مستقیم برای سئو (AIO):</span>
+                  <p className="text-slate-600 leading-relaxed">{aiResult.direct_answer_summary_fa}</p>
+                </div>
+              </div>
+
+              {/* Keywords */}
+              {Array.isArray(aiResult.search_keywords_fa) && aiResult.search_keywords_fa.length > 0 && (
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <span className="text-xs font-bold text-slate-700">کلیدواژه‌های سئو:</span>
+                  {aiResult.search_keywords_fa.map((kw: string, idx: number) => (
+                    <span key={idx} className="text-[11px] bg-white border border-indigo-100 text-slate-700 px-2 py-0.5 rounded-lg">
+                      {kw}
+                    </span>
+                  ))}
+                </div>
+              )}
+
+              {/* Save to Catalog Button */}
+              <div className="pt-2 flex justify-end">
+                <button
+                  onClick={handleSaveAiPrompt}
+                  disabled={aiSaving}
+                  className="pressable flex items-center gap-2 px-6 py-2.5 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold shadow-md shadow-emerald-600/20 disabled:opacity-40"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span>{aiSaving ? 'در حال ثبت در کاتالوگ...' : 'افزودن مستقیم این پرامپت به کاتالوگ'}</span>
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       )}
 
@@ -505,6 +742,30 @@ export function AdminDatasetsView() {
                 ))}
               </tbody>
             </table>
+          </div>
+
+          {/* AI Enrichment Option */}
+          <div className="p-3 bg-indigo-50/70 border border-indigo-200/80 rounded-2xl flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2.5">
+              <Sparkles className="w-4 h-4 text-indigo-600 flex-shrink-0" />
+              <div>
+                <span className="text-xs font-bold text-slate-800 block">
+                  غنی‌سازی و پارس خودکار با هوش مصنوعی (AI Semantic Ingestion)
+                </span>
+                <span className="text-[11px] text-slate-500 block">
+                  استخراج خودکار متغیرها از متون فاقد براکت، ترجمه روان فارسی و ساخت فیلدهای سئو
+                </span>
+              </div>
+            </div>
+            <label className="relative inline-flex items-center cursor-pointer flex-shrink-0">
+              <input
+                type="checkbox"
+                checked={enrichWithLlm}
+                onChange={(e) => setEnrichWithLlm(e.target.checked)}
+                className="sr-only peer"
+              />
+              <div className="w-9 h-5 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-indigo-600"></div>
+            </label>
           </div>
 
           {/* Sync Trigger Button */}

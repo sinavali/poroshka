@@ -3,6 +3,7 @@ import crypto from 'node:crypto';
 import { pool } from '../../infrastructure/database/client.ts';
 import { logger } from '../../infrastructure/observability/pino-logger.ts';
 import { detectModality } from '../../../../../packages/persian-normalizer/src/index.ts';
+import { enrichPromptWithLlm, heuristicEnrich } from './llm-enricher.service.ts';
 
 export const ingestionRoutes = new Hono();
 
@@ -383,9 +384,26 @@ ingestionRoutes.get('/schema', async (c) => {
   });
 });
 
+// 6.8. LLM Prompt Semantic Parser & Enricher (Interactive & Batch preview)
+ingestionRoutes.post('/parse-llm', async (c) => {
+  const body = await c.req.json().catch(() => ({}));
+  const { raw_template_en, title_hint } = body;
+
+  if (!raw_template_en || typeof raw_template_en !== 'string') {
+    return c.json({ error: 'INVALID_INPUT', message: 'متن اولیه پرامپت (raw_template_en) الزامی است.' }, 400);
+  }
+
+  const enriched = await enrichPromptWithLlm(raw_template_en, title_hint);
+  return c.json({
+    ok: true,
+    result: enriched
+  });
+});
+
 // 7. Idempotent Dataset Importer (Zero Duplication, Dev <-> Prod Sync & Web Datasets)
 ingestionRoutes.post('/import', async (c) => {
   const body = await c.req.json().catch(() => ({}));
+  const enrichWithLlm = Boolean(body.enrich_with_llm);
   let items: any[] = [];
 
   if (Array.isArray(body)) {
@@ -449,26 +467,70 @@ ingestionRoutes.post('/import', async (c) => {
 
       if (!template) continue;
 
-      // 1.1. Convert common web placeholder brackets [var] and <var> into standard {{var}}
-      template = template.replace(/\[([a-zA-Z0-9_\s]{2,40})\]/g, (_: string, match: string) => {
-        const key = match.trim().toLowerCase().replace(/[\s-]+/g, '_');
-        return `{{${key}}}`;
-      });
-      template = template.replace(/<([a-zA-Z0-9_\s]{2,40})>/g, (_: string, match: string) => {
-        const key = match.trim().toLowerCase().replace(/[\s-]+/g, '_');
-        return `{{${key}}}`;
-      });
-
-      // 2. Flexible title extraction (supports title_fa, act, title, name, role)
       let rawTitle = (item.title_fa || item.act || item.title || item.name || item.role || '').trim();
       let titleFa = rawTitle;
+      let detectedModality = item.modality;
+      let shortDesc = item.short_desc_fa || item.description || item.desc || '';
+      let directAnswer = item.direct_answer_summary_fa || item.summary || '';
+      let slots = Array.isArray(item.slots_schema_json)
+        ? item.slots_schema_json
+        : (typeof item.slots_schema_json === 'string' ? JSON.parse(item.slots_schema_json || '[]') : []);
+      let keywords = Array.isArray(item.search_keywords_fa)
+        ? item.search_keywords_fa.join(', ')
+        : (item.search_keywords_fa ? String(item.search_keywords_fa) : '');
 
-      // If title is in English (e.g. from Awesome-ChatGPT act column), normalize it to Persian
-      if (!titleFa) {
-        titleFa = template.slice(0, 50).trim();
-      } else if (/^[a-zA-Z0-9\s\-_.,/]+$/.test(titleFa)) {
-        // English-only role / act: generate fluent Persian label
-        titleFa = `شبیه‌ساز و پرامپت ${titleFa}`;
+      // Optional Semantic LLM Enrichment for unstructured text
+      if (enrichWithLlm || item.enrich_with_llm) {
+        const enriched = await enrichPromptWithLlm(template, rawTitle);
+        template = enriched.template_en;
+        if (!titleFa || /^[a-zA-Z0-9\s\-_.,/]+$/.test(titleFa)) titleFa = enriched.title_fa;
+        if (!detectedModality) detectedModality = enriched.modality;
+        if (!shortDesc) shortDesc = enriched.short_desc_fa;
+        if (!directAnswer) directAnswer = enriched.direct_answer_summary_fa;
+        if (slots.length === 0) slots = enriched.slots_schema_json;
+        if (!keywords) keywords = enriched.search_keywords_fa.join(', ');
+      } else {
+        // Heuristic fallback for slots & titles
+        template = template.replace(/\[([a-zA-Z0-9_\s]{2,40})\]/g, (_: string, match: string) => {
+          const key = match.trim().toLowerCase().replace(/[\s-]+/g, '_');
+          return `{{${key}}}`;
+        });
+        template = template.replace(/<([a-zA-Z0-9_\s]{2,40})>/g, (_: string, match: string) => {
+          const key = match.trim().toLowerCase().replace(/[\s-]+/g, '_');
+          return `{{${key}}}`;
+        });
+
+        if (!titleFa) {
+          titleFa = template.slice(0, 50).trim();
+        } else if (/^[a-zA-Z0-9\s\-_.,/]+$/.test(titleFa)) {
+          titleFa = `شبیه‌ساز و پرامپت ${titleFa}`;
+        }
+
+        if (!detectedModality || !VALID_MODALITIES.includes(detectedModality)) {
+          detectedModality = detectModality(titleFa + ' ' + template).modality || 'text_writing';
+        }
+
+        if (slots.length === 0) {
+          const matches = [...template.matchAll(/\{\{([a-zA-Z0-9_]+)\}\}/g)];
+          const uniqueKeys = Array.from(new Set(matches.map(m => m[1])));
+          slots = uniqueKeys.map(k => ({
+            slot_key: k,
+            label_fa: k.replace(/_/g, ' '),
+            default_value: '',
+            is_required: true,
+            priority: 1
+          }));
+        }
+
+        if (!shortDesc) {
+          shortDesc = `${titleFa} — قالب بهینه‌سازی‌شده برای دریافت بهترین خروجی از مدل‌های هوش مصنوعی.`;
+        }
+        if (!directAnswer) {
+          directAnswer = `پرامپت مهندسی‌شده ${titleFa} با قابلیت شخصی‌سازی متغیرها برای کاربران.`;
+        }
+        if (!keywords) {
+          keywords = `${titleFa}, پرامپت, هوش مصنوعی`;
+        }
       }
 
       // 3. Content Hash & Slug Deduplication
@@ -492,54 +554,13 @@ ingestionRoutes.post('/import', async (c) => {
         continue;
       }
 
-      // 4. Modality Classification
-      let detectedModality = item.modality;
-      if (!detectedModality || !VALID_MODALITIES.includes(detectedModality)) {
-        detectedModality = detectModality(titleFa + ' ' + template).modality || 'text_writing';
-      }
-
-      // 5. Category Resolution
+      // 4. Category Resolution
       const targetCatSlug = item.category_slug || modalityToCatMap[detectedModality] || 'content-writing';
       const categoryId = catMap.get(targetCatSlug) || defaultCategoryId;
-
-      // 6. Slots Extraction
-      let slots = Array.isArray(item.slots_schema_json)
-        ? item.slots_schema_json
-        : (typeof item.slots_schema_json === 'string' ? JSON.parse(item.slots_schema_json || '[]') : []);
-
-      if (slots.length === 0) {
-        const matches = [...template.matchAll(/\{\{([a-zA-Z0-9_]+)\}\}/g)];
-        const uniqueKeys = Array.from(new Set(matches.map(m => m[1])));
-        slots = uniqueKeys.map(k => ({
-          slot_key: k,
-          label_fa: k.replace(/_/g, ' '),
-          default_value: '',
-          is_required: true,
-          priority: 1
-        }));
-      }
-
-      // 7. Descriptions & FAQs
-      const shortDesc = (
-        item.short_desc_fa ||
-        item.description ||
-        item.desc ||
-        `${titleFa} — قالب بهینه‌سازی‌شده برای دریافت بهترین خروجی از مدل‌های هوش مصنوعی.`
-      ).trim();
-
-      const directAnswer = (
-        item.direct_answer_summary_fa ||
-        item.summary ||
-        `پرامپت مهندسی‌شده ${titleFa} با قابلیت شخصی‌سازی متغیرها برای کاربران.`
-      ).trim();
 
       const faqs = typeof item.faq_schema_json === 'string'
         ? JSON.parse(item.faq_schema_json || '[]')
         : (item.faq_schema_json || []);
-
-      const keywords = Array.isArray(item.search_keywords_fa)
-        ? item.search_keywords_fa.join(', ')
-        : (item.search_keywords_fa ? String(item.search_keywords_fa) : `${titleFa}, پرامپت, هوش مصنوعی`);
 
       // 8. Generate unit 1024-d embedding vector for NOT NULL vector constraint
       const embedding = generateMockEmbedding(slug + titleFa + template);
