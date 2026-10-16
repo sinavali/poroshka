@@ -98,4 +98,27 @@ describe('Promptjoo Core API Integration Tests', () => {
     assert.ok(Array.isArray(data));
     assert.ok(data.some(u => u.provider === 'yektanet'));
   });
+
+  it('GET /api/v1/ingestion/schema returns supported formats and field definitions', async () => {
+    const res = await app.request('/api/v1/ingestion/schema');
+    assert.equal(res.status, 200);
+    const data = await res.json();
+    assert.ok(Array.isArray(data.supported_formats));
+    assert.ok(data.schema_fields.template_en);
+    assert.ok(data.schema_fields.title_fa);
+  });
+
+  it('POST /api/v1/ingestion/import ingests dataset idempotently with duplicate prevention', async () => {
+    const testCsv = `"act","prompt"\n"Test Docker Deployer","Act as a DevOps engineer. Create a Dockerfile for {{app_runtime}} with caching."`;
+    const res = await app.request('/api/v1/ingestion/import', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ csv_text: testCsv })
+    });
+    assert.equal(res.status, 200);
+    const data = await res.json();
+    assert.ok(data.ok);
+    assert.equal(data.total_processed, 1);
+    assert.ok(data.inserted === 1 || data.skipped_duplicates === 1);
+  });
 });

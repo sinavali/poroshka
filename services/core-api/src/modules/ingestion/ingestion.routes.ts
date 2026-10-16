@@ -238,7 +238,152 @@ ingestionRoutes.get('/export/json', async (c) => {
   return c.json(res.rows);
 });
 
-// 7. Idempotent Dataset Importer (Zero Duplication, Dev <-> Prod Sync)
+// Helper: Unit 1024-dimensional mock vector generator for pgvector compatibility
+function generateMockEmbedding(seedStr: string): string {
+  const hash = crypto.createHash('sha256').update(seedStr).digest();
+  const vector: number[] = new Array(1024);
+  let sumSq = 0;
+  for (let i = 0; i < 1024; i++) {
+    const byte = hash[i % hash.length];
+    const val = (byte / 128.0) - 1.0;
+    vector[i] = val;
+    sumSq += val * val;
+  }
+  const norm = Math.sqrt(sumSq) || 1;
+  const normalized = vector.map(v => (v / norm).toFixed(6));
+  return `[${normalized.join(',')}]`;
+}
+
+// Helper: RFC 4180 Compliant CSV Parser (handles newlines inside quotes, escaped quotes, commas)
+function parseRFC4180Csv(csvText: string): Record<string, string>[] {
+  const clean = csvText.replace(/^\uFEFF/, '');
+  const rows: string[][] = [];
+  let currentRow: string[] = [];
+  let currentField = '';
+  let insideQuotes = false;
+
+  for (let i = 0; i < clean.length; i++) {
+    const char = clean[i];
+    const nextChar = clean[i + 1];
+
+    if (insideQuotes) {
+      if (char === '"') {
+        if (nextChar === '"') {
+          currentField += '"';
+          i++; // Skip escaped quote
+        } else {
+          insideQuotes = false;
+        }
+      } else {
+        currentField += char;
+      }
+    } else {
+      if (char === '"') {
+        insideQuotes = true;
+      } else if (char === ',') {
+        currentRow.push(currentField.trim());
+        currentField = '';
+      } else if (char === '\r') {
+        if (nextChar === '\n') i++;
+        currentRow.push(currentField.trim());
+        if (currentRow.some(f => f.length > 0)) rows.push(currentRow);
+        currentRow = [];
+        currentField = '';
+      } else if (char === '\n') {
+        currentRow.push(currentField.trim());
+        if (currentRow.some(f => f.length > 0)) rows.push(currentRow);
+        currentRow = [];
+        currentField = '';
+      } else {
+        currentField += char;
+      }
+    }
+  }
+  if (currentField.length > 0 || currentRow.length > 0) {
+    currentRow.push(currentField.trim());
+    if (currentRow.some(f => f.length > 0)) rows.push(currentRow);
+  }
+  if (rows.length < 2) return [];
+
+  const headers = rows[0].map(h => h.trim().toLowerCase());
+  const records: Record<string, string>[] = [];
+  for (let r = 1; r < rows.length; r++) {
+    const row = rows[r];
+    const record: Record<string, string> = {};
+    headers.forEach((h, idx) => {
+      record[h] = row[idx] || '';
+    });
+    records.push(record);
+  }
+  return records;
+}
+
+// 6.5. Get Ingestion Dataset Schema & Samples (For Developers & Admins)
+ingestionRoutes.get('/schema', async (c) => {
+  return c.json({
+    platform: 'Promptjoo Enterprise Catalog Ingestion',
+    supported_formats: ['JSON Array', 'JSONL (JSON Lines)', 'RFC 4180 CSV'],
+    schema_fields: {
+      template_en: {
+        type: 'string',
+        required: true,
+        aliases: ['prompt', 'template', 'instruction', 'raw_template_en', 'content', 'text'],
+        description: 'The prompt text or template in English. Supports variables in {{slot_name}} or [slot_name] formats.'
+      },
+      title_fa: {
+        type: 'string',
+        required: false,
+        aliases: ['act', 'title', 'name', 'role'],
+        description: 'Persian title for the prompt. If missing or English, automatically translated or prefixed with Persian role.'
+      },
+      category_slug: {
+        type: 'string',
+        required: false,
+        aliases: ['category', 'type'],
+        options: ['content-writing', 'photo-editing', 'image-generation', 'data-automation', 'video-scripting', 'code-generation'],
+        description: 'Slug of the catalog category. If omitted, inferred from modality.'
+      },
+      modality: {
+        type: 'string',
+        required: false,
+        options: ['text_writing', 'image_edit', 'text_to_image', 'data_structuring', 'video_audio', 'code_tech'],
+        description: 'AI modality. If omitted, automatically classified using Persian/English content heuristics.'
+      },
+      short_desc_fa: {
+        type: 'string',
+        required: false,
+        aliases: ['description', 'desc', 'summary'],
+        description: 'Brief summary in Persian. If omitted, auto-generated from title.'
+      },
+      slots_schema_json: {
+        type: 'array',
+        required: false,
+        description: 'Array of slots schema {slot_key, label_fa, default_value, is_required}. Auto-extracted from {{slot}} if omitted.'
+      },
+      search_keywords_fa: {
+        type: 'string | array',
+        required: false,
+        description: 'Search keywords or comma-separated tags for discovery.'
+      }
+    },
+    sample_native_json: [
+      {
+        title_fa: 'سناریو استوری معرفی محصول',
+        template_en: 'You are a master copywriter. Write a 3-part viral Instagram story sequence for {{product}} targeting {{audience}}.',
+        category_slug: 'content-writing',
+        modality: 'text_writing',
+        short_desc_fa: 'قالب اختصاصی استوری برای افزایش تعامل و فروش',
+        slots_schema_json: [
+          { slot_key: 'product', label_fa: 'نام محصول', default_value: 'کفش ورزشی', is_required: true },
+          { slot_key: 'audience', label_fa: 'مخاطب هدف', default_value: 'ورزشکاران', is_required: false }
+        ]
+      }
+    ],
+    sample_awesome_chatgpt_csv: `act,prompt\n"Linux Terminal","I want you to act as a linux terminal. I will type commands and you will reply with what the terminal should show. My first command is {{command}}."\n"Python Developer","Act as a senior Python developer. Optimize the following function: {{code}}."`
+  });
+});
+
+// 7. Idempotent Dataset Importer (Zero Duplication, Dev <-> Prod Sync & Web Datasets)
 ingestionRoutes.post('/import', async (c) => {
   const body = await c.req.json().catch(() => ({}));
   let items: any[] = [];
@@ -248,24 +393,20 @@ ingestionRoutes.post('/import', async (c) => {
   } else if (Array.isArray(body.items)) {
     items = body.items;
   } else if (typeof body.csv_text === 'string') {
-    // Simple CSV parser
-    const csvLines = body.csv_text.replace(/^\uFEFF/, '').split(/\r?\n/).filter((l: string) => l.trim().length > 0);
-    if (csvLines.length > 1) {
-      const headerCols = csvLines[0].split(',').map((h: string) => h.replace(/^"|"$/g, '').trim());
-      for (let i = 1; i < csvLines.length; i++) {
-        // Simple comma split
-        const values = csvLines[i].split(',').map((v: string) => v.replace(/^"|"$/g, '').trim());
-        const itemObj: Record<string, any> = {};
-        for (let h = 0; h < headerCols.length; h++) {
-          itemObj[headerCols[h]] = values[h] || '';
-        }
-        items.push(itemObj);
-      }
-    }
+    items = parseRFC4180Csv(body.csv_text);
+  } else if (typeof body.jsonl_text === 'string') {
+    items = body.jsonl_text
+      .split('\n')
+      .map((l: string) => l.trim())
+      .filter((l: string) => l.length > 0)
+      .map((l: string) => {
+        try { return JSON.parse(l); } catch { return null; }
+      })
+      .filter(Boolean);
   }
 
   if (items.length === 0) {
-    return c.json({ error: 'INVALID_INPUT', message: 'محتوای دیتاست برای بارگذاری یافت نشد.' }, 400);
+    return c.json({ error: 'INVALID_INPUT', message: 'محتوای دیتاست برای بارگذاری یافت نشد یا فرمت معتبر نیست.' }, 400);
   }
 
   // Fetch categories map
@@ -276,23 +417,73 @@ ingestionRoutes.post('/import', async (c) => {
   }
   const defaultCategoryId = catsRes.rows[0]?.id;
 
+  // Modality to category fallback map
+  const modalityToCatMap: Record<string, string> = {
+    text_writing: 'content-writing',
+    code_tech: 'code-generation',
+    text_to_image: 'image-generation',
+    image_edit: 'photo-editing',
+    data_structuring: 'data-automation',
+    video_audio: 'video-scripting'
+  };
+
+  const VALID_MODALITIES = ['text_writing', 'code_tech', 'text_to_image', 'image_edit', 'data_structuring', 'video_audio'];
+
   let inserted = 0;
   let skippedDuplicates = 0;
-  let updated = 0;
   const errors: string[] = [];
 
   for (const item of items) {
     try {
-      const template = (item.template_en || item.raw_template_en || '').trim();
-      const titleFa = (item.title_fa || 'پرامپت جدید').trim();
+      // 1. Flexible template extraction (supports native template_en, prompt, template, instruction, raw_template_en)
+      let template = (
+        item.template_en ||
+        item.prompt ||
+        item.template ||
+        item.instruction ||
+        item.raw_template_en ||
+        item.content ||
+        item.text ||
+        ''
+      ).trim();
+
       if (!template) continue;
 
-      const hash = crypto.createHash('sha256').update(template).digest('hex');
-      const slug = (item.slug || titleFa.replace(/[\s\-_]+/g, '-').slice(0, 80) + '-' + hash.slice(0, 6)).toLowerCase();
+      // 1.1. Convert common web placeholder brackets [var] and <var> into standard {{var}}
+      template = template.replace(/\[([a-zA-Z0-9_\s]{2,40})\]/g, (_: string, match: string) => {
+        const key = match.trim().toLowerCase().replace(/[\s-]+/g, '_');
+        return `{{${key}}}`;
+      });
+      template = template.replace(/<([a-zA-Z0-9_\s]{2,40})>/g, (_: string, match: string) => {
+        const key = match.trim().toLowerCase().replace(/[\s-]+/g, '_');
+        return `{{${key}}}`;
+      });
 
-      // Check for duplicate by content_hash or slug
+      // 2. Flexible title extraction (supports title_fa, act, title, name, role)
+      let rawTitle = (item.title_fa || item.act || item.title || item.name || item.role || '').trim();
+      let titleFa = rawTitle;
+
+      // If title is in English (e.g. from Awesome-ChatGPT act column), normalize it to Persian
+      if (!titleFa) {
+        titleFa = template.slice(0, 50).trim();
+      } else if (/^[a-zA-Z0-9\s\-_.,/]+$/.test(titleFa)) {
+        // English-only role / act: generate fluent Persian label
+        titleFa = `شبیه‌ساز و پرامپت ${titleFa}`;
+      }
+
+      // 3. Content Hash & Slug Deduplication
+      const hash = crypto.createHash('sha256').update(template).digest('hex');
+      const cleanSlugTitle = titleFa
+        .toLowerCase()
+        .replace(/[^\u0600-\u06FFa-z0-9\s-]/g, '')
+        .trim()
+        .replace(/\s+/g, '-')
+        .slice(0, 60);
+      const slug = (item.slug || `${cleanSlugTitle || 'prompt'}-${hash.slice(0, 6)}`).toLowerCase();
+
+      // Check for exact duplicate in prompts table
       const checkRes = await pool.query(
-        'SELECT id, template_en, title_fa FROM prompts WHERE content_hash = $1 OR slug = $2 LIMIT 1',
+        'SELECT id FROM prompts WHERE content_hash = $1 OR slug = $2 LIMIT 1',
         [hash, slug]
       );
 
@@ -301,26 +492,71 @@ ingestionRoutes.post('/import', async (c) => {
         continue;
       }
 
-      const categoryId = catMap.get(item.category_slug) || defaultCategoryId;
-      const detected = item.modality || detectModality(titleFa || template).modality;
-      const slots = typeof item.slots_schema_json === 'string' ? JSON.parse(item.slots_schema_json || '[]') : (item.slots_schema_json || []);
-      const faqs = typeof item.faq_schema_json === 'string' ? JSON.parse(item.faq_schema_json || '[]') : (item.faq_schema_json || []);
+      // 4. Modality Classification
+      let detectedModality = item.modality;
+      if (!detectedModality || !VALID_MODALITIES.includes(detectedModality)) {
+        detectedModality = detectModality(titleFa + ' ' + template).modality || 'text_writing';
+      }
+
+      // 5. Category Resolution
+      const targetCatSlug = item.category_slug || modalityToCatMap[detectedModality] || 'content-writing';
+      const categoryId = catMap.get(targetCatSlug) || defaultCategoryId;
+
+      // 6. Slots Extraction
+      let slots = Array.isArray(item.slots_schema_json)
+        ? item.slots_schema_json
+        : (typeof item.slots_schema_json === 'string' ? JSON.parse(item.slots_schema_json || '[]') : []);
+
+      if (slots.length === 0) {
+        const matches = [...template.matchAll(/\{\{([a-zA-Z0-9_]+)\}\}/g)];
+        const uniqueKeys = Array.from(new Set(matches.map(m => m[1])));
+        slots = uniqueKeys.map(k => ({
+          slot_key: k,
+          label_fa: k.replace(/_/g, ' '),
+          default_value: '',
+          is_required: true,
+          priority: 1
+        }));
+      }
+
+      // 7. Descriptions & FAQs
+      const shortDesc = (
+        item.short_desc_fa ||
+        item.description ||
+        item.desc ||
+        `${titleFa} — قالب بهینه‌سازی‌شده برای دریافت بهترین خروجی از مدل‌های هوش مصنوعی.`
+      ).trim();
+
+      const directAnswer = (
+        item.direct_answer_summary_fa ||
+        item.summary ||
+        `پرامپت مهندسی‌شده ${titleFa} با قابلیت شخصی‌سازی متغیرها برای کاربران.`
+      ).trim();
+
+      const faqs = typeof item.faq_schema_json === 'string'
+        ? JSON.parse(item.faq_schema_json || '[]')
+        : (item.faq_schema_json || []);
+
       const keywords = Array.isArray(item.search_keywords_fa)
-        ? item.search_keywords_fa
-        : (item.search_keywords_fa ? String(item.search_keywords_fa).split(',').map((k: string) => k.trim()) : []);
+        ? item.search_keywords_fa.join(', ')
+        : (item.search_keywords_fa ? String(item.search_keywords_fa) : `${titleFa}, پرامپت, هوش مصنوعی`);
+
+      // 8. Generate unit 1024-d embedding vector for NOT NULL vector constraint
+      const embedding = generateMockEmbedding(slug + titleFa + template);
+      const slotCount = slots.length;
 
       await pool.query(`
         INSERT INTO prompts (
           slug, category_id, modality, title_fa, short_desc_fa, direct_answer_summary_fa,
           search_keywords_fa, template_en, content_hash, slots_schema_json, faq_schema_json,
-          is_published
+          embedding, slot_count, is_published
         )
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, true)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, true)
       `, [
-        slug, categoryId, detected, titleFa,
-        item.short_desc_fa || titleFa,
-        item.direct_answer_summary_fa || '',
-        keywords, template, hash, JSON.stringify(slots), JSON.stringify(faqs)
+        slug, categoryId, detectedModality, titleFa,
+        shortDesc, directAnswer, keywords, template, hash,
+        JSON.stringify(slots), JSON.stringify(faqs),
+        embedding, slotCount
       ]);
 
       inserted++;
@@ -336,7 +572,6 @@ ingestionRoutes.post('/import', async (c) => {
     total_processed: items.length,
     inserted,
     skipped_duplicates: skippedDuplicates,
-    updated,
     error_count: errors.length,
     sample_errors: errors.slice(0, 3)
   });
@@ -388,7 +623,7 @@ ingestionRoutes.post('/prompt', async (c) => {
     .trim()
     .replace(/\s+/g, '-')
     .slice(0, 70);
-  const slug = `${cleanTitle}-${hash.slice(0, 6)}`;
+  const slug = `${cleanTitle || 'prompt'}-${hash.slice(0, 6)}`;
 
   // Automatically extract slots if not provided
   let slots = Array.isArray(slots_schema_json) ? slots_schema_json : [];
@@ -399,19 +634,23 @@ ingestionRoutes.post('/prompt', async (c) => {
       slot_key: k,
       label_fa: k.replace(/_/g, ' '),
       default_value: '',
-      is_required: true
+      is_required: true,
+      priority: 1
     }));
   }
 
   const detectedModality = modality || detectModality(title_fa + ' ' + template).modality || 'text_writing';
+  const embedding = generateMockEmbedding(slug + title_fa + template);
+  const slotCount = slots.length;
+  const keywordsStr = Array.isArray(search_keywords_fa) ? search_keywords_fa.join(', ') : String(search_keywords_fa || '');
 
   const insertRes = await pool.query(`
     INSERT INTO prompts (
       slug, category_id, modality, title_fa, short_desc_fa, direct_answer_summary_fa,
       search_keywords_fa, template_en, content_hash, slots_schema_json, supported_models,
-      is_published, is_featured
+      embedding, slot_count, is_published
     )
-    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, true, false)
+    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, true)
     RETURNING id, slug, title_fa, modality;
   `, [
     slug,
@@ -419,12 +658,14 @@ ingestionRoutes.post('/prompt', async (c) => {
     detectedModality,
     String(title_fa).trim(),
     String(short_desc_fa || title_fa).trim(),
-    String(direct_answer_summary_fa).trim(),
-    Array.isArray(search_keywords_fa) ? search_keywords_fa : [],
+    String(direct_answer_summary_fa || `${title_fa} — پرامپت بهینه‌سازی‌شده برای مدل‌های زبانی`).trim(),
+    keywordsStr,
     template,
     hash,
     JSON.stringify(slots),
-    supported_models
+    supported_models,
+    embedding,
+    slotCount
   ]);
 
   return c.json({
