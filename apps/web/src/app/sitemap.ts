@@ -55,7 +55,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     });
     if (res.ok) {
       const data = await res.json();
-      const prompts = Array.isArray(data.prompts) ? data.prompts : (Array.isArray(data) ? data : []);
+      const prompts = Array.isArray(data.items) ? data.items : (Array.isArray(data.prompts) ? data.prompts : (Array.isArray(data) ? data : []));
       const promptRoutes: MetadataRoute.Sitemap = prompts.map((p: { slug: string; updated_at?: string }) => ({
         url: `${baseUrl}/p/${p.slug}`,
         lastModified: p.updated_at ? new Date(p.updated_at) : new Date(),

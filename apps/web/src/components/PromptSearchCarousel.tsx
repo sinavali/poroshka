@@ -12,6 +12,15 @@ interface PromptSearchCarouselProps {
   query: string;
 }
 
+const MODALITY_LABELS: Record<string, { label: string; color: string; border: string }> = {
+  image_edit: { label: 'ادیت عکس', color: 'bg-emerald-50 text-emerald-700', border: 'border-emerald-200/80' },
+  text_to_image: { label: 'تولید تصویر', color: 'bg-purple-50 text-purple-700', border: 'border-purple-200/80' },
+  text_writing: { label: 'تولید محتوا', color: 'bg-blue-50 text-blue-700', border: 'border-blue-200/80' },
+  data_structuring: { label: 'اکسل و داده', color: 'bg-amber-50 text-amber-700', border: 'border-amber-200/80' },
+  video_audio: { label: 'ویدیو و ریلز', color: 'bg-rose-50 text-rose-700', border: 'border-rose-200/80' },
+  code_tech: { label: 'برنامه‌نویسی', color: 'bg-cyan-50 text-cyan-700', border: 'border-cyan-200/80' },
+};
+
 export function PromptSearchCarousel({ query }: PromptSearchCarouselProps) {
   const [prompts, setPrompts] = useState<PromptCardData[]>([]);
   const [loading, setLoading] = useState(false);
@@ -28,9 +37,11 @@ export function PromptSearchCarousel({ query }: PromptSearchCarouselProps) {
         const endpoint = query.trim()
           ? `/api/v1/catalog/prompts?q=${encodeURIComponent(query.trim())}&limit=12`
           : `/api/v1/catalog/prompts?limit=12&sort=trending`;
-        const data = await fetchFromApi<{ prompts: PromptCardData[] } | PromptCardData[]>(endpoint);
+        const data = await fetchFromApi<{ items?: PromptCardData[]; prompts?: PromptCardData[] } | PromptCardData[]>(endpoint);
         if (!active) return;
-        const list = Array.isArray(data) ? data : (data.prompts || []);
+        const list = Array.isArray(data)
+          ? data
+          : (Array.isArray(data.items) ? data.items : (Array.isArray(data.prompts) ? data.prompts : []));
         setPrompts(list.slice(0, 12));
         setCurrentIndex(0);
       } catch {
@@ -166,8 +177,8 @@ export function PromptSearchCarousel({ query }: PromptSearchCarouselProps) {
                 <div className="glass-panel h-full rounded-2xl p-4 border border-slate-200/90 hover:border-blue-500/50 hover:shadow-md flex flex-col justify-between group spring-transition">
                   <div>
                     <div className="flex items-center justify-between gap-1.5 mb-2">
-                      <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200/60">
-                        {p.modality}
+                      <span className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full border ${MODALITY_LABELS[p.modality]?.color || 'bg-blue-50 text-blue-700'} ${MODALITY_LABELS[p.modality]?.border || 'border-blue-200/60'}`}>
+                        {MODALITY_LABELS[p.modality]?.label || p.modality}
                       </span>
                       <span className="text-[10px] text-slate-400 font-mono" dir="ltr">
                         {p.copy_count.toLocaleString('fa-IR')} کپی
