@@ -106,7 +106,7 @@ export function AdminPromptsView() {
   // Sync state to URL search params
   const updateUrlParams = useCallback((p: number, q: string, cat: string, mod: string, tg: string, st: string, sBy: string, sOrd: string) => {
     const params = new URLSearchParams(searchParams.toString());
-    params.set('tab', 'prompts');
+    params.delete('tab');
     if (p > 1) params.set('prompt_page', String(p));
     else params.delete('prompt_page');
 
@@ -131,7 +131,8 @@ export function AdminPromptsView() {
     if (sOrd !== 'desc') params.set('prompt_order', sOrd);
     else params.delete('prompt_order');
 
-    router.replace(`/admin?${params.toString()}`);
+    const qs = params.toString();
+    router.replace(`/admin/prompts${qs ? `?${qs}` : ''}`);
   }, [router, searchParams]);
 
   // Synchronize state when URL search params change (e.g. browser back/forward or reload)

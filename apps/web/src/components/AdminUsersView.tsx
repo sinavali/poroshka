@@ -66,7 +66,7 @@ export function AdminUsersView({ currentUserPhone, userRole }: AdminUsersViewPro
 
   const updateUrlParams = useCallback((p: number, q: string, lim: number) => {
     const params = new URLSearchParams(searchParams.toString());
-    params.set('tab', 'users');
+    params.delete('tab');
     if (p > 1) params.set('user_page', String(p));
     else params.delete('user_page');
 
@@ -76,7 +76,8 @@ export function AdminUsersView({ currentUserPhone, userRole }: AdminUsersViewPro
     if (lim !== 20) params.set('user_limit', String(lim));
     else params.delete('user_limit');
 
-    router.replace(`/admin?${params.toString()}`);
+    const qs = params.toString();
+    router.replace(`/admin/users${qs ? `?${qs}` : ''}`);
   }, [router, searchParams]);
 
   // Synchronize state when URL search params change (e.g. browser back/forward or reload)

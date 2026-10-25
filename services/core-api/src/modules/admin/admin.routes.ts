@@ -330,6 +330,9 @@ const saveSystemSetting = async (c: any, keyOverride?: string) => {
 adminRoutes.put('/settings/:key', (c) => saveSystemSetting(c));
 adminRoutes.post('/settings/:key', (c) => saveSystemSetting(c));
 adminRoutes.post('/settings', (c) => saveSystemSetting(c));
+adminRoutes.post('/settings/', (c) => saveSystemSetting(c));
+adminRoutes.put('/settings', (c) => saveSystemSetting(c));
+adminRoutes.put('/settings/', (c) => saveSystemSetting(c));
 
 // 7. Granular Reports Engine (7 Detailed Reports)
 adminRoutes.get('/reports/:type', async (c) => {

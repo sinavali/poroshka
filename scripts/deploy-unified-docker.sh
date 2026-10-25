@@ -22,10 +22,10 @@ export NEXT_PUBLIC_APP_URL="${NEXT_PUBLIC_APP_URL:-https://poroshka.ir}"
 export ADMIN_PHONE="${ADMIN_PHONE:-+989015389399}"
 
 echo "🧹 1. Cleaning up stale build caches..."
-rm -rf apps/web/dist-next/cache apps/web/dist-next/dev apps/web/.next dist/runflare-web 2>/dev/null || true
+rm -rf apps/web/dist-next dist/services/core-api apps/web/.next dist/runflare-web 2>/dev/null || true
 
 echo "🔨 2. Pre-building backend, shared libraries, and Next.js frontend locally..."
-NODE_ENV=production npx nx run-many -t build -p contracts,persian-normalizer,prompt-compiler,core-api,web
+NODE_ENV=production npx nx run-many -t build --skip-nx-cache -p contracts,persian-normalizer,prompt-compiler,core-api,web
 
 if [ ! -f "apps/web/dist-next/BUILD_ID" ]; then
   echo "❌ Error: apps/web/dist-next/BUILD_ID not found after build!"

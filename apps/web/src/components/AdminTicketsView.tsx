@@ -85,7 +85,7 @@ export function AdminTicketsView({ currentUserRole = 'ADMIN' }: AdminTicketsView
 
   const updateUrlParams = useCallback((p: number, st: string, role: string, q: string) => {
     const params = new URLSearchParams(searchParams.toString());
-    params.set('tab', 'tickets');
+    params.delete('tab');
     if (p > 1) params.set('ticket_page', String(p));
     else params.delete('ticket_page');
 
@@ -98,7 +98,8 @@ export function AdminTicketsView({ currentUserRole = 'ADMIN' }: AdminTicketsView
     if (q.trim()) params.set('ticket_q', q.trim());
     else params.delete('ticket_q');
 
-    router.replace(`/admin?${params.toString()}`);
+    const qs = params.toString();
+    router.replace(`/admin/tickets${qs ? `?${qs}` : ''}`);
   }, [router, searchParams]);
 
   // Synchronize state when URL search params change (e.g. browser back/forward or reload)

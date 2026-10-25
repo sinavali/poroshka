@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter, useSearchParams, useParams } from 'next/navigation';
 import {
   Cpu,
   Key,
@@ -39,9 +39,14 @@ interface AdminSettingsViewProps {
 export function AdminSettingsView({ isOperator = false }: AdminSettingsViewProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const params = useParams();
 
-  const urlSection = (searchParams.get('settings_section') || searchParams.get('section')) as 'platform' | 'ads' | 'llm' | 'embedding' | null;
-  const initialSection = urlSection && ['platform', 'ads', 'llm', 'embedding'].includes(urlSection) ? urlSection : 'platform';
+  const rawSlug = params?.slug;
+  const slug = Array.isArray(rawSlug) ? rawSlug : rawSlug ? [rawSlug] : [];
+  const pathSection = slug[0] === 'settings' && slug[1] ? slug[1] : null;
+
+  const urlSection = (pathSection || searchParams.get('settings_section') || searchParams.get('section')) as 'platform' | 'ads' | 'llm' | 'embedding' | null;
+  const initialSection = urlSection && ['platform', 'ads', 'llm', 'embedding'].includes(urlSection) ? urlSection : 'ads';
 
   const [loading, setLoading] = useState(false);
   const [activeTabSection, setActiveTabSection] = useState<'platform' | 'ads' | 'llm' | 'embedding'>(initialSection);
@@ -54,10 +59,7 @@ export function AdminSettingsView({ isOperator = false }: AdminSettingsViewProps
 
   const handleSectionChange = (section: 'platform' | 'ads' | 'llm' | 'embedding') => {
     setActiveTabSection(section);
-    const params = new URLSearchParams(searchParams.toString());
-    params.set('tab', 'settings');
-    params.set('section', section);
-    router.replace(`/admin?${params.toString()}`);
+    router.push(`/admin/settings/${section}`);
   };
 
   // LLM Engine Configuration State

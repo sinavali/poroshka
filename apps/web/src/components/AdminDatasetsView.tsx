@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter, useSearchParams, useParams } from 'next/navigation';
 import {
   Database,
   Download,
@@ -21,8 +21,13 @@ import { AdminBatchUploader } from './AdminBatchUploader';
 export function AdminDatasetsView() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const params = useParams();
 
-  const urlSubTab = (searchParams.get('dataset_tab') || 'upload') as 'upload' | 'bulk_ingestion';
+  const rawSlug = params?.slug;
+  const slug = Array.isArray(rawSlug) ? rawSlug : rawSlug ? [rawSlug] : [];
+  const pathSubTab = slug[0] === 'datasets' && slug[1] ? slug[1] : null;
+
+  const urlSubTab = (pathSubTab || searchParams.get('dataset_tab') || 'upload') as 'upload' | 'bulk_ingestion';
   const initialTab = urlSubTab === 'bulk_ingestion' ? 'bulk_ingestion' : 'upload';
 
   const [activeTab, setActiveTab] = useState<'upload' | 'bulk_ingestion'>(initialTab);
@@ -37,10 +42,7 @@ export function AdminDatasetsView() {
 
   const handleTabChange = (tab: 'upload' | 'bulk_ingestion') => {
     setActiveTab(tab);
-    const params = new URLSearchParams(searchParams.toString());
-    params.set('tab', 'datasets');
-    params.set('dataset_tab', tab);
-    router.replace(`/admin?${params.toString()}`);
+    router.push(`/admin/datasets/${tab}`);
   };
 
   const handleDownloadCsv = () => {
