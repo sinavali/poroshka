@@ -5,6 +5,15 @@ stack: "node-ts-22-zod-openapi"
 scope: "shared"
 owner: "sinavali"
 tier_overrides: []
+dr:
+  rto: "1h"
+  rpo: "15m"
+slo:
+  tier: "tier-1"
+  availability_target: "0.999"
+resources:
+  cpu_limit: "500m"
+  memory_limit: "512Mi"
 ---
 
 # Project Agent Manifest: contracts
@@ -26,5 +35,16 @@ Canonical schema definitions, data transfer objects (DTOs), and contract export 
 
 ## 4. Test & Verification Rules
 - 100% test coverage for schema parsing and serialization invariants.
-- Automated CI drift check comparing `openapi-v1.json` with generated Dart DTOs.
+- Automated CI drift check comparing `openapi-v1.json` with generated DTOs.
 - Timestamps strictly validated as ISO-8601 UTC strings.
+- Single-turn context ingestion via `ep pack --surface`.
+
+## 5. Approved Tier 2 Deviations
+| Rule | Justification | ADR Reference |
+|---|---|---|
+| *(None)* | Strictly conforms to Profile D invariants | - |
+
+## 6. Project Invariants
+- Zero framework coupling in contract schema definitions.
+- Backward compatibility strictly enforced on all released schema versions.
+- Deterministic JSON Schema / OpenAPI 3.0 export.

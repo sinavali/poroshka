@@ -1,0 +1,44 @@
+# Service Level Objectives (SLO) Specification: Promptjoo Core API
+# Schema: EP-OS Monitoring & Observability Standard
+
+service: "core-api"
+tier: "tier-1"
+owner_team: "sinavali"
+
+slos:
+  - id: "availability"
+    name: "Core API Availability (Success Rate)"
+    description: "Proportion of non-5xx responses over total valid requests excluding client errors (4xx)."
+    target: 0.999
+    window: "30d"
+    sli:
+      metric_type: "ratio"
+      numerator_query: 'sum(rate(http_requests_total{service="core-api",status!~"5.."}[5m]))'
+      denominator_query: 'sum(rate(http_requests_total{service="core-api"}[5m]))'
+    error_budget:
+      budget_percentage: 0.001
+      alert_triggers:
+        - burn_rate: 14.4
+          short_window: "5m"
+          long_window: "1h"
+          severity: "critical"
+        - burn_rate: 6.0
+          short_window: "30m"
+          long_window: "6h"
+          severity: "warning"
+
+  - id: "latency_p95"
+    name: "p95 API Latency"
+    description: "Proportion of valid API requests resolved within 150 milliseconds."
+    target: 0.95
+    window: "30d"
+    sli:
+      metric_type: "histogram_fraction"
+      query: 'histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket{service="core-api"}[5m])) by (le)) <= 0.150'
+    error_budget:
+      budget_percentage: 0.05
+      alert_triggers:
+        - burn_rate: 10.0
+          short_window: "10m"
+          long_window: "2h"
+          severity: "warning"

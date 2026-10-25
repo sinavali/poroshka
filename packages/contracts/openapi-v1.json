@@ -1,0 +1,711 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Promptjoo Enterprise API",
+    "version": "1.0.0",
+    "description": "Enterprise multi-modal AI prompt platform for Iran with zero runtime LLM cost"
+  },
+  "servers": [
+    {
+      "url": "https://core-api.promptjoo.ir",
+      "description": "Production Gateway"
+    },
+    {
+      "url": "http://localhost:4000",
+      "description": "Local Development"
+    }
+  ],
+  "components": {
+    "schemas": {
+      "PromptModality": {
+        "type": "string",
+        "enum": [
+          "image_edit",
+          "text_to_image",
+          "text_writing",
+          "data_structuring",
+          "video_audio",
+          "code_tech"
+        ]
+      },
+      "PromptBlockType": {
+        "type": "string",
+        "enum": [
+          "ROLE",
+          "TASK",
+          "CONSTRAINT",
+          "FORMAT"
+        ]
+      },
+      "BilingualPresetOption": {
+        "type": "object",
+        "properties": {
+          "label_fa": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 60
+          },
+          "value_en": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 160
+          }
+        },
+        "required": [
+          "label_fa",
+          "value_en"
+        ]
+      },
+      "PromptSlotInputType": {
+        "type": "string",
+        "enum": [
+          "SHORT_TEXT",
+          "LONG_TEXT",
+          "SELECT_CHIP",
+          "text",
+          "textarea",
+          "select"
+        ]
+      },
+      "PromptSlot": {
+        "type": "object",
+        "properties": {
+          "slot_key": {
+            "type": "string",
+            "pattern": "^[a-z0-9_]+$"
+          },
+          "label_fa": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 80
+          },
+          "placeholder_fa": {
+            "type": "string",
+            "maxLength": 120,
+            "default": ""
+          },
+          "input_type": {
+            "$ref": "#/components/schemas/PromptSlotInputType"
+          },
+          "default_value_en": {
+            "type": "string",
+            "default": ""
+          },
+          "default_value": {
+            "type": "string"
+          },
+          "profile_binding_key": {
+            "type": "string",
+            "enum": [
+              "NONE",
+              "BRAND_NAME",
+              "NICHE_TOPIC",
+              "TARGET_AUDIENCE",
+              "BRAND_TONE",
+              "CALL_TO_ACTION"
+            ],
+            "default": "NONE"
+          },
+          "preset_options": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/BilingualPresetOption"
+            },
+            "default": []
+          },
+          "options": {
+            "type": "array",
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "$ref": "#/components/schemas/BilingualPresetOption"
+                }
+              ]
+            },
+            "default": []
+          },
+          "is_required": {
+            "type": "boolean",
+            "default": false
+          },
+          "priority": {
+            "type": "integer",
+            "default": 1
+          }
+        },
+        "required": [
+          "slot_key",
+          "label_fa",
+          "input_type"
+        ]
+      },
+      "SavedContextProfile": {
+        "type": "object",
+        "properties": {
+          "brand_name": {
+            "type": "string",
+            "maxLength": 80,
+            "default": ""
+          },
+          "niche_topic": {
+            "type": "string",
+            "maxLength": 120,
+            "default": ""
+          },
+          "target_audience": {
+            "type": "string",
+            "maxLength": 140,
+            "default": ""
+          },
+          "brand_tone": {
+            "type": "string",
+            "enum": [
+              "CASUAL",
+              "FORMAL",
+              "ENTHUSIASTIC",
+              "ACADEMIC",
+              "HUMOROUS"
+            ],
+            "default": "CASUAL"
+          },
+          "call_to_action": {
+            "type": "string",
+            "maxLength": 100,
+            "default": ""
+          }
+        }
+      },
+      "Category": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "slug": {
+            "type": "string",
+            "minLength": 2,
+            "maxLength": 80
+          },
+          "title_fa": {
+            "type": "string",
+            "minLength": 2,
+            "maxLength": 120
+          },
+          "description_fa": {
+            "type": "string"
+          },
+          "icon_name": {
+            "type": "string",
+            "maxLength": 60
+          },
+          "primary_modality": {
+            "$ref": "#/components/schemas/PromptModality"
+          },
+          "sort_order": {
+            "type": "integer",
+            "default": 0
+          },
+          "is_active": {
+            "type": "boolean",
+            "default": true
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "slug",
+          "title_fa",
+          "description_fa",
+          "icon_name",
+          "primary_modality",
+          "created_at"
+        ]
+      },
+      "MediaCheckpointPayload": {
+        "type": "object",
+        "properties": {
+          "preview_after_webp_url": {
+            "type": "string",
+            "nullable": true,
+            "format": "uri"
+          },
+          "preview_before_webp_url": {
+            "type": "string",
+            "nullable": true,
+            "format": "uri"
+          },
+          "preview_blurhash": {
+            "type": "string",
+            "nullable": true,
+            "minLength": 6,
+            "maxLength": 64
+          },
+          "preview_alt_fa": {
+            "type": "string",
+            "nullable": true,
+            "maxLength": 220
+          }
+        },
+        "required": [
+          "preview_after_webp_url",
+          "preview_before_webp_url",
+          "preview_blurhash",
+          "preview_alt_fa"
+        ]
+      },
+      "PromptListItem": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "slug": {
+            "type": "string",
+            "minLength": 2,
+            "maxLength": 160
+          },
+          "modality": {
+            "$ref": "#/components/schemas/PromptModality"
+          },
+          "category_slug": {
+            "type": "string"
+          },
+          "category_title_fa": {
+            "type": "string"
+          },
+          "title_fa": {
+            "type": "string",
+            "minLength": 5,
+            "maxLength": 200
+          },
+          "short_desc_fa": {
+            "type": "string",
+            "minLength": 10,
+            "maxLength": 320
+          },
+          "requires_image_upload": {
+            "type": "boolean"
+          },
+          "supported_models": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "preview_after_webp_url": {
+            "type": "string",
+            "nullable": true
+          },
+          "preview_before_webp_url": {
+            "type": "string",
+            "nullable": true
+          },
+          "preview_blurhash": {
+            "type": "string",
+            "nullable": true
+          },
+          "slot_count": {
+            "type": "integer"
+          },
+          "copy_count": {
+            "type": "integer"
+          },
+          "view_count": {
+            "type": "integer"
+          },
+          "trending_score_7d": {
+            "type": "number"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "slug",
+          "modality",
+          "category_slug",
+          "category_title_fa",
+          "title_fa",
+          "short_desc_fa",
+          "requires_image_upload",
+          "supported_models",
+          "preview_after_webp_url",
+          "preview_before_webp_url",
+          "preview_blurhash",
+          "slot_count",
+          "copy_count",
+          "view_count",
+          "trending_score_7d",
+          "created_at"
+        ]
+      },
+      "FaqItem": {
+        "type": "object",
+        "properties": {
+          "question": {
+            "type": "string"
+          },
+          "answer": {
+            "type": "string"
+          },
+          "q_fa": {
+            "type": "string"
+          },
+          "a_fa": {
+            "type": "string"
+          }
+        }
+      },
+      "PromptDetail": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/PromptListItem"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "direct_answer_summary_fa": {
+                "type": "string"
+              },
+              "search_keywords_fa": {
+                "type": "string"
+              },
+              "template_en": {
+                "type": "string",
+                "minLength": 10
+              },
+              "slots_schema_json": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/PromptSlot"
+                }
+              },
+              "faq_schema_json": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/FaqItem"
+                }
+              },
+              "preview_alt_fa": {
+                "type": "string",
+                "nullable": true
+              },
+              "is_saved": {
+                "type": "boolean",
+                "default": false
+              }
+            },
+            "required": [
+              "direct_answer_summary_fa",
+              "search_keywords_fa",
+              "template_en",
+              "slots_schema_json",
+              "faq_schema_json",
+              "preview_alt_fa"
+            ]
+          }
+        ]
+      },
+      "AtomicBlock": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "block_type": {
+            "$ref": "#/components/schemas/PromptBlockType"
+          },
+          "modality": {
+            "$ref": "#/components/schemas/PromptModality"
+          },
+          "title_fa": {
+            "type": "string",
+            "minLength": 2,
+            "maxLength": 160
+          },
+          "block_template_en": {
+            "type": "string",
+            "minLength": 10
+          },
+          "slots_schema_json": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PromptSlot"
+            },
+            "default": []
+          },
+          "usage_count": {
+            "type": "integer",
+            "default": 0
+          }
+        },
+        "required": [
+          "id",
+          "block_type",
+          "modality",
+          "title_fa",
+          "block_template_en"
+        ]
+      },
+      "SendOtpRequest": {
+        "type": "object",
+        "properties": {
+          "phone": {
+            "type": "string",
+            "pattern": "^(\\+98|0)?9\\d{9}$"
+          },
+          "purpose": {
+            "type": "string",
+            "enum": [
+              "LOGIN",
+              "REGISTER",
+              "RESET_PASSWORD"
+            ],
+            "default": "LOGIN"
+          },
+          "altcha_payload": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "phone"
+        ]
+      },
+      "VerifyOtpRequest": {
+        "type": "object",
+        "properties": {
+          "phone": {
+            "type": "string",
+            "pattern": "^(\\+98|0)?9\\d{9}$"
+          },
+          "code": {
+            "type": "string",
+            "minLength": 5,
+            "maxLength": 5
+          },
+          "purpose": {
+            "type": "string",
+            "enum": [
+              "LOGIN",
+              "REGISTER",
+              "RESET_PASSWORD"
+            ],
+            "default": "LOGIN"
+          },
+          "device_label": {
+            "type": "string",
+            "maxLength": 120
+          }
+        },
+        "required": [
+          "phone",
+          "code"
+        ]
+      },
+      "PasswordLoginRequest": {
+        "type": "object",
+        "properties": {
+          "phone": {
+            "type": "string",
+            "pattern": "^(\\+98|0)?9\\d{9}$"
+          },
+          "password": {
+            "type": "string",
+            "minLength": 6
+          },
+          "device_label": {
+            "type": "string",
+            "maxLength": 120
+          }
+        },
+        "required": [
+          "phone",
+          "password"
+        ]
+      },
+      "AuthResponse": {
+        "type": "object",
+        "properties": {
+          "token": {
+            "type": "string"
+          },
+          "expires_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "user": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "phone_e164": {
+                "type": "string"
+              },
+              "is_phone_verified": {
+                "type": "boolean"
+              },
+              "role": {
+                "type": "string",
+                "enum": [
+                  "USER",
+                  "ADMIN"
+                ]
+              },
+              "saved_context_profile_json": {
+                "$ref": "#/components/schemas/SavedContextProfile"
+              }
+            },
+            "required": [
+              "id",
+              "phone_e164",
+              "is_phone_verified",
+              "role",
+              "saved_context_profile_json"
+            ]
+          }
+        },
+        "required": [
+          "token",
+          "expires_at",
+          "user"
+        ]
+      },
+      "UpdateProfileRequest": {
+        "type": "object",
+        "properties": {
+          "saved_context_profile_json": {
+            "$ref": "#/components/schemas/SavedContextProfile"
+          },
+          "new_password": {
+            "type": "string",
+            "minLength": 6
+          }
+        }
+      },
+      "AdPlacementSlot": {
+        "type": "string",
+        "enum": [
+          "POST_COPY_DRAWER",
+          "FEED_NATIVE_CARD_3",
+          "STICKY_FOOTER_BANNER"
+        ]
+      },
+      "AdNetworkConfig": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "placement_slot": {
+            "$ref": "#/components/schemas/AdPlacementSlot"
+          },
+          "provider": {
+            "type": "string",
+            "enum": [
+              "yektanet",
+              "tapsell"
+            ]
+          },
+          "zone_id": {
+            "type": "string"
+          },
+          "script_tag_html": {
+            "type": "string",
+            "nullable": true
+          },
+          "target_modalities": {
+            "type": "array",
+            "nullable": true,
+            "items": {
+              "$ref": "#/components/schemas/PromptModality"
+            }
+          },
+          "is_active": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "placement_slot",
+          "provider",
+          "zone_id",
+          "script_tag_html",
+          "target_modalities",
+          "is_active"
+        ]
+      },
+      "AdClickEvent": {
+        "type": "object",
+        "properties": {
+          "placement_slot": {
+            "$ref": "#/components/schemas/AdPlacementSlot"
+          },
+          "provider": {
+            "type": "string",
+            "enum": [
+              "yektanet",
+              "tapsell"
+            ]
+          },
+          "zone_id": {
+            "type": "string"
+          },
+          "client_uuid": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        "required": [
+          "placement_slot",
+          "provider",
+          "zone_id",
+          "client_uuid"
+        ]
+      },
+      "TrackAdClickInput": {
+        "type": "object",
+        "properties": {
+          "placement_slot": {
+            "$ref": "#/components/schemas/AdPlacementSlot"
+          },
+          "provider": {
+            "type": "string",
+            "enum": [
+              "yektanet",
+              "tapsell"
+            ]
+          },
+          "zone_id": {
+            "type": "string"
+          },
+          "client_uuid": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        "required": [
+          "placement_slot",
+          "provider",
+          "zone_id",
+          "client_uuid"
+        ]
+      }
+    },
+    "parameters": {}
+  },
+  "paths": {}
+}

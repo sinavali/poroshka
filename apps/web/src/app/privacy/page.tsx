@@ -2,18 +2,21 @@ import React from 'react';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { Lock, Shield, ArrowRight, Smartphone, EyeOff, Server, Database } from 'lucide-react';
+import { AdPlacement } from '../../components/AdPlacement';
+
+const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://poroshka.ir';
 
 export const metadata: Metadata = {
-  title: 'حریم خصوصی کاربران | پرامپت‌جو',
-  description: 'سیاست‌های حفاظت از داده‌ها، رمزنگاری شماره همراه، عدم فروش اطلاعات و تضمین پردازش امن در پرامپت‌جو.',
+  title: 'حریم خصوصی کاربران | پوروشکا',
+  description: 'سیاست‌های حفاظت از داده‌ها، رمزنگاری شماره‌های تماس، عدم فروش اطلاعات شخصی و تضمین پردازش محرمانه در پلتفرم هوش مصنوعی پوروشکا.',
   alternates: {
-    canonical: 'https://promptjoo.ir/privacy'
+    canonical: `${baseUrl}/privacy`
   },
   openGraph: {
-    title: 'حریم خصوصی کاربران | پرامپت‌جو',
-    description: 'تعهد پرامپت‌جو به حفظ حریم شخصی و پردازش امن داده‌های شما.',
-    url: 'https://promptjoo.ir/privacy',
-    siteName: 'پرامپت‌جو',
+    title: 'حریم خصوصی کاربران | پوروشکا',
+    description: 'تعهد رسمی پوروشکا به حفظ حریم شخصی، امنیت شماره موبایل و پردازش محرمانه داده‌های کاربران در ایران.',
+    url: `${baseUrl}/privacy`,
+    siteName: 'پوروشکا',
     locale: 'fa_IR',
     type: 'article'
   }
@@ -23,13 +26,13 @@ export default function PrivacyPage() {
   const jsonLd = {
     '@context': 'https://schema.org',
     '@type': 'Article',
-    headline: 'سیاست حفظ حریم خصوصی در پرامپت‌جو',
-    description: 'تعهد پرامپت‌جو به امنیت داده‌ها و حفاظت کامل از اطلاعات هویتی و پرامپت‌های کاربران.',
+    headline: 'سیاست حفظ حریم خصوصی در پوروشکا',
+    description: 'تعهد پوروشکا به امنیت داده‌ها و حفاظت کامل از اطلاعات هویتی و پرامپت‌های کاربران.',
     inLanguage: 'fa-IR',
     publisher: {
       '@type': 'Organization',
-      name: 'پرامپت‌جو',
-      url: 'https://promptjoo.ir'
+      name: 'پوروشکا',
+      url: 'https://poroshka.ir'
     }
   };
 
@@ -50,9 +53,12 @@ export default function PrivacyPage() {
           حریم خصوصی کاربران
         </h1>
         <p className="text-sm text-slate-500 leading-relaxed">
-          ما در پرامپت‌جو متعهد هستیم که داده‌های هویتی و پرامپت‌های شما را با بالاترین استانداردهای امنیتی محافظت کنیم.
+          ما در پوروشکا متعهد هستیم که داده‌های هویتی و پرامپت‌های شما را با بالاترین استانداردهای امنیتی محافظت کنیم.
         </p>
       </div>
+
+      {/* Ad Placement 1 */}
+      <AdPlacement slot="privacy_1" />
 
       {/* Sections */}
       <div className="space-y-8 text-sm text-slate-700 leading-relaxed">
@@ -79,9 +85,12 @@ export default function PrivacyPage() {
             <h2>۲. تعهد قطعی عدم فروش داده‌ها</h2>
           </div>
           <p>
-            پرامپت‌جو تحت هیچ شرایطی اطلاعات تماس، ورودی‌های متنی، یا داده‌های شخصی کاربران را به هیچ شرکت واسط، آژانس بازاریابی یا نهاد شخص ثالث نمی‌فروشد و اجاره نمی‌دهد. درآمد پایدار این سرویس صرفاً از طریق تبلیغات محلی با شفافیت کامل تأمین می‌شود.
+            پوروشکا تحت هیچ شرایطی اطلاعات تماس، ورودی‌های متنی، یا داده‌های شخصی کاربران را به هیچ شرکت واسط، آژانس بازاریابی یا نهاد شخص ثالث نمی‌فروشد و اجاره نمی‌دهد. درآمد پایدار این سرویس صرفاً از طریق تبلیغات محلی با شفافیت کامل تأمین می‌شود.
           </p>
         </section>
+
+        {/* Ad Placement 2 */}
+        <AdPlacement slot="privacy_2" />
 
         {/* Section 3 */}
         <section className="glass-panel p-6 sm:p-8 rounded-3xl space-y-4 border border-slate-200/80">
@@ -105,6 +114,9 @@ export default function PrivacyPage() {
           </p>
         </section>
       </div>
+
+      {/* Ad Placement 3 */}
+      <AdPlacement slot="privacy_3" />
 
       {/* Footer Navigation */}
       <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-6 border-t border-slate-200">

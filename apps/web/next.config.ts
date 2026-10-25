@@ -1,6 +1,7 @@
 import type { NextConfig } from 'next';
 
 const nextConfig: NextConfig = {
+  distDir: 'dist-next',
   transpilePackages: [
     '@promptjoo/contracts',
     '@promptjoo/persian-normalizer',
@@ -10,17 +11,33 @@ const nextConfig: NextConfig = {
     const internalApi = process.env.INTERNAL_API_URL || 'http://127.0.0.1:4000';
     return [
       {
-        source: '/api/:path*',
-        destination: `${internalApi}/api/:path*`,
+        source: '/api/v1/:path*',
+        destination: `${internalApi}/api/v1/:path*`,
       },
       {
         source: '/healthz',
         destination: `${internalApi}/healthz`,
       },
+      {
+        source: '/livez',
+        destination: `${internalApi}/livez`,
+      },
+      {
+        source: '/readyz',
+        destination: `${internalApi}/readyz`,
+      },
     ];
   },
   images: {
     remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'poroshka.ir',
+      },
+      {
+        protocol: 'https',
+        hostname: 'promptjoo.localme.ir',
+      },
       {
         protocol: 'https',
         hostname: 'promptjoo.ir',

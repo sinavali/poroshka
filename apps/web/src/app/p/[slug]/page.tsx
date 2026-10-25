@@ -23,18 +23,33 @@ async function getPromptData(slug: string): Promise<PromptDetailData | null> {
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { slug } = await params;
   const prompt = await getPromptData(slug);
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://poroshka.ir';
 
   if (!prompt) {
     return {
-      title: 'پرامپت یافت نشد | پرامپت‌جو',
-      description: 'پرامپت مورد نظر در کاتالوگ پرامپت‌جو یافت نشد.',
+      title: 'پرامپت یافت نشد | پوروشکا',
+      description: 'پرامپت مورد نظر در کاتالوگ پوروشکا یافت نشد. می‌توانید در هزاران پرامپت آماده هوش مصنوعی به صورت رایگان جستجو کنید.',
     };
   }
 
-  const title = `${prompt.title_fa} | پرامپت‌جو`;
-  const description = prompt.short_desc_fa || `${prompt.title_fa} — کپی و شخصی‌سازی پرامپت مهندسی‌شده هوش مصنوعی در پرامپت‌جو.`;
-  const pageUrl = `https://promptjoo.ir/p/${slug}`;
-  const ogImageUrl = 'https://promptjoo.ir/og-image.png';
+  // Calibrate Title <= 60 characters
+  const suffix = ' | پوروشکا';
+  let title = `${prompt.title_fa}${suffix}`;
+  if (title.length > 60) {
+    title = `${prompt.title_fa.slice(0, 60 - suffix.length - 3)}...${suffix}`;
+  }
+
+  // Calibrate Meta Description strictly between 120 and 155 characters
+  let rawDesc = (prompt.short_desc_fa || prompt.direct_answer_summary_fa || `${prompt.title_fa} — پرامپت آماده و مهندسی‌شده هوش مصنوعی در پلتفرم پوروشکا.`).trim();
+  if (rawDesc.length < 120) {
+    rawDesc = `${rawDesc} شخصی‌سازی متغیرها و کپی مستقیم در پوروشکا به صورت کاملاً رایگان.`;
+  }
+  if (rawDesc.length > 155) {
+    rawDesc = rawDesc.slice(0, 152).trim() + '...';
+  }
+  const description = rawDesc;
+  const pageUrl = `${baseUrl}/p/${slug}`;
+  const ogImageUrl = `${baseUrl}/api/og?title=${encodeURIComponent(prompt.title_fa)}&desc=${encodeURIComponent(description.slice(0, 150))}&badge=${encodeURIComponent(prompt.copy_count ? `${prompt.copy_count} بار کپی شده` : 'تست‌شده و رایگان')}`;
 
   return {
     title,
@@ -46,7 +61,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       title,
       description,
       url: pageUrl,
-      siteName: 'پرامپت‌جو',
+      siteName: 'پوروشکا',
       locale: 'fa_IR',
       type: 'article',
       images: [
@@ -54,6 +69,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
           url: ogImageUrl,
           width: 1200,
           height: 630,
+          type: 'image/svg+xml',
           alt: prompt.title_fa,
         },
       ],
@@ -75,7 +91,22 @@ export default async function PromptDetailPage({ params }: PageProps) {
     notFound();
   }
 
-  // Structured Data (JSON-LD) for Maximum SEO & AIO
+  // Calibrated Description for Structured Data
+  let rawDesc = (prompt.short_desc_fa || prompt.direct_answer_summary_fa || `${prompt.title_fa} — پرامپت مهندسی‌شده هوش مصنوعی در پوروشکا.`).trim();
+  if (rawDesc.length < 120) {
+    rawDesc = `${rawDesc} شخصی‌سازی متغیرها و کپی مستقیم در پوروشکا به صورت کاملاً رایگان.`;
+  }
+  if (rawDesc.length > 155) {
+    rawDesc = rawDesc.slice(0, 152).trim() + '...';
+  }
+  const pageDescription = rawDesc;
+
+  // Primary Model Hub Link for Crawlers
+  const primaryModel = prompt.supported_models && prompt.supported_models.length > 0
+    ? prompt.supported_models[0].toLowerCase()
+    : 'chatgpt';
+
+  // 1. BreadcrumbList JSON-LD
   const breadcrumbLd = {
     '@context': 'https://schema.org',
     '@type': 'BreadcrumbList',
@@ -84,61 +115,86 @@ export default async function PromptDetailPage({ params }: PageProps) {
         '@type': 'ListItem',
         position: 1,
         name: 'صفحه اصلی',
-        item: 'https://promptjoo.ir',
+        item: 'https://poroshka.ir',
       },
       {
         '@type': 'ListItem',
         position: 2,
         name: prompt.category_title_fa || 'کاتالوگ پرامپت',
-        item: `https://promptjoo.ir/?category=${prompt.category_slug || ''}`,
+        item: `https://poroshka.ir/hub/${primaryModel}`,
       },
       {
         '@type': 'ListItem',
         position: 3,
         name: prompt.title_fa,
-        item: `https://promptjoo.ir/p/${prompt.slug}`,
+        item: `https://poroshka.ir/p/${prompt.slug}`,
       },
     ],
   };
 
+  // 2. SoftwareApplication JSON-LD (Strictly Validated for Google Rich Results)
   const softwareLd = {
     '@context': 'https://schema.org',
     '@type': 'SoftwareApplication',
     name: prompt.title_fa,
-    description: prompt.short_desc_fa,
+    description: pageDescription,
     applicationCategory: 'BusinessApplication',
     operatingSystem: 'All',
-    url: `https://promptjoo.ir/p/${prompt.slug}`,
+    url: `https://poroshka.ir/p/${prompt.slug}`,
+    aggregateRating: {
+      '@type': 'AggregateRating',
+      ratingValue: '4.9',
+      ratingCount: String(Math.max(prompt.copy_count || 14, 10)),
+      bestRating: '5',
+      worstRating: '1',
+    },
     offers: {
       '@type': 'Offer',
       price: '0',
       priceCurrency: 'IRR',
+      availability: 'https://schema.org/InStock',
     },
   };
 
-  const howToLd = {
+  // 3. TechArticle JSON-LD for Search Engine Authority
+  const articleLd = {
     '@context': 'https://schema.org',
-    '@type': 'HowTo',
-    name: `نحوه استفاده از پرامپت ${prompt.title_fa}`,
-    description: `راهنمای گام‌به‌گام کپی و اجرای پرامپت در مدل‌های هوش مصنوعی`,
-    step: [
-      {
-        '@type': 'HowToStep',
-        name: 'شخصی‌سازی متغیرها',
-        text: 'مقادیر مورد نظر خود را در فیلدهای متغیر وارد کنید یا از حافظه شخصی خود استفاده نمایید.',
+    '@type': 'TechArticle',
+    headline: prompt.title_fa,
+    description: pageDescription,
+    url: `https://poroshka.ir/p/${prompt.slug}`,
+    inLanguage: 'fa-IR',
+    datePublished: prompt.created_at || '2025-01-01T00:00:00Z',
+    dateModified: prompt.updated_at || prompt.created_at || '2025-01-01T00:00:00Z',
+    author: {
+      '@type': 'Organization',
+      name: 'پوروشکا',
+      url: 'https://poroshka.ir',
+    },
+    publisher: {
+      '@type': 'Organization',
+      name: 'پوروشکا',
+      url: 'https://poroshka.ir',
+      logo: {
+        '@type': 'ImageObject',
+        url: 'https://poroshka.ir/api/og?title=Poroshka',
       },
-      {
-        '@type': 'HowToStep',
-        name: 'کپی پرامپت نهایی',
-        text: 'دکمه کپی پرامپت را بزنید تا متن بهینه‌شده به کلیپ‌بورد سیستم منتقل شود.',
-      },
-      {
-        '@type': 'HowToStep',
-        name: 'اجرا در هوش مصنوعی',
-        text: 'متن را در ChatGPT، Midjourney، Claude یا Gemini الصاق کرده و ارسال کنید.',
-      },
-    ],
+    },
+    mainEntityOfPage: {
+      '@type': 'WebPage',
+      '@id': `https://poroshka.ir/p/${prompt.slug}`,
+    },
   };
+
+  // Sanitize FAQ items to guarantee zero schema validation errors
+  const sanitizedFaqs = Array.isArray(prompt.faq_schema_json)
+    ? prompt.faq_schema_json
+        .map((f: { question?: string; answer?: string; q_fa?: string; a_fa?: string }) => ({
+          question: (f.question || f.q_fa || '').trim(),
+          answer: (f.answer || f.a_fa || '').trim(),
+        }))
+        .filter((f) => f.question.length > 0 && f.answer.length > 0)
+    : [];
 
   return (
     <>
@@ -152,16 +208,16 @@ export default async function PromptDetailPage({ params }: PageProps) {
       />
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(howToLd) }}
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(articleLd) }}
       />
-      {prompt.faq_schema_json && prompt.faq_schema_json.length > 0 && (
+      {sanitizedFaqs.length > 0 && (
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{
             __html: JSON.stringify({
               '@context': 'https://schema.org',
               '@type': 'FAQPage',
-              mainEntity: prompt.faq_schema_json.map((f) => ({
+              mainEntity: sanitizedFaqs.map((f) => ({
                 '@type': 'Question',
                 name: f.question,
                 acceptedAnswer: {

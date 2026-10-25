@@ -2,18 +2,21 @@ import React from 'react';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { ShieldCheck, FileText, ArrowRight, CheckCircle2, AlertTriangle, Scale, Sparkles } from 'lucide-react';
+import { AdPlacement } from '../../components/AdPlacement';
+
+const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://poroshka.ir';
 
 export const metadata: Metadata = {
-  title: 'قوانین و شرایط استفاده | پرامپت‌جو',
-  description: 'قوانین استفاده از پرامپت‌ها، حق مالکیت معنوی، عدم سوءاستفاده و ضوابط حقوقی پلتفرم مهندسی پرامپت پرامپت‌جو.',
+  title: 'قوانین و شرایط استفاده | پوروشکا',
+  description: 'قوانین استفاده از پرامپت‌ها، حق مالکیت معنوی قالب‌ها، عدم سوءاستفاده و ضوابط حقوقی پلتفرم مهندسی پرامپت پوروشکا در ایران.',
   alternates: {
-    canonical: 'https://promptjoo.ir/terms'
+    canonical: `${baseUrl}/terms`
   },
   openGraph: {
-    title: 'قوانین و شرایط استفاده | پرامپت‌جو',
-    description: 'قوانین و ضوابط شفاف استفاده از کاتالوگ و ابزارهای مهندسی پرامپت پرامپت‌جو.',
-    url: 'https://promptjoo.ir/terms',
-    siteName: 'پرامپت‌جو',
+    title: 'قوانین و شرایط استفاده | پوروشکا',
+    description: 'ضوابط شفاف حقوقی و شرایط استفاده از کاتالوگ و ابزارهای مهندسی پرامپت هوش مصنوعی در پلتفرم پوروشکا.',
+    url: `${baseUrl}/terms`,
+    siteName: 'پوروشکا',
     locale: 'fa_IR',
     type: 'article'
   }
@@ -23,13 +26,13 @@ export default function TermsPage() {
   const jsonLd = {
     '@context': 'https://schema.org',
     '@type': 'Article',
-    headline: 'قوانین و شرایط استفاده از پرامپت‌جو',
-    description: 'قوانین و ضوابط شفاف استفاده از کاتالوگ و ابزارهای مهندسی پرامپت پرامپت‌جو.',
+    headline: 'قوانین و شرایط استفاده از پوروشکا',
+    description: 'قوانین و ضوابط شفاف استفاده از کاتالوگ و ابزارهای مهندسی پرامپت پوروشکا.',
     inLanguage: 'fa-IR',
     publisher: {
       '@type': 'Organization',
-      name: 'پرامپت‌جو',
-      url: 'https://promptjoo.ir'
+      name: 'پوروشکا',
+      url: 'https://poroshka.ir'
     }
   };
 
@@ -50,9 +53,12 @@ export default function TermsPage() {
           شرایط استفاده و کپی‌رایت
         </h1>
         <p className="text-sm text-slate-500 leading-relaxed">
-          آخرین به‌روزرسانی: مهر ۱۴۰۵ · مطالعه این ضوابط به شما کمک می‌کند با حقوق و تعهدات خود در پرامپت‌جو آشنا شوید.
+          آخرین به‌روزرسانی: مهر ۱۴۰۵ · مطالعه این ضوابط به شما کمک می‌کند با حقوق و تعهدات خود در پوروشکا آشنا شوید.
         </p>
       </div>
+
+      {/* Ad Placement 1 */}
+      <AdPlacement slot="terms_1" />
 
       {/* Content Blocks */}
       <div className="space-y-8 text-sm text-slate-700 leading-relaxed">
@@ -63,7 +69,7 @@ export default function TermsPage() {
             <h2>۱. پذیرش شرایط و ضوابط عمومی</h2>
           </div>
           <p>
-            استفاده شما از خدمات سامانه «پرامپت‌جو» (شامل وب‌سایت، بات‌های تلگرام و بله، و کاتالوگ پرامپت‌ها) به معنای پذیرش کامل و بدون قید و شرط این شرایط است. هدف پرامپت‌جو، توانمندسازی متخصصان، طراحان و تولیدکنندگان محتوا در به‌کارگیری بهینه ابزارهای هوش مصنوعی مانند ChatGPT، Claude، Midjourney و Gemini است.
+            استفاده شما از خدمات سامانه «پوروشکا» (شامل وب‌سایت و کاتالوگ پرامپت‌ها) به معنای پذیرش کامل و بدون قید و شرط این شرایط است. هدف پوروشکا، توانمندسازی متخصصان، طراحان و تولیدکنندگان محتوا در به‌کارگیری بهینه ابزارهای هوش مصنوعی مانند ChatGPT، Claude، Midjourney و Gemini است.
           </p>
         </section>
 
@@ -79,10 +85,13 @@ export default function TermsPage() {
           <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200/80 text-xs text-slate-600 space-y-2">
             <p className="font-bold text-slate-800">محدودیت استخراج داده (Anti-Scraping):</p>
             <p>
-              هرگونه استخراج ماشینی (اسکرپینگ توده‌ای)، بازتولید کل پایگاه‌داده پرامپت‌ها، یا فروش مستقیم کاتالوگ پرامپت‌جو بدون مجوز کتبی ممنوع بوده و طبق قانون جرایم رایانه‌ای و قانون حمایت از پدیدآورندگان نرم‌افزارهای رایانه‌ای پیگرد قانونی دارد.
+              هرگونه استخراج ماشینی (اسکرپینگ توده‌ای)، بازتولید کل پایگاه‌داده پرامپت‌ها، یا فروش مستقیم کاتالوگ پوروشکا بدون مجوز کتبی ممنوع بوده و طبق قانون جرایم رایانه‌ای و قانون حمایت از پدیدآورندگان نرم‌افزارهای رایانه‌ای پیگرد قانونی دارد.
             </p>
           </div>
         </section>
+
+        {/* Ad Placement 2 */}
+        <AdPlacement slot="terms_2" />
 
         {/* Section 3 */}
         <section className="glass-panel p-6 sm:p-8 rounded-3xl space-y-4 border border-slate-200/80">
@@ -102,10 +111,13 @@ export default function TermsPage() {
             <h2>۴. رفع مسئولیت در قبال خروجی‌های مدل‌های هوش مصنوعی</h2>
           </div>
           <p>
-            پرامپت‌جو با بالاترین استانداردهای مهندسی پرامپت، قالب‌ها را بهینه‌سازی می‌کند؛ با این حال از آنجا که عملکرد مدل‌های هوش مصنوعی مولد بر پایه احتمالات آماری است، مسئولیت بازبینی و اعتبارسنجی نهایی خروجی پرامپت‌ها (به‌ویژه در موضوعات پزشکی، حقوقی و مالی حساس) بر عهده شخص کاربر است.
+            پوروشکا با بالاترین استانداردهای مهندسی پرامپت، قالب‌ها را بهینه‌سازی می‌کند؛ با این حال از آنجا که عملکرد مدل‌های هوش مصنوعی مولد بر پایه احتمالات آماری است، مسئولیت بازبینی و اعتبارسنجی نهایی خروجی پرامپت‌ها (به‌ویژه در موضوعات پزشکی، حقوقی و مالی حساس) بر عهده شخص کاربر است.
           </p>
         </section>
       </div>
+
+      {/* Ad Placement 3 */}
+      <AdPlacement slot="terms_3" />
 
       {/* Footer Navigation */}
       <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-6 border-t border-slate-200">

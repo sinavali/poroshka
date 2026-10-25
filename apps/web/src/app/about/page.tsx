@@ -2,18 +2,21 @@ import React from 'react';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { Sparkles, Heart, ArrowRight, Zap, Target, Shield, Users } from 'lucide-react';
+import { AdPlacement } from '../../components/AdPlacement';
+
+const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://poroshka.ir';
 
 export const metadata: Metadata = {
-  title: 'درباره ما | پرامپت‌جو',
-  description: 'داستان شکل‌گیری پرامپت‌جو؛ هدف ما ارتقای بهره‌وری متخصصان و کسب‌وکارهای ایرانی با پرامپت‌های مهندسی‌شده هوش مصنوعی است.',
+  title: 'درباره ما | پوروشکا',
+  description: 'داستان شکل‌گیری پوروشکا؛ مرجع پرامپت‌های مهندسی‌شده هوش مصنوعی در ایران جهت ارتقای بهره‌وری متخصصان و کپی رایگان قالب‌های کاربردی.',
   alternates: {
-    canonical: 'https://promptjoo.ir/about'
+    canonical: `${baseUrl}/about`
   },
   openGraph: {
-    title: 'درباره پرامپت‌جو — پیشگام مهندسی پرامپت در ایران',
-    description: 'چگونه پرامپت‌جو کار با هوش مصنوعی را برای کاربران فارسی‌زبان ساده و حرفه‌ای می‌کند.',
-    url: 'https://promptjoo.ir/about',
-    siteName: 'پرامپت‌جو',
+    title: 'درباره پوروشکا — پیشگام مهندسی پرامپت در ایران',
+    description: 'چگونه پوروشکا کار با مدل‌های هوش مصنوعی را برای کاربران فارسی‌زبان ساده، حرفه‌ای و بدون هزینه توکن می‌کند.',
+    url: `${baseUrl}/about`,
+    siteName: 'پوروشکا',
     locale: 'fa_IR',
     type: 'website'
   }
@@ -23,13 +26,13 @@ export default function AboutPage() {
   const jsonLd = {
     '@context': 'https://schema.org',
     '@type': 'AboutPage',
-    name: 'درباره پرامپت‌جو',
-    description: 'معرفی پلتفرم پرامپت‌جو، رسالت و تیم توسعه‌دهنده.',
+    name: 'درباره پوروشکا',
+    description: 'معرفی پلتفرم پوروشکا، رسالت و تیم توسعه‌دهنده.',
     inLanguage: 'fa-IR',
     mainEntity: {
       '@type': 'Organization',
-      name: 'پرامپت‌جو',
-      url: 'https://promptjoo.ir',
+      name: 'پوروشکا',
+      url: 'https://poroshka.ir',
       slogan: 'مهندسی پرامپت برای خروجی‌های شگفت‌انگیز هوش مصنوعی'
     }
   };
@@ -48,27 +51,33 @@ export default function AboutPage() {
           <span>داستان و مأموریت ما</span>
         </div>
         <h1 className="text-3xl sm:text-4xl font-black text-slate-900 tracking-tight">
-          درباره پرامپت‌جو
+          درباره پوروشکا
         </h1>
         <p className="text-sm text-slate-500 leading-relaxed max-w-2xl">
-          ما پرامپت‌جو را ساختیم تا فاصله میان یک ایده معمولی و یک نتیجه بی‌نظیر از هوش مصنوعی را برای هر کاربر فارسی‌زبان به صفر برسانیم.
+          ما پوروشکا را ساختیم تا فاصله میان یک ایده معمولی و یک نتیجه بی‌نظیر از هوش مصنوعی را برای هر کاربر فارسی‌زبان به صفر برسانیم.
         </p>
       </div>
+
+      {/* Ad Placement 1 */}
+      <AdPlacement slot="about_1" />
 
       {/* Main Narrative */}
       <div className="space-y-6 text-sm text-slate-700 leading-relaxed">
         <section className="glass-panel p-6 sm:p-8 rounded-3xl border border-slate-200/80 space-y-4">
           <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
             <Target className="w-5 h-5 text-blue-600" />
-            <span>چرا پرامپت‌جو شکل گرفت؟</span>
+            <span>چرا پوروشکا شکل گرفت؟</span>
           </h2>
           <p>
             با پیدایش مدل‌های پیشرفته هوش مصنوعی مانند ChatGPT و Midjourney، بزرگ‌ترین چالش کاربران ایرانی دیگر «دسترسی» به این ابزارها نبود؛ بلکه «چگونگی دستور دادن» یا همان مهندسی پرامپت بود. بسیاری از کاربران به دلیل عدم تسلط به اصول پرامپت‌نویسی حرفه‌ای یا ضعف مدل‌ها در پردازش دستورات خام فارسی، به خروجی‌های سطحی و کلیشه‌ای بسنده می‌کردند.
           </p>
           <p>
-            پرامپت‌جو با هدف گردآوری، مهندسی و استانداردسازی بهترین الگوهای دستوردهی متولد شد. تمام پرامپت‌های موجود در این پلتفرم با تکیه بر چارچوب‌های شناختی علمی، الگوهای چندمرحله‌ای (Few-Shot & Chain-of-Thought) و ساختارهای صنعتی طراحی شده‌اند.
+            پوروشکا با هدف گردآوری، مهندسی و استانداردسازی بهترین الگوهای دستوردهی متولد شد. تمام پرامپت‌های موجود در این پلتفرم با تکیه بر چارچوب‌های شناختی علمی، الگوهای چندمرحله‌ای (Few-Shot & Chain-of-Thought) و ساختارهای صنعتی طراحی شده‌اند.
           </p>
         </section>
+
+        {/* Ad Placement 2 */}
+        <AdPlacement slot="about_2" />
 
         {/* Pillars Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2">
@@ -97,6 +106,9 @@ export default function AboutPage() {
           </div>
         </div>
       </div>
+
+      {/* Ad Placement 3 */}
+      <AdPlacement slot="about_3" />
 
       {/* Footer Navigation */}
       <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-6 border-t border-slate-200">

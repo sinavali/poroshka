@@ -11,6 +11,7 @@
     "test": "node --experimental-strip-types --test tests/*.spec.ts"
   },
   "dependencies": {
+    "@fontsource/vazirmatn": "^5.3.0",
     "@promptjoo/contracts": "workspace:*",
     "@promptjoo/persian-normalizer": "workspace:*",
     "@promptjoo/prompt-compiler": "workspace:*",

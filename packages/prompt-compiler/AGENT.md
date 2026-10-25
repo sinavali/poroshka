@@ -5,6 +5,15 @@ stack: "node-ts-22-pure"
 scope: "shared"
 owner: "sinavali"
 tier_overrides: []
+dr:
+  rto: "1h"
+  rpo: "15m"
+slo:
+  tier: "tier-1"
+  availability_target: "0.999"
+resources:
+  cpu_limit: "500m"
+  memory_limit: "512Mi"
 ---
 
 # Project Agent Manifest: prompt-compiler
@@ -27,3 +36,15 @@ Deterministic template assembly, slot substitution, and atomic block stitching e
 ## 4. Test & Verification Rules
 - Line and branch coverage $\ge 95\%$.
 - Strict unit tests covering slot priority resolution, `forceFarsiOutput` directives, and slot key de-duplication.
+- Zero side-effects and deterministic compilation output.
+- Single-turn context ingestion via `ep pack --surface`.
+
+## 5. Approved Tier 2 Deviations
+| Rule | Justification | ADR Reference |
+|---|---|---|
+| *(None)* | Strictly conforms to Profile D invariants | - |
+
+## 6. Project Invariants
+- Deterministic compiler output for identical slot and memory bindings.
+- Zero runtime LLM calls ($0.00 execution cost).
+- Safe slot substitution preventing delimiter injection attacks.

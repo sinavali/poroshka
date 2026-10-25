@@ -5,6 +5,15 @@ stack: "cloudflare-worker-ts"
 scope: "backend"
 owner: "sinavali"
 tier_overrides: []
+dr:
+  rto: "15m"
+  rpo: "0m"
+slo:
+  tier: "tier-1"
+  availability_target: "0.9995"
+resources:
+  cpu_limit: "500m"
+  memory_limit: "256Mi"
 ---
 
 # Project Agent Manifest: tg-relay-worker
@@ -27,3 +36,15 @@ Cloudflare Worker edge proxy on custom domain (`tg-relay.promptjoo.ir`). Relays 
 ## 4. Test & Verification Rules
 - 100% unit test coverage for secret authentication verification and URL rewrites.
 - Mock HTTP tests ensuring malformed or unauthorized requests receive 403 Forbidden without reaching upstream.
+- All timestamps exchange UTC ISO-8601 strings.
+- Single-turn context ingestion via `ep pack --surface`.
+
+## 5. Approved Tier 2 Deviations
+| Rule | Justification | ADR Reference |
+|---|---|---|
+| *(None)* | Strictly conforms to Profile A invariants | - |
+
+## 6. Project Invariants
+- Mandatory validation of `X-Relay-Secret` on all inbound requests.
+- Strict 5s timeout on upstream Telegram API dispatch.
+- Zero credential logging in edge execution traces.

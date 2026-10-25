@@ -1,0 +1,51 @@
+{
+  "created_at": "2026-10-25T11:53:47.816204+00:00",
+  "total_grandfathered_findings": 5,
+  "findings": [
+    {
+      "dim": 9,
+      "id": "RULE-9.5-OPERATIONAL-RUNBOOK",
+      "severity": "suggestion",
+      "description": "Service 'mobile' lacks an operational runbook. Create one using 'templates/RUNBOOK.template.md'.",
+      "file": "apps/mobile/project.json",
+      "line": 1,
+      "snippet": "Service: mobile"
+    },
+    {
+      "dim": 9,
+      "id": "RULE-9.5-OPERATIONAL-RUNBOOK",
+      "severity": "suggestion",
+      "description": "Service 'web' lacks an operational runbook. Create one using 'templates/RUNBOOK.template.md'.",
+      "file": "apps/web/project.json",
+      "line": 1,
+      "snippet": "Service: web"
+    },
+    {
+      "dim": 9,
+      "id": "RULE-9.5-OPERATIONAL-RUNBOOK",
+      "severity": "suggestion",
+      "description": "Service 'core-api' lacks an operational runbook. Create one using 'templates/RUNBOOK.template.md'.",
+      "file": "services/core-api/project.json",
+      "line": 1,
+      "snippet": "Service: core-api"
+    },
+    {
+      "dim": 9,
+      "id": "RULE-9.5-OPERATIONAL-RUNBOOK",
+      "severity": "suggestion",
+      "description": "Service 'tg-relay-worker' lacks an operational runbook. Create one using 'templates/RUNBOOK.template.md'.",
+      "file": "services/tg-relay-worker/project.json",
+      "line": 1,
+      "snippet": "Service: tg-relay-worker"
+    },
+    {
+      "dim": 2,
+      "id": "RULE-2.6-FILE-SIZE-CEILING",
+      "severity": "blocking",
+      "description": "File exceeds maximum line ceiling of 800 lines (1044 lines found). Must be split or modularized.",
+      "file": "./services/core-api/src/modules/admin/admin.routes.ts",
+      "line": 1044,
+      "snippet": "Total line count: 1044"
+    }
+  ]
+}

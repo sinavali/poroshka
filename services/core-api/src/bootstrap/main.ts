@@ -4,8 +4,9 @@ import { startBackgroundScheduler } from './scheduler.ts';
 import { startOutboxWorker, stopOutboxWorker } from '../modules/campaigns/campaigns.routes.ts';
 import { logger } from '../infrastructure/observability/pino-logger.ts';
 import { pool } from '../infrastructure/database/client.ts';
+import { redisService } from '../infrastructure/cache/redis.ts';
 
-const PORT = parseInt(process.env.PORT || '3000', 10);
+const PORT = parseInt(process.env.INTERNAL_API_PORT || process.env.PORT || '4000', 10);
 const HOST = process.env.HOST || '0.0.0.0';
 
 const app = createServer();
@@ -37,9 +38,11 @@ function shutdown(signal: string) {
     try {
       await pool.end();
       logger.info('Database pool drained.');
+      await redisService.close();
+      logger.info('Redis connection closed.');
       process.exit(0);
     } catch (err) {
-      logger.error({ err }, 'Error during database pool shutdown');
+      logger.error({ err }, 'Error during database/redis pool shutdown');
       process.exit(1);
     }
   });

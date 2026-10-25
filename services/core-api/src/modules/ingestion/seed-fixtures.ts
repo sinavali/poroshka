@@ -3,7 +3,10 @@ import pg from 'pg';
 import { logger } from '../../infrastructure/observability/pino-logger.ts';
 
 const { Client } = pg;
-const DATABASE_URL = process.env.DATABASE_URL || 'postgresql://postgres:jsF68GOoGS5inojpHmRa@remote-respina-free.runflare.com:31725/promptjoo_db';
+const DATABASE_URL = process.env.DATABASE_URL;
+if (!DATABASE_URL) {
+  throw new Error('DATABASE_URL environment variable is required');
+}
 
 // Generate dummy 1024-d unit vector for vector column compatibility
 function generateMockEmbedding(seedStr: string): string {
@@ -357,6 +360,18 @@ export const SEED_ATOMIC_BLOCKS = [
   }
 ];
 
+interface SeedSlotItem {
+  slot_key: string;
+  label_fa: string;
+  default_value_en?: string;
+  default_value?: string;
+  placeholder_fa?: string;
+  input_type?: string;
+  is_required?: boolean;
+  priority?: number;
+  [key: string]: unknown;
+}
+
 export async function seedAllFixtures() {
   const client = new Client({ connectionString: DATABASE_URL });
   await client.connect();
@@ -386,9 +401,9 @@ export async function seedAllFixtures() {
           title_fa, short_desc_fa, direct_answer_summary_fa, search_keywords_fa,
           template_en, slots_schema_json, faq_schema_json,
           preview_alt_fa, preview_after_webp_url, embedding, slot_count,
-          copy_count, view_count, trending_score_7d, is_published
+          copy_count, view_count, trending_score_7d, is_published, is_ai_enriched
         ) VALUES (
-          $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, true
+          $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, true, true
         ) ON CONFLICT (slug) DO UPDATE SET
           title_fa = EXCLUDED.title_fa,
           short_desc_fa = EXCLUDED.short_desc_fa,
@@ -396,7 +411,8 @@ export async function seedAllFixtures() {
           search_keywords_fa = EXCLUDED.search_keywords_fa,
           template_en = EXCLUDED.template_en,
           slots_schema_json = EXCLUDED.slots_schema_json,
-          faq_schema_json = EXCLUDED.faq_schema_json;
+          faq_schema_json = EXCLUDED.faq_schema_json,
+          is_ai_enriched = true;
       `, [
         p.slug,
         contentHash,
@@ -409,7 +425,15 @@ export async function seedAllFixtures() {
         p.direct_answer_summary_fa,
         p.search_keywords_fa,
         p.template_en,
-        JSON.stringify(p.slots_schema_json),
+        JSON.stringify(p.slots_schema_json.map((s: SeedSlotItem) => ({
+          ...s,
+          default_value_en: s.default_value_en || s.default_value || '',
+          default_value: s.default_value || s.default_value_en || '',
+          placeholder_fa: s.placeholder_fa || s.label_fa || '',
+          input_type: s.input_type || 'text',
+          is_required: s.is_required ?? false,
+          priority: s.priority ?? 1
+        }))),
         JSON.stringify(p.faq_schema_json),
         p.preview_alt_fa,
         p.preview_after_webp_url,
@@ -436,7 +460,15 @@ export async function seedAllFixtures() {
         b.modality,
         b.title_fa,
         b.block_template_en,
-        JSON.stringify(b.slots_schema_json),
+        JSON.stringify(b.slots_schema_json.map((s: SeedSlotItem) => ({
+          ...s,
+          default_value_en: s.default_value_en || s.default_value || '',
+          default_value: s.default_value || s.default_value_en || '',
+          placeholder_fa: s.placeholder_fa || s.label_fa || '',
+          input_type: s.input_type || 'text',
+          is_required: s.is_required ?? false,
+          priority: s.priority ?? 1
+        }))),
         embedding
       ]);
     }

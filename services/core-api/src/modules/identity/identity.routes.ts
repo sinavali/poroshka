@@ -1,4 +1,4 @@
-import { Hono } from 'hono';
+import { Hono, type Context } from 'hono';
 import crypto from 'node:crypto';
 import argon2 from 'argon2';
 import { pool } from '../../infrastructure/database/client.ts';
@@ -10,7 +10,7 @@ import {
   PasswordLoginRequestSchema,
   UpdateProfileRequestSchema
 } from '@promptjoo/contracts';
-import { sendMeliPayamakOtp } from '../../infrastructure/sms/melipayamak.client.ts';
+import { sendMeliPayamakOtp, sendMeliPayamakPassword } from '../../infrastructure/sms/melipayamak.client.ts';
 
 export const identityRoutes = new Hono();
 
@@ -25,12 +25,23 @@ function normalizePhone(phone: string): string {
   return '+' + cleaned;
 }
 
-// 1. Send OTP (SMS / Messenger)
-identityRoutes.post('/send-otp', async (c) => {
+// 1. Send / Request OTP (SMS / Messenger)
+const handleOtpRequest = async (c: Context) => {
   const body = await c.req.json().catch(() => ({}));
   const parsed = SendOtpRequestSchema.safeParse(body);
   if (!parsed.success) {
     return c.json({ error: 'INVALID_INPUT', details: parsed.error.format() }, 400);
+  }
+
+  // Validate Altcha PoW verification
+  const altchaPayload = parsed.data.altcha_payload || c.req.header('x-altcha-payload');
+  if (altchaPayload) {
+    const isValid = altchaValidator.verify(altchaPayload);
+    if (!isValid) {
+      return c.json({ error: 'INVALID_CAPTCHA', message: 'اعتبارسنجی کپچای امنیتی ناموفق بود. لطفاً صفحه را مجدداً بارگذاری کنید.' }, 400);
+    }
+  } else if (process.env.NODE_ENV === 'production') {
+    return c.json({ error: 'MISSING_CAPTCHA', message: 'ارسال کپچای امنیتی الزامی است.' }, 400);
   }
 
   const phoneE164 = normalizePhone(parsed.data.phone);
@@ -89,20 +100,106 @@ identityRoutes.post('/send-otp', async (c) => {
     simulated: smsResult.simulated
   }, 'OTP generated and dispatched');
 
-  // Return messenger deep-links for domestic fallback
   return c.json({
     ok: true,
     message: smsResult.success ? 'کد تایید با موفقیت ارسال شد.' : 'کد تایید صادر شد (ارسال پیامک با تاخیر مواجه شد).',
     expires_in_seconds: 180,
     sms_delivered: smsResult.success,
-    messenger_fallback: {
-      telegram_bot_url: `https://t.me/promptjoo_bot?start=auth_${messengerToken}`,
-      bale_bot_url: `https://ble.ir/promptjoo_bot?start=auth_${messengerToken}`
-    },
-    // In dev environment or test numbers, expose code for automated verification
-    ...(process.env.NODE_ENV !== 'production' || smsResult.simulated ? { dev_code: rawCode } : {})
+    // Strictly restrict dev_code to development environment
+    ...(process.env.NODE_ENV === 'development' ? { dev_code: rawCode } : {})
+  });
+};
+
+identityRoutes.post('/send-otp', handleOtpRequest);
+identityRoutes.post('/request-otp', handleOtpRequest);
+
+// 1b. Request Random Password Generated & Sent via SMS
+identityRoutes.post('/request-password', async (c: Context) => {
+  const body = await c.req.json().catch(() => ({}));
+  const phone = body.phone;
+  if (!phone || typeof phone !== 'string') {
+    return c.json({ error: 'INVALID_INPUT', message: 'شماره تلفن همراه الزامی است.' }, 400);
+  }
+
+  // Validate Altcha PoW verification
+  const altchaPayload = body.altcha_payload || c.req.header('x-altcha-payload');
+  if (altchaPayload) {
+    const isValid = altchaValidator.verify(altchaPayload);
+    if (!isValid) {
+      return c.json({ error: 'INVALID_CAPTCHA', message: 'اعتبارسنجی کپچای امنیتی ناموفق بود. لطفاً صفحه را مجدداً بارگذاری کنید.' }, 400);
+    }
+  } else if (process.env.NODE_ENV === 'production') {
+    return c.json({ error: 'MISSING_CAPTCHA', message: 'ارسال کپچای امنیتی الزامی است.' }, 400);
+  }
+
+  const phoneE164 = normalizePhone(phone);
+  const clientIp = c.req.header('x-forwarded-for')?.split(',')[0]?.trim() || '127.0.0.1';
+
+  // Strict rate limit: max 3 requests per hour
+  const phoneRateKey = `pwd:phone:${phoneE164}`;
+  const ipRateKey = `pwd:ip:${clientIp}`;
+
+  const rateCheck = await pool.query(
+    'SELECT bucket_key, hit_count FROM rate_limit_buckets WHERE bucket_key IN ($1, $2)',
+    [phoneRateKey, ipRateKey]
+  );
+
+  for (const row of rateCheck.rows) {
+    if (row.bucket_key === phoneRateKey && row.hit_count >= 3) {
+      return c.json({ error: 'TOO_MANY_REQUESTS', message: 'حداکثر ۳ درخواست رمز عبور در هر ساعت مجاز است. لطفاً کمی صبر کنید.' }, 429);
+    }
+    if (row.bucket_key === ipRateKey && row.hit_count >= 5) {
+      return c.json({ error: 'TOO_MANY_REQUESTS', message: 'درخواست‌های بیش از حد از این IP ثبت شده است.' }, 429);
+    }
+  }
+
+  // Generate strong random readable password (e.g., Psh + 6 digits/letters)
+  const charset = '23456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
+  let randomSuffix = '';
+  const randomBytes = crypto.randomBytes(6);
+  for (let i = 0; i < 6; i++) {
+    randomSuffix += charset[randomBytes[i] % charset.length];
+  }
+  const generatedPassword = `Psh#${randomSuffix}`;
+  const passwordHash = await argon2.hash(generatedPassword);
+
+  // Upsert user and store password hash
+  await pool.query(`
+    INSERT INTO users (phone_e164, password_hash, is_phone_verified, role)
+    VALUES ($1, $2, true, 'USER')
+    ON CONFLICT (phone_e164) DO UPDATE 
+    SET password_hash = $2, updated_at = NOW();
+  `, [phoneE164, passwordHash]);
+
+  // Update rate limit buckets
+  await pool.query(`
+    INSERT INTO rate_limit_buckets (bucket_key, hit_count, expires_at)
+    VALUES ($1, 1, NOW() + INTERVAL '1 hour')
+    ON CONFLICT (bucket_key) DO UPDATE SET hit_count = rate_limit_buckets.hit_count + 1;
+  `, [phoneRateKey]);
+  await pool.query(`
+    INSERT INTO rate_limit_buckets (bucket_key, hit_count, expires_at)
+    VALUES ($1, 1, NOW() + INTERVAL '1 hour')
+    ON CONFLICT (bucket_key) DO UPDATE SET hit_count = rate_limit_buckets.hit_count + 1;
+  `, [ipRateKey]);
+
+  // Send generated password via MeliPayamak
+  const smsRes = await sendMeliPayamakPassword(phoneE164, generatedPassword);
+
+  logger.info({
+    recipient_masked: maskPhone(phoneE164),
+    sms_success: smsRes.success,
+    simulated: smsRes.simulated
+  }, 'Random password generated and dispatched via SMS');
+
+  return c.json({
+    ok: true,
+    message: smsRes.success ? 'کلمه عبور جدید با موفقیت به شماره موبایل شما پیامک شد.' : 'کلمه عبور ایجاد شد اما ارسال پیامک با تاخیر مواجه شد.',
+    sms_delivered: smsRes.success,
+    ...(process.env.NODE_ENV === 'development' ? { dev_password: generatedPassword } : {})
   });
 });
+identityRoutes.post('/send-password', async (c) => identityRoutes.fetch(c.req.raw));
 
 // 2. Verify OTP & Authenticate
 identityRoutes.post('/verify-otp', async (c) => {
@@ -283,6 +380,7 @@ identityRoutes.post('/quota/consume-anonymous', async (c) => {
 });
 
 // 6. User Copied Prompts Archive (Used Prompts with Counter)
+// 6. User Copied Prompts Archive (Used Prompts with Counter, Category & Server Pagination)
 identityRoutes.get('/copied-prompts', async (c) => {
   const authHeader = c.req.header('authorization');
   const clientUuid = c.req.header('x-client-uuid') || '';
@@ -295,6 +393,54 @@ identityRoutes.get('/copied-prompts', async (c) => {
     if (sRes.rows.length > 0) userId = sRes.rows[0].user_id;
   }
 
+  const page = Math.max(1, parseInt(c.req.query('page') || '1', 10));
+  const limit = Math.min(60, Math.max(1, parseInt(c.req.query('limit') || '12', 10)));
+  const offset = (page - 1) * limit;
+  const q = c.req.query('q')?.trim();
+  const modality = c.req.query('modality');
+  const categoryId = c.req.query('category_id');
+
+  const conditions: string[] = [
+    '(($1::uuid IS NOT NULL AND (ucp.user_id = $1::uuid OR (ucp.client_uuid IS NOT NULL AND ucp.client_uuid = $2))) OR ($1::uuid IS NULL AND ucp.client_uuid = $2))',
+    '(p.id IS NULL OR p.is_ai_enriched = true)'
+  ];
+  const params: unknown[] = [userId, clientUuid];
+  let pIdx = 3;
+
+  if (q) {
+    conditions.push(`(
+      COALESCE(p.title_fa, ucp.custom_title_fa) ILIKE $${pIdx} OR 
+      COALESCE(p.short_desc_fa, '') ILIKE $${pIdx} OR
+      ucp.compiled_text ILIKE $${pIdx}
+    )`);
+    params.push(`%${q}%`);
+    pIdx++;
+  }
+
+  if (modality && modality !== 'all') {
+    conditions.push(`COALESCE(p.modality::text, ucp.custom_modality) = $${pIdx}`);
+    params.push(modality);
+    pIdx++;
+  }
+
+  if (categoryId && categoryId !== 'all') {
+    conditions.push(`(COALESCE(ucp.custom_category_id, p.category_id) = $${pIdx}::uuid)`);
+    params.push(categoryId);
+    pIdx++;
+  }
+
+  const whereClause = conditions.join(' AND ');
+
+  const countQuery = `
+    SELECT COUNT(*) as total
+    FROM user_copied_prompts ucp
+    LEFT JOIN prompts p ON ucp.prompt_id = p.id
+    WHERE ${whereClause};
+  `;
+
+  const countRes = await pool.query(countQuery, params);
+  const total = parseInt(countRes.rows[0]?.total || '0', 10);
+
   const query = `
     SELECT 
       ucp.id, ucp.copy_count, ucp.custom_values_json, ucp.compiled_text, ucp.last_copied_at,
@@ -303,18 +449,93 @@ identityRoutes.get('/copied-prompts', async (c) => {
       COALESCE(p.title_fa, ucp.custom_title_fa, 'پرامپت ساخته‌شده') as title_fa,
       COALESCE(p.short_desc_fa, '') as short_desc_fa,
       COALESCE(p.modality::text, ucp.custom_modality, 'text_writing') as modality,
-      COALESCE(c.title_fa, 'تولید محتوا و مهندسی پرامپت') as category_title_fa
+      COALESCE(cust_cat.id, c.id) as category_id,
+      COALESCE(cust_cat.slug, c.slug, '') as category_slug,
+      COALESCE(cust_cat.title_fa, c.title_fa, 'تولید محتوا و مهندسی پرامپت') as category_title_fa,
+      (ucp.custom_category_id IS NOT NULL) as is_custom_category
     FROM user_copied_prompts ucp
     LEFT JOIN prompts p ON ucp.prompt_id = p.id
     LEFT JOIN categories c ON p.category_id = c.id
-    WHERE ($1::uuid IS NOT NULL AND (ucp.user_id = $1::uuid OR (ucp.client_uuid IS NOT NULL AND ucp.client_uuid = $2)))
-       OR ($1::uuid IS NULL AND ucp.client_uuid = $2)
+    LEFT JOIN categories cust_cat ON ucp.custom_category_id = cust_cat.id
+    WHERE ${whereClause}
     ORDER BY ucp.last_copied_at DESC
-    LIMIT 100;
+    LIMIT $${pIdx++} OFFSET $${pIdx++};
   `;
 
-  const rows = await pool.query(query, [userId, clientUuid]);
-  return c.json(rows.rows);
+  const dataParams = [...params, limit, offset];
+  const rows = await pool.query(query, dataParams);
+
+  return c.json({
+    items: rows.rows,
+    total,
+    page,
+    limit,
+    totalPages: Math.ceil(total / limit) || 1
+  });
+});
+
+// 6b. Remove Copied Prompt from User's Archive
+identityRoutes.delete('/copied-prompts/:id', async (c) => {
+  const id = c.req.param('id');
+  const authHeader = c.req.header('authorization');
+  const clientUuid = c.req.header('x-client-uuid') || '';
+  let userId: string | null = null;
+
+  if (authHeader && authHeader.startsWith('Bearer ')) {
+    const rawToken = authHeader.slice(7).trim();
+    const tokenHash = crypto.createHash('sha256').update(rawToken).digest('hex');
+    const sRes = await pool.query('SELECT user_id FROM auth_sessions WHERE token_hash = $1 AND expires_at > NOW() LIMIT 1', [tokenHash]);
+    if (sRes.rows.length > 0) userId = sRes.rows[0].user_id;
+  }
+
+  const res = await pool.query(`
+    DELETE FROM user_copied_prompts
+    WHERE id = $1 AND (
+      ($2::uuid IS NOT NULL AND (user_id = $2::uuid OR (client_uuid IS NOT NULL AND client_uuid = $3))) OR
+      ($2::uuid IS NULL AND client_uuid = $3)
+    )
+    RETURNING id;
+  `, [id, userId, clientUuid]);
+
+  if (res.rowCount === 0) {
+    return c.json({ error: 'NOT_FOUND', message: 'پرامپت مورد نظر یافت نشد یا دسترسی حذف ندارید.' }, 404);
+  }
+
+  return c.json({ ok: true, message: 'پرامپت با موفقیت از آرشیو شما حذف شد.' });
+});
+
+// 6c. Change User Scope Category for a Copied Prompt
+identityRoutes.patch('/copied-prompts/:id', async (c) => {
+  const id = c.req.param('id');
+  const authHeader = c.req.header('authorization');
+  const clientUuid = c.req.header('x-client-uuid') || '';
+  let userId: string | null = null;
+
+  if (authHeader && authHeader.startsWith('Bearer ')) {
+    const rawToken = authHeader.slice(7).trim();
+    const tokenHash = crypto.createHash('sha256').update(rawToken).digest('hex');
+    const sRes = await pool.query('SELECT user_id FROM auth_sessions WHERE token_hash = $1 AND expires_at > NOW() LIMIT 1', [tokenHash]);
+    if (sRes.rows.length > 0) userId = sRes.rows[0].user_id;
+  }
+
+  const body = await c.req.json().catch(() => ({}));
+  const { category_id } = body;
+
+  const res = await pool.query(`
+    UPDATE user_copied_prompts
+    SET custom_category_id = $1
+    WHERE id = $2 AND (
+      ($3::uuid IS NOT NULL AND (user_id = $3::uuid OR (client_uuid IS NOT NULL AND client_uuid = $4))) OR
+      ($3::uuid IS NULL AND client_uuid = $4)
+    )
+    RETURNING id, custom_category_id;
+  `, [category_id || null, id, userId, clientUuid]);
+
+  if (res.rowCount === 0) {
+    return c.json({ error: 'NOT_FOUND', message: 'پرامپت مورد نظر یافت نشد یا دسترسی ویرایش ندارید.' }, 404);
+  }
+
+  return c.json({ ok: true, message: 'دسته‌بندی اختصاصی پرامپت با موفقیت به‌روزرسانی شد.' });
 });
 
 // 7. Record Copied Prompt (Direct API for forged prompts & custom copies)

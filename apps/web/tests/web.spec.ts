@@ -9,8 +9,11 @@ describe('Web Application Logic Tests', () => {
       {
         slot_key: 'character_name',
         label_fa: 'نام شخصیت',
+        placeholder_fa: '',
         input_type: 'text' as const,
         default_value_en: 'Rostam',
+        preset_options: [],
+        options: [],
         is_required: true,
         priority: 1,
         profile_binding_key: 'NONE' as const
@@ -18,8 +21,11 @@ describe('Web Application Logic Tests', () => {
       {
         slot_key: 'setting',
         label_fa: 'مکان',
+        placeholder_fa: '',
         input_type: 'text' as const,
         default_value_en: 'ancient Persia',
+        preset_options: [],
+        options: [],
         is_required: true,
         priority: 2,
         profile_binding_key: 'NONE' as const
@@ -36,8 +42,11 @@ describe('Web Application Logic Tests', () => {
       {
         slot_key: 'topic',
         label_fa: 'موضوع',
+        placeholder_fa: '',
         input_type: 'text' as const,
         default_value_en: 'machine learning',
+        preset_options: [],
+        options: [],
         is_required: true,
         priority: 1,
         profile_binding_key: 'NONE' as const

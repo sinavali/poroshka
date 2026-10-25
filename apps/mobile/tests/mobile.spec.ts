@@ -15,7 +15,7 @@ describe('React Native Mobile Client Logic Tests', () => {
         brand_name: 'تست',
         niche_topic: 'تکنولوژی',
         target_audience: 'برنامه‌نویسان',
-        brand_tone: 'رسمی',
+        brand_tone: 'FORMAL',
         call_to_action: 'ثبت‌نام کنید'
       }
     };
@@ -58,7 +58,7 @@ describe('React Native Mobile Client Logic Tests', () => {
         brand_name: '',
         niche_topic: '',
         target_audience: '',
-        brand_tone: '',
+        brand_tone: 'CASUAL',
         call_to_action: ''
       }
     };
@@ -84,7 +84,7 @@ describe('React Native Mobile Client Logic Tests', () => {
         brand_name: '',
         niche_topic: '',
         target_audience: '',
-        brand_tone: '',
+        brand_tone: 'CASUAL',
         call_to_action: ''
       }
     };
@@ -105,8 +105,11 @@ describe('React Native Mobile Client Logic Tests', () => {
       {
         slot_key: 'domain',
         label_fa: 'حوزه تخصصی',
+        placeholder_fa: '',
         input_type: 'text' as const,
         default_value_en: 'cybersecurity',
+        preset_options: [],
+        options: [],
         is_required: true,
         priority: 1,
         profile_binding_key: 'NICHE_TOPIC' as const
@@ -117,7 +120,7 @@ describe('React Native Mobile Client Logic Tests', () => {
       brand_name: 'امنیت‌پژوه',
       niche_topic: 'هک اخلاقی و تست نفوذ',
       target_audience: 'متخصصان شبکه',
-      brand_tone: 'تخصصی',
+      brand_tone: 'ACADEMIC' as const,
       call_to_action: 'دنبال کنید'
     };
 

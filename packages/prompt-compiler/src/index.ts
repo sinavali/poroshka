@@ -85,10 +85,10 @@ export function compilePrompt(
       containsFarsiInValues = true;
     }
 
-    // Replace all instances of {{slot_key}} or {slot_key}
+    // Replace all instances of {{slot_key}} or {slot_key} safely without regex dollar injection
     const regexDouble = new RegExp(`\\{\\{${slot.slot_key}\\}\\}`, 'g');
     const regexSingle = new RegExp(`\\{${slot.slot_key}\\}`, 'g');
-    compiledText = compiledText.replace(regexDouble, value).replace(regexSingle, value);
+    compiledText = compiledText.replace(regexDouble, () => value).replace(regexSingle, () => value);
   }
 
   // Language & Visual Directives

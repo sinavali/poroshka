@@ -1,15 +1,75 @@
-@import url('https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/Vazirmatn-font-face.css');
+/* Localized Vazirmatn Font (Zero CDN blocking, instant local loading) */
+@font-face {
+  font-family: 'Vazirmatn';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 300;
+  src: url('/fonts/vazirmatn-arabic-300-normal.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Vazirmatn';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 400;
+  src: url('/fonts/vazirmatn-arabic-400-normal.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Vazirmatn';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 500;
+  src: url('/fonts/vazirmatn-arabic-500-normal.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Vazirmatn';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 600;
+  src: url('/fonts/vazirmatn-arabic-600-normal.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Vazirmatn';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 700;
+  src: url('/fonts/vazirmatn-arabic-700-normal.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Vazirmatn';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 800;
+  src: url('/fonts/vazirmatn-arabic-800-normal.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Vazirmatn';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 900;
+  src: url('/fonts/vazirmatn-arabic-900-normal.woff2') format('woff2');
+}
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 :root {
+  --navy: #10265D;
+  --blue: #2864F0;
+  --violet: #7548F5;
+  --yellow: #FFB51B;
+  --bg: #FFFFFF;
+  --soft: #F6F8FC;
+  --line: #E5E9F2;
+  --muted: #5A6B8C;
+  --ink: #33415E;
+  --r: 12px;
+
   --background: #f8fafc;
-  --foreground: #0f172a;
-  --card-bg: rgba(255, 255, 255, 0.88);
-  --card-border: rgba(226, 232, 240, 0.85);
-  --card-border-top: rgba(255, 255, 255, 0.95);
+  --foreground: #10265D;
+  --card-bg: rgba(255, 255, 255, 0.95);
+  --card-border: #E5E9F2;
+  --card-border-top: rgba(255, 255, 255, 0.98);
   --ease-spring: cubic-bezier(0.16, 1, 0.3, 1);
   --ease-spring-snappy: cubic-bezier(0.2, 0.9, 0.3, 1.2);
 }

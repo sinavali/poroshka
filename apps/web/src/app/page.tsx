@@ -5,6 +5,7 @@ import { PromptCard, PromptCardData } from '../components/PromptCard';
 import { BlockForger } from '../components/BlockForger';
 import { PostCopyDrawer } from '../components/PostCopyDrawer';
 import { AdBanner } from '../components/AdBanner';
+import { AdPlacement } from '../components/AdPlacement';
 import { fetchFromApi } from '../lib/api-client';
 import { Sparkles, TrendingUp, Filter, AlertCircle, RefreshCw, X, SlidersHorizontal } from 'lucide-react';
 
@@ -56,6 +57,9 @@ export default function HomePage() {
       if (selectedModality !== 'all') {
         url += `&modality=${selectedModality}`;
       }
+      if (selectedModel !== 'all') {
+        url += `&model=${encodeURIComponent(selectedModel)}`;
+      }
       if (q) {
         url += `&q=${encodeURIComponent(q)}`;
       }
@@ -75,14 +79,7 @@ export default function HomePage() {
         total_pages: number;
       }>(url);
 
-      let items = res.items || [];
-
-      // Filter by AI model if specified
-      if (selectedModel !== 'all') {
-        items = items.filter(
-          (p) => p.supported_models && p.supported_models.some((m) => m.toLowerCase().includes(selectedModel))
-        );
-      }
+      const items = res.items || [];
 
       setPrompts(items);
       setTotalPages(res.total_pages || 1);
@@ -123,12 +120,7 @@ export default function HomePage() {
   return (
     <div className="space-y-10 animate-fade-in">
       {/* Apple-Grade Hero Header */}
-      <section className="text-center py-8 sm:py-12 relative">
-        <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-bold bg-blue-50 text-blue-700 border border-blue-200/80 mb-5 shadow-sm">
-          <Sparkles className="w-3.5 h-3.5 text-blue-600" />
-          <span>مرجع تخصصی پرامپت‌های مهندسی‌شده هوش مصنوعی در ایران</span>
-        </div>
-
+      <section className="text-center py-6 sm:py-10 relative">
         <h1 className="text-3xl sm:text-5xl font-black text-slate-900 tracking-tight leading-tight mb-4">
           بهترین خروجی را از{' '}
           <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600">
@@ -299,7 +291,8 @@ export default function HomePage() {
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
               {prompts.map((prompt, idx) => (
                 <React.Fragment key={prompt.id}>
-                  {idx === 2 && <AdBanner placementSlot="FEED_NATIVE_CARD_3" />}
+                  {idx === 2 && <AdPlacement slot="grid_card_1" />}
+                  {idx === 5 && <AdPlacement slot="grid_card_2" />}
                   <PromptCard prompt={prompt} onQuickCopied={handleQuickCopied} />
                 </React.Fragment>
               ))}

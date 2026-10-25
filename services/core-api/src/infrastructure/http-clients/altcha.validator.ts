@@ -1,6 +1,17 @@
 import crypto from 'node:crypto';
 
-const HMAC_SECRET = process.env.ALTCHA_HMAC_SECRET || 'promptjoo-altcha-secret-key-32chars';
+let ephemeralHmacSecret: string | null = null;
+
+function getHmacSecret(): string {
+  const secret = process.env.ALTCHA_HMAC_SECRET || process.env.JWT_SECRET;
+  if (!secret) {
+    if (!ephemeralHmacSecret) {
+      ephemeralHmacSecret = crypto.randomBytes(32).toString('hex');
+    }
+    return ephemeralHmacSecret;
+  }
+  return secret;
+}
 
 export interface AltchaPayload {
   algorithm: string;
@@ -15,7 +26,7 @@ export const altchaValidator = {
     const salt = crypto.randomBytes(12).toString('hex');
     const secretTarget = Math.floor(Math.random() * 50000) + 1000;
     const challenge = crypto.createHash('sha256').update(salt + secretTarget).digest('hex');
-    const signature = crypto.createHmac('sha256', HMAC_SECRET).update(challenge).digest('hex');
+    const signature = crypto.createHmac('sha256', getHmacSecret()).update(challenge).digest('hex');
     return { challenge, salt, signature };
   },
 
@@ -26,7 +37,7 @@ export const altchaValidator = {
       const payload: AltchaPayload = JSON.parse(decoded);
 
       // Verify HMAC signature of challenge
-      const expectedSignature = crypto.createHmac('sha256', HMAC_SECRET).update(payload.challenge).digest('hex');
+      const expectedSignature = crypto.createHmac('sha256', getHmacSecret()).update(payload.challenge).digest('hex');
       if (expectedSignature !== payload.signature) {
         return false;
       }

@@ -27,8 +27,96 @@ export function AuthModal({ isOpen, onClose, onLoginSuccess }: AuthModalProps) {
     if (step === 'code' && timer > 0) {
       interval = setInterval(() => setTimer((t) => t - 1), 1000);
     }
-    return () => clearInterval(interval);
+    const handleRequestPasswordSms = async () => {
+    setErrorMsg('');
+    if (!phone || phone.length < 10) {
+      setErrorMsg('برای دریافت کلمه عبور، ابتدا شماره موبایل معتبر را وارد کنید.');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const altchaPayload = await solveAltcha();
+      const res = await fetchFromApi<{ ok: boolean; message?: string }>(
+        '/api/v1/identity/request-password',
+        {
+          method: 'POST',
+          body: JSON.stringify({
+            phone: phone.trim(),
+            altcha_payload: altchaPayload
+          })
+        }
+      );
+
+      if (res && res.ok) {
+        showDynamicToast({
+          title: 'ارسال پیامک',
+          message: res.message || 'کلمه عبور جدید به شماره همراه شما پیامک شد.',
+          type: 'auth'
+        });
+      } else {
+        setErrorMsg('ارسال پیامک کلمه عبور با مشکل مواجه شد.');
+      }
+    } catch (err: unknown) {
+      setErrorMsg(err instanceof Error ? err.message : 'خطا در برقراری ارتباط با سرور.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return () => clearInterval(interval);
   }, [step, timer]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    const handleRequestPasswordSms = async () => {
+    setErrorMsg('');
+    if (!phone || phone.length < 10) {
+      setErrorMsg('برای دریافت کلمه عبور، ابتدا شماره موبایل معتبر را وارد کنید.');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const altchaPayload = await solveAltcha();
+      const res = await fetchFromApi<{ ok: boolean; message?: string }>(
+        '/api/v1/identity/request-password',
+        {
+          method: 'POST',
+          body: JSON.stringify({
+            phone: phone.trim(),
+            altcha_payload: altchaPayload
+          })
+        }
+      );
+
+      if (res && res.ok) {
+        showDynamicToast({
+          title: 'ارسال پیامک',
+          message: res.message || 'کلمه عبور جدید به شماره همراه شما پیامک شد.',
+          type: 'auth'
+        });
+      } else {
+        setErrorMsg('ارسال پیامک کلمه عبور با مشکل مواجه شد.');
+      }
+    } catch (err: unknown) {
+      setErrorMsg(err instanceof Error ? err.message : 'خطا در برقراری ارتباط با سرور.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return () => {
+      document.body.style.overflow = prevOverflow;
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isOpen, onClose]);
 
   if (!isOpen) return null;
 
@@ -132,6 +220,8 @@ export function AuthModal({ isOpen, onClose, onLoginSuccess }: AuthModalProps) {
       const userPhone = res.phone || res.user?.phone_e164 || phone.trim();
 
       if (sessionToken) {
+        localStorage.setItem('poroshka_session_token', sessionToken);
+        localStorage.setItem('poroshka_user_phone', userPhone);
         localStorage.setItem('promptjoo_session_token', sessionToken);
         localStorage.setItem('promptjoo_user_phone', userPhone);
         showDynamicToast({
@@ -170,6 +260,8 @@ export function AuthModal({ isOpen, onClose, onLoginSuccess }: AuthModalProps) {
       const userPhone = res.phone || res.user?.phone_e164 || phone.trim();
 
       if (sessionToken) {
+        localStorage.setItem('poroshka_session_token', sessionToken);
+        localStorage.setItem('poroshka_user_phone', userPhone);
         localStorage.setItem('promptjoo_session_token', sessionToken);
         localStorage.setItem('promptjoo_user_phone', userPhone);
         showDynamicToast({
@@ -188,8 +280,50 @@ export function AuthModal({ isOpen, onClose, onLoginSuccess }: AuthModalProps) {
     }
   };
 
+  const handleRequestPasswordSms = async () => {
+    setErrorMsg('');
+    if (!phone || phone.length < 10) {
+      setErrorMsg('برای دریافت کلمه عبور، ابتدا شماره موبایل معتبر را وارد کنید.');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const altchaPayload = await solveAltcha();
+      const res = await fetchFromApi<{ ok: boolean; message?: string }>(
+        '/api/v1/identity/request-password',
+        {
+          method: 'POST',
+          body: JSON.stringify({
+            phone: phone.trim(),
+            altcha_payload: altchaPayload
+          })
+        }
+      );
+
+      if (res && res.ok) {
+        showDynamicToast({
+          title: 'ارسال پیامک',
+          message: res.message || 'کلمه عبور جدید به شماره همراه شما پیامک شد.',
+          type: 'auth'
+        });
+      } else {
+        setErrorMsg('ارسال پیامک کلمه عبور با مشکل مواجه شد.');
+      }
+    } catch (err: unknown) {
+      setErrorMsg(err instanceof Error ? err.message : 'خطا در برقراری ارتباط با سرور.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-md">
+    <div
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-md w-screen h-screen"
+    >
       <div className="w-full max-w-md glass-dropdown rounded-3xl p-6 sm:p-8 border border-slate-200/90 shadow-2xl relative">
         <button
           onClick={onClose}
@@ -294,35 +428,8 @@ export function AuthModal({ isOpen, onClose, onLoginSuccess }: AuthModalProps) {
               disabled={loading}
               className="w-full py-3 rounded-xl text-xs font-bold bg-blue-600 hover:bg-blue-500 text-white shadow-md shadow-blue-600/25 spring-transition"
             >
-              {loading ? 'در حال بررسی...' : 'تایید و ورود به پرامپت‌جو'}
+              {loading ? 'در حال بررسی...' : 'تایید و ورود به پوروشکا'}
             </button>
-
-            {/* Fallback Messenger Auth */}
-            {messengerToken && (
-              <div className="pt-2 border-t border-slate-200/60 space-y-2">
-                <p className="text-[11px] text-slate-500 text-center">پیامک نرسید؟ از پیام‌رسان‌ها با ۱ کلیک وارد شوید:</p>
-                <div className="grid grid-cols-2 gap-2">
-                  <a
-                    href={`https://ble.ir/promptjoo_bot?start=auth_${messengerToken}`}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100"
-                  >
-                    <Send className="w-3.5 h-3.5" />
-                    <span>تایید در بله</span>
-                  </a>
-                  <a
-                    href={`https://t.me/promptjoo_bot?start=auth_${messengerToken}`}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg text-xs font-medium bg-sky-50 text-sky-700 border border-sky-200 hover:bg-sky-100"
-                  >
-                    <Send className="w-3.5 h-3.5" />
-                    <span>تایید در تلگرام</span>
-                  </a>
-                </div>
-              </div>
-            )}
           </form>
         )}
 
@@ -343,9 +450,19 @@ export function AuthModal({ isOpen, onClose, onLoginSuccess }: AuthModalProps) {
             </div>
 
             <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                کلمه عبور
-              </label>
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="block text-xs font-bold text-slate-700">
+                  کلمه عبور
+                </label>
+                <button
+                  type="button"
+                  onClick={handleRequestPasswordSms}
+                  disabled={loading}
+                  className="text-[11px] font-bold text-blue-600 hover:underline"
+                >
+                  ارسال کلمه عبور با پیامک
+                </button>
+              </div>
               <input
                 type="password"
                 dir="ltr"
@@ -363,6 +480,12 @@ export function AuthModal({ isOpen, onClose, onLoginSuccess }: AuthModalProps) {
             >
               {loading ? 'در حال ورود...' : 'ورود با کلمه عبور'}
             </button>
+
+            <div className="pt-2 text-center">
+              <p className="text-[11px] text-slate-400">
+                رمز عبور ندارید یا فراموش کرده‌اید؟ شماره خود را وارد کرده و روی «ارسال کلمه عبور با پیامک» کلیک کنید.
+              </p>
+            </div>
           </form>
         )}
       </div>

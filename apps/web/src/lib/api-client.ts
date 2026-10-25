@@ -2,11 +2,22 @@ const API_BASE =
   process.env.NEXT_PUBLIC_API_URL ??
   (typeof window === 'undefined' ? (process.env.INTERNAL_API_URL || 'http://127.0.0.1:4000') : '');
 
+const UUID_V4_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
 export function getClientUUID(): string {
   if (typeof window === 'undefined') return '';
-  let uuid = localStorage.getItem('promptjoo_client_uuid');
-  if (!uuid) {
-    uuid = 'c_' + Math.random().toString(36).substring(2, 15) + Date.now().toString(36);
+  let uuid = localStorage.getItem('poroshka_client_uuid') || localStorage.getItem('promptjoo_client_uuid');
+  if (!uuid || !UUID_V4_REGEX.test(uuid)) {
+    if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+      uuid = crypto.randomUUID();
+    } else {
+      uuid = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+        const r = (Math.random() * 16) | 0;
+        const v = c === 'x' ? r : (r & 0x3) | 0x8;
+        return v.toString(16);
+      });
+    }
+    localStorage.setItem('poroshka_client_uuid', uuid);
     localStorage.setItem('promptjoo_client_uuid', uuid);
   }
   return uuid;
@@ -14,7 +25,12 @@ export function getClientUUID(): string {
 
 export function getAuthToken(): string | null {
   if (typeof window === 'undefined') return null;
-  return localStorage.getItem('promptjoo_session_token') || localStorage.getItem('promptjoo_admin_token');
+  return (
+    localStorage.getItem('poroshka_session_token') ||
+    localStorage.getItem('promptjoo_session_token') ||
+    localStorage.getItem('poroshka_admin_token') ||
+    localStorage.getItem('promptjoo_admin_token')
+  );
 }
 
 export async function fetchFromApi<T>(path: string, options: RequestInit = {}): Promise<T> {

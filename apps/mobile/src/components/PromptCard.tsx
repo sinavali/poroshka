@@ -32,7 +32,7 @@ export function PromptCard({ prompt, onPress, onQuickCopy }: PromptCardProps) {
 
       <View style={styles.footer}>
         <View style={styles.modelsContainer}>
-          {prompt.supported_models.slice(0, 3).map((m) => (
+          {prompt.supported_models.slice(0, 3).map((m: string) => (
             <View key={m} style={styles.modelPill}>
               <Text style={styles.modelText}>{m}</Text>
             </View>

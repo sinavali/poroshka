@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { X, Brain, Check, Sparkles, Plus, Trash2, Edit3, ArrowRight } from 'lucide-react';
 import { fetchFromApi, getAuthToken } from '../lib/api-client';
 import { showDynamicToast } from './DynamicIslandToast';
+import { StyledSelect } from './StyledSelect';
 
 export interface MemoryProfile {
   id: string;
@@ -68,11 +69,23 @@ export function PersonalMemoryModal({ isOpen, onClose, onSaved }: PersonalMemory
 
   useEffect(() => {
     if (isOpen) {
+      const prevOverflow = document.body.style.overflow;
+      document.body.style.overflow = 'hidden';
+      const handleKeyDown = (e: KeyboardEvent) => {
+        if (e.key === 'Escape') onClose();
+      };
+      window.addEventListener('keydown', handleKeyDown);
+
       loadProfiles();
       setIsCreatingNew(false);
       setEditingProfile(null);
+
+      return () => {
+        document.body.style.overflow = prevOverflow;
+        window.removeEventListener('keydown', handleKeyDown);
+      };
     }
-  }, [isOpen]);
+  }, [isOpen, onClose]);
 
   if (!isOpen) return null;
 
@@ -165,7 +178,12 @@ export function PersonalMemoryModal({ isOpen, onClose, onSaved }: PersonalMemory
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-md animate-fade-in">
+    <div
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-md animate-fade-in w-screen h-screen"
+    >
       <div className="w-full max-w-xl glass-dropdown rounded-3xl p-6 sm:p-8 border border-slate-200/90 shadow-2xl relative max-h-[90vh] overflow-y-auto">
         {/* Close Button */}
         <button
@@ -349,17 +367,18 @@ export function PersonalMemoryModal({ isOpen, onClose, onSaved }: PersonalMemory
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1.5">لحن محتوا</label>
-                <select
+                <StyledSelect
+                  size="md"
                   value={editingProfile.brand_tone}
-                  onChange={(e) => setEditingProfile({ ...editingProfile, brand_tone: e.target.value })}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-3.5 py-2.5 text-xs text-slate-800 focus:bg-white focus:outline-none focus:border-indigo-500"
-                >
-                  <option value="صمیمی و دوستانه">صمیمی و دوستانه</option>
-                  <option value="رسمی و متخصص">رسمی و متخصص</option>
-                  <option value="انرژیک و پرهیجان">انرژیک و پرهیجان</option>
-                  <option value="طنز و چالش‌برانگیز">طنز و چالش‌برانگیز</option>
-                  <option value="مینیمال و پرمعنا">مینیمال و پرمعنا</option>
-                </select>
+                  onChange={(val) => setEditingProfile({ ...editingProfile, brand_tone: val })}
+                  options={[
+                    { value: 'صمیمی و دوستانه', label: 'صمیمی و دوستانه' },
+                    { value: 'رسمی و متخصص', label: 'رسمی و متخصص' },
+                    { value: 'انرژیک و پرهیجان', label: 'انرژیک و پرهیجان' },
+                    { value: 'طنز و چالش‌برانگیز', label: 'طنز و چالش‌برانگیز' },
+                    { value: 'مینیمال و پرمعنا', label: 'مینیمال و پرمعنا' }
+                  ]}
+                />
               </div>
 
               <div>

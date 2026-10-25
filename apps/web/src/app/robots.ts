@@ -1,19 +1,35 @@
 import type { MetadataRoute } from 'next';
 
 export default function robots(): MetadataRoute.Robots {
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://poroshka.ir';
+
   return {
     rules: [
       {
         userAgent: '*',
         allow: '/',
-        disallow: ['/admin', '/api/v1/admin'],
+        disallow: ['/admin', '/api/'],
       },
       {
-        userAgent: ['GPTBot', 'ChatGPT-User', 'ClaudeBot', 'PerplexityBot', 'Applebot'],
+        userAgent: [
+          'GPTBot',
+          'ChatGPT-User',
+          'ClaudeBot',
+          'anthropic-ai',
+          'PerplexityBot',
+          'Google-Extended',
+          'Applebot',
+          'Applebot-Extended',
+          'CCBot',
+          'cohere-ai',
+          'Diffbot',
+          'FacebookBot',
+          'Bytespider'
+        ],
         allow: '/',
-        disallow: ['/admin'],
+        disallow: ['/admin', '/api/'],
       }
     ],
-    sitemap: 'https://promptjoo.ir/sitemap.xml',
+    sitemap: `${baseUrl}/sitemap.xml`,
   };
 }

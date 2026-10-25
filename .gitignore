@@ -4,6 +4,7 @@ node_modules/
 .nx/
 *.tsbuildinfo
 dist/
+dist-next/
 build/
 coverage/
 .turbo/
@@ -23,6 +24,9 @@ out/
 *.sqlite*
 pgdata/
 data/
+notebooklm_docs/
+docs/notebook_sources
+docs/notebook_sources/
 
 # IDE & OS
 .idea/

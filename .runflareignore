@@ -1,0 +1,43 @@
+# Git & Tooling
+.git
+.github
+.nx
+.turbo
+.ep
+
+# Workspace dependencies (installed fresh inside Docker)
+node_modules
+apps/web/node_modules
+services/core-api/node_modules
+services/tg-relay-worker/node_modules
+packages/*/node_modules
+
+# Mobile app (native builds not deployed in web container)
+apps/mobile/android
+apps/mobile/ios
+apps/mobile/.gradle
+apps/mobile/node_modules
+
+# Next.js development caches (only production bundles uploaded)
+apps/web/dist-next/cache
+apps/web/dist-next/dev
+apps/web/.next
+
+# Runflare bundles
+dist/runflare-web
+
+# Documentation and external assets
+notebooklm_docs
+docs/notebook_sources
+
+# Logs & temp SQLite/local files
+*.log
+*.sqlite
+*.sqlite*
+pgdata
+data
+
+# Environment files
+.env
+.env.*
+!.env.example

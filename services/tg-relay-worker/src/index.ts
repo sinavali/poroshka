@@ -15,7 +15,13 @@ export default {
       });
     }
 
-    const relaySecret = env.RELAY_SECRET || 'promptjoo_edge_secret_v1';
+    const relaySecret = env.RELAY_SECRET;
+    if (!relaySecret) {
+      return new Response(JSON.stringify({ error: 'CONFIG_ERROR', message: 'RELAY_SECRET environment variable is required' }), {
+        status: 500,
+        headers: { 'Content-Type': 'application/json' }
+      });
+    }
     const coreApiUrl = env.CORE_API_URL || 'https://core-api.promptjoo.ir';
 
     // 2. Outbound Proxy to Telegram Bot API (from core-api)

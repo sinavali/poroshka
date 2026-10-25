@@ -16,6 +16,8 @@
     "@asteasolutions/zod-to-openapi": "^7.3.0"
   },
   "scripts": {
+    "build": "tsc -p tsconfig.lib.json",
+    "pretest": "tsc -p tsconfig.lib.json",
     "test": "node --test tests/*.spec.ts"
   }
 }

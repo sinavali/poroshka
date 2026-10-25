@@ -11,7 +11,8 @@ services:
       - NODE_ENV=production
       - PORT=3000
       - INTERNAL_API_PORT=4000
-      - POSTGRES_URL=${POSTGRES_URL:-}
+      - DATABASE_URL=${DATABASE_URL:-${POSTGRES_URL:-}}
+      - POSTGRES_URL=${DATABASE_URL:-${POSTGRES_URL:-}}
       - MELIPAYAMAK_API_KEY=${MELIPAYAMAK_API_KEY:-}
       - SUPERADMIN_TOKEN=${SUPERADMIN_TOKEN:-promptjoo-super-secret-admin-token}
     healthcheck:

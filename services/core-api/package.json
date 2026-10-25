@@ -20,12 +20,14 @@
     "better-sqlite3": "^13.0.3",
     "drizzle-orm": "^0.45.4",
     "hono": "^4.13.13",
+    "ioredis": "^6.0.0",
     "pg": "^8.23.1",
     "pino": "^10.4.0",
     "zod": "^3.24.2"
   },
   "devDependencies": {
     "@types/better-sqlite3": "^9.6.0",
+    "@types/ioredis": "^5.0.0",
     "@types/pg": "^8.23.1",
     "typescript": "^5.7.3"
   }
