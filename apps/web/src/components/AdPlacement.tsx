@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { X } from 'lucide-react';
 import { usePublicSettings, DEFAULT_AD_PLACEMENTS } from '../lib/public-settings';
-import { getPersistentAdSlot, parkPersistentAdSlot } from '../lib/persistent-ad-pool';
+import { getPersistentAdSlot, parkPersistentAdSlot, checkHasAdContent } from '../lib/persistent-ad-pool';
 
 export type AdSlotKey =
   | 'header_top'
@@ -54,6 +54,7 @@ export function AdPlacement({ slot, className = '' }: AdPlacementProps) {
   const mountRef = useRef<HTMLDivElement>(null);
   const { ads } = usePublicSettings();
   const [closed, setClosed] = useState(false);
+  const [hasContent, setHasContent] = useState(false);
 
   useEffect(() => {
     try {
@@ -74,7 +75,7 @@ export function AdPlacement({ slot, className = '' }: AdPlacementProps) {
   const normalizedSlot = normalizeSlotKey(slot);
   const tagHtml = ads.placements?.[normalizedSlot] || DEFAULT_AD_PLACEMENTS[normalizedSlot]?.defaultTag;
 
-  // Mount persistent slot node into our container ref without re-executing or destroying DOM nodes
+  // Mount persistent slot node into our container ref without destroying DOM
   useEffect(() => {
     if (!ads.ads_enabled || !tagHtml) return;
     if (normalizedSlot === 'header_top' && (closed || ads.fixed_banner_position === 'off')) return;
@@ -87,13 +88,38 @@ export function AdPlacement({ slot, className = '' }: AdPlacementProps) {
       mountEl.appendChild(slotEl);
     }
 
+    // Check if slotEl already has ad content
+    if (slotEl && checkHasAdContent(slotEl)) {
+      setHasContent(true);
+    }
+
+    // Observe slotEl for changes when Yektanet injects the ad
+    let observer: MutationObserver | null = null;
+    if (slotEl) {
+      observer = new MutationObserver(() => {
+        const hasAd = checkHasAdContent(slotEl);
+        setHasContent(hasAd);
+      });
+      observer.observe(slotEl, { childList: true, subtree: true });
+    }
+
+    // Periodic poll for 3 seconds in case Yektanet injects without direct child mutation event
+    const timer = setInterval(() => {
+      if (slotEl && checkHasAdContent(slotEl)) {
+        setHasContent(true);
+        clearInterval(timer);
+      }
+    }, 200);
+
     return () => {
+      clearInterval(timer);
+      observer?.disconnect();
       // Park back into persistent pool on unmount so it is never destroyed
       parkPersistentAdSlot(slotEl);
     };
   }, [normalizedSlot, tagHtml, ads.ads_enabled, closed, ads.fixed_banner_position]);
 
-  // If ads are globally disabled in settings, render nothing
+  // If ads are globally disabled in settings or no tag configured, render nothing
   if (!ads.ads_enabled || !tagHtml) {
     return null;
   }
@@ -107,7 +133,10 @@ export function AdPlacement({ slot, className = '' }: AdPlacementProps) {
     }
 
     return (
-      <div className="w-full bg-[#10265D] text-white border-b border-[#2864F0]/30 shadow-sm relative z-30 transition-all p-0 m-0">
+      <div
+        className="w-full bg-[#10265D] text-white border-b border-[#2864F0]/30 shadow-sm relative z-30 transition-all p-0 m-0"
+        style={{ display: hasContent ? undefined : 'none' }}
+      >
         <div className="max-w-7xl mx-auto flex items-center justify-between p-0">
           <div
             ref={mountRef}
@@ -126,9 +155,13 @@ export function AdPlacement({ slot, className = '' }: AdPlacementProps) {
   }
 
   // 2. Prompt Grid Card Placements
+  // If the ad is not showing, do not show the darker container (per user request)
   if (normalizedSlot === 'grid_card_1' || normalizedSlot === 'grid_card_2') {
     return (
-      <div className={`rounded-2xl border border-dashed border-[#E5E9F2] bg-[#F6F8FC] p-4 flex flex-col items-center justify-center relative min-h-[220px] transition-colors hover:border-[#2864F0] ${className}`}>
+      <div
+        className={`rounded-2xl border border-dashed border-[#E5E9F2] bg-[#F6F8FC] p-4 flex flex-col items-center justify-center relative min-h-[220px] transition-colors hover:border-[#2864F0] ${className}`}
+        style={{ display: hasContent ? undefined : 'none' }}
+      >
         <div
           ref={mountRef}
           className="w-full flex items-center justify-center"
@@ -138,9 +171,13 @@ export function AdPlacement({ slot, className = '' }: AdPlacementProps) {
   }
 
   // 3. Single Prompt Detail Placement (above live preview)
+  // If the ad is not showing, do not show the darker container (per user request)
   if (normalizedSlot === 'single_prompt_preview') {
     return (
-      <div className={`w-full my-4 p-3 rounded-2xl bg-[#F6F8FC] border border-[#E5E9F2] flex flex-col items-center justify-center ${className}`}>
+      <div
+        className={`w-full my-4 p-3 rounded-2xl bg-[#F6F8FC] border border-[#E5E9F2] flex flex-col items-center justify-center ${className}`}
+        style={{ display: hasContent ? undefined : 'none' }}
+      >
         <div
           ref={mountRef}
           className="w-full flex justify-center overflow-hidden min-h-[90px]"
@@ -150,8 +187,12 @@ export function AdPlacement({ slot, className = '' }: AdPlacementProps) {
   }
 
   // 4. Content Pages & Admin Placements (/about, /faq, /terms, /privacy, /contact, /admin)
+  // If the ad is not showing, do not show the darker container (per user request)
   return (
-    <div className={`my-8 p-3 rounded-2xl bg-[#F6F8FC] border border-[#E5E9F2] flex flex-col items-center justify-center ${className}`}>
+    <div
+      className={`my-8 p-3 rounded-2xl bg-[#F6F8FC] border border-[#E5E9F2] flex flex-col items-center justify-center ${className}`}
+      style={{ display: hasContent ? undefined : 'none' }}
+    >
       <div
         ref={mountRef}
         className="w-full flex justify-center min-h-[90px]"

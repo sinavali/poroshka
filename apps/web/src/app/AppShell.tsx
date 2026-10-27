@@ -13,6 +13,7 @@ import { AdPlacement } from '../components/AdPlacement';
 import { PersistentAdPool } from '../components/PersistentAdPool';
 import { DynamicIslandToast } from '../components/DynamicIslandToast';
 import { PublicSettingsProvider } from '../lib/public-settings';
+import { triggerYektanetSpaReset } from '../lib/persistent-ad-pool';
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -38,6 +39,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       window.removeEventListener('promptjoo:open-memory', handleOpenMemory);
     };
   }, []);
+
+  useEffect(() => {
+    // Re-evaluate and trigger Yektanet ad placements on Next.js SPA client-side route changes
+    triggerYektanetSpaReset();
+  }, [pathname]);
 
   const isAdminPage = pathname?.startsWith('/admin');
 

@@ -44,15 +44,15 @@ export const DEFAULT_AD_PLACEMENTS: Record<string, { title: string; defaultTag: 
   },
   grid_card_1: {
     title: 'کارت تبلیغاتی ۱ گرید پرامپت‌ها',
-    defaultTag: '<div class="yn-bnr" id="ynpos-21189"></div>'
+    defaultTag: '<div class="yn-bnr" id="ynpos-21235"></div>'
   },
   grid_card_2: {
-    title: 'کارت تبلیغاتی ۲ گرید پرامپت‌ها (نیتیو)',
-    defaultTag: '<div id="pos-article-display-123727"></div>'
+    title: 'کارت تبلیغاتی ۲ گرید پرامپت‌ها',
+    defaultTag: '<div class="yn-bnr" id="ynpos-21236"></div>'
   },
   single_prompt_preview: {
     title: 'بنر بالای پیش‌نمایش پرامپت تکی',
-    defaultTag: '<div class="yn-bnr" id="ynpos-21189"></div>'
+    defaultTag: '<div class="yn-bnr" id="ynpos-21227"></div>'
   },
   about_1: {
     title: 'تبلیغ ۱ صفحه درباره ما (بالای صفحه)',
@@ -60,63 +60,63 @@ export const DEFAULT_AD_PLACEMENTS: Record<string, { title: string; defaultTag: 
   },
   about_2: {
     title: 'تبلیغ ۲ صفحه درباره ما (میانه صفحه)',
-    defaultTag: '<div class="yn-bnr" id="ynpos-21190"></div>'
+    defaultTag: '<div class="yn-bnr" id="ynpos-21233"></div>'
   },
   about_3: {
     title: 'تبلیغ ۳ صفحه درباره ما (پایین صفحه)',
-    defaultTag: '<div class="yn-bnr" id="ynpos-21190"></div>'
+    defaultTag: '<div class="yn-bnr" id="ynpos-21234"></div>'
   },
   faq_1: {
     title: 'تبلیغ ۱ صفحه سوالات متداول (بالای صفحه)',
-    defaultTag: '<div class="yn-bnr" id="ynpos-21190"></div>'
+    defaultTag: '<div class="yn-bnr" id="ynpos-21237"></div>'
   },
   faq_2: {
     title: 'تبلیغ ۲ صفحه سوالات متداول (میانه صفحه)',
-    defaultTag: '<div class="yn-bnr" id="ynpos-21190"></div>'
+    defaultTag: '<div class="yn-bnr" id="ynpos-21238"></div>'
   },
   faq_3: {
     title: 'تبلیغ ۳ صفحه سوالات متداول (پایین صفحه)',
-    defaultTag: '<div class="yn-bnr" id="ynpos-21190"></div>'
+    defaultTag: '<div class="yn-bnr" id="ynpos-21239"></div>'
   },
   terms_1: {
     title: 'تبلیغ ۱ صفحه قوانین و شرایط (بالای صفحه)',
-    defaultTag: '<div class="yn-bnr" id="ynpos-21190"></div>'
+    defaultTag: '<div class="yn-bnr" id="ynpos-21240"></div>'
   },
   terms_2: {
     title: 'تبلیغ ۲ صفحه قوانین و شرایط (میانه صفحه)',
-    defaultTag: '<div class="yn-bnr" id="ynpos-21190"></div>'
+    defaultTag: '<div class="yn-bnr" id="ynpos-21241"></div>'
   },
   terms_3: {
     title: 'تبلیغ ۳ صفحه قوانین و شرایط (پایین صفحه)',
-    defaultTag: '<div class="yn-bnr" id="ynpos-21190"></div>'
+    defaultTag: '<div class="yn-bnr" id="ynpos-21242"></div>'
   },
   privacy_1: {
     title: 'تبلیغ ۱ صفحه حریم خصوصی (بالای صفحه)',
-    defaultTag: '<div class="yn-bnr" id="ynpos-21190"></div>'
+    defaultTag: '<div class="yn-bnr" id="ynpos-21243"></div>'
   },
   privacy_2: {
     title: 'تبلیغ ۲ صفحه حریم خصوصی (میانه صفحه)',
-    defaultTag: '<div class="yn-bnr" id="ynpos-21190"></div>'
+    defaultTag: '<div class="yn-bnr" id="ynpos-21244"></div>'
   },
   privacy_3: {
     title: 'تبلیغ ۳ صفحه حریم خصوصی (پایین صفحه)',
-    defaultTag: '<div class="yn-bnr" id="ynpos-21190"></div>'
+    defaultTag: '<div class="yn-bnr" id="ynpos-21245"></div>'
   },
   contact_1: {
     title: 'تبلیغ صفحه تماس با ما',
-    defaultTag: '<div class="yn-bnr" id="ynpos-21190"></div>'
+    defaultTag: '<div class="yn-bnr" id="ynpos-21246"></div>'
   },
   admin_top_1: {
     title: 'تبلیغ ۱ بالای کنترل‌پنل مدیریت',
-    defaultTag: '<div class="yn-bnr" id="ynpos-21189"></div>'
+    defaultTag: '<div class="yn-bnr" id="ynpos-21247"></div>'
   },
   admin_top_2: {
     title: 'تبلیغ ۲ بالای کنترل‌پنل مدیریت',
-    defaultTag: '<div class="yn-bnr" id="ynpos-21189"></div>'
+    defaultTag: '<div class="yn-bnr" id="ynpos-21248"></div>'
   },
   admin_top_3: {
     title: 'تبلیغ ۳ بالای کنترل‌پنل مدیریت',
-    defaultTag: '<div class="yn-bnr" id="ynpos-21189"></div>'
+    defaultTag: '<div class="yn-bnr" id="ynpos-21249"></div>'
   }
 };
 
