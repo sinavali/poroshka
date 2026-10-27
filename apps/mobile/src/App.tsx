@@ -15,7 +15,7 @@ import { PromptCard } from './components/PromptCard';
 import { SlotEditor } from './components/SlotEditor';
 import type { AppState, MobilePrompt } from './types';
 
-const API_BASE = 'https://core-api.promptjoo.ir';
+const API_BASE = 'https://core-api.poroshka.ir';
 
 export function App() {
   const [state, setState] = useState<AppState>({
@@ -104,7 +104,7 @@ export function App() {
 
       {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.brandTitle}>پرامپت‌جو</Text>
+        <Text style={styles.brandTitle}>پوروشکا</Text>
         <Text style={styles.brandSubtitle}>مرجع تخصصی پرامپت هوش مصنوعی</Text>
       </View>
 

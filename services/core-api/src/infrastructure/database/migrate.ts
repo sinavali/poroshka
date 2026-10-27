@@ -4,7 +4,7 @@ import { logger } from '../observability/pino-logger.ts';
 
 const { Client } = pg;
 
-const defaultDevDb = process.env.NODE_ENV === 'development' ? (process.env.DEV_DATABASE_URL || 'postgresql://localhost:5432/promptjoo_dev') : undefined;
+const defaultDevDb = process.env.NODE_ENV === 'development' ? (process.env.DEV_DATABASE_URL || 'postgresql://localhost:5432/poroshka_dev') : undefined;
 const rawDatabaseUrl = process.env.DATABASE_URL || defaultDevDb;
 if (!rawDatabaseUrl) {
   throw new Error('DATABASE_URL environment variable is required');

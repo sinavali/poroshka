@@ -28,9 +28,9 @@ describe('Contracts Schema Validation Tests', () => {
 
   it('validates and applies defaults for SavedContextProfileSchema', () => {
     const parsed = SavedContextProfileSchema.parse({
-      brand_name: 'پرامپت‌جو'
+      brand_name: 'پوروشکا'
     });
-    assert.strictEqual(parsed.brand_name, 'پرامپت‌جو');
+    assert.strictEqual(parsed.brand_name, 'پوروشکا');
     assert.strictEqual(parsed.brand_tone, 'CASUAL');
     assert.strictEqual(parsed.target_audience, '');
   });

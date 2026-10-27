@@ -218,7 +218,7 @@ ingestionRoutes.get('/export/snapshot', async (c) => {
   return new Response(lines, {
     headers: {
       'Content-Type': 'application/x-jsonlines',
-      'Content-Disposition': 'attachment; filename="promptjoo-catalog-snapshot.jsonl"'
+      'Content-Disposition': 'attachment; filename="poroshka-catalog-snapshot.jsonl"'
     }
   });
 });
@@ -262,7 +262,7 @@ ingestionRoutes.get('/export/csv', async () => {
   return new Response(csvContent, {
     headers: {
       'Content-Type': 'text/csv; charset=utf-8',
-      'Content-Disposition': `attachment; filename="promptjoo-dataset-${Date.now()}.csv"`
+      'Content-Disposition': `attachment; filename="poroshka-dataset-${Date.now()}.csv"`
     }
   });
 });

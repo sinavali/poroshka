@@ -22,7 +22,7 @@ export default {
         headers: { 'Content-Type': 'application/json' }
       });
     }
-    const coreApiUrl = env.CORE_API_URL || 'https://core-api.promptjoo.ir';
+    const coreApiUrl = env.CORE_API_URL || 'https://core-api.poroshka.ir';
 
     // 2. Outbound Proxy to Telegram Bot API (from core-api)
     if (path.startsWith('/bot')) {

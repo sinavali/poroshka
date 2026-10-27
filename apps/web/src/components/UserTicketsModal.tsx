@@ -178,7 +178,7 @@ export function UserTicketsModal({ isOpen, onClose, onRequireLogin }: UserTicket
             </div>
             <div>
               <h3 className="text-base font-black text-slate-900">پشتیبانی و تیکت‌ها</h3>
-              <p className="text-[11px] text-slate-500">ارتباط مستقیم با تیم پشتیبانی و اپراتورهای پرامپت‌جو</p>
+              <p className="text-[11px] text-slate-500">ارتباط مستقیم با تیم پشتیبانی و اپراتورهای پوروشکا</p>
             </div>
           </div>
           <button onClick={onClose} className="p-1.5 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-100">
@@ -308,7 +308,7 @@ export function UserTicketsModal({ isOpen, onClose, onRequireLogin }: UserTicket
                       className={`flex flex-col max-w-[85%] ${isStaff ? 'mr-auto items-start' : 'ml-auto items-end'}`}
                     >
                       <span className="text-[10px] text-slate-400 mb-0.5">
-                        {isStaff ? 'پشتیبانی پرامپت‌جو' : 'شما'} • {new Date(m.created_at).toLocaleTimeString('fa-IR', { hour: '2-digit', minute: '2-digit' })}
+                        {isStaff ? 'پشتیبانی پوروشکا' : 'شما'} • {new Date(m.created_at).toLocaleTimeString('fa-IR', { hour: '2-digit', minute: '2-digit' })}
                       </span>
                       <div
                         className={`p-3 rounded-2xl text-xs leading-relaxed ${

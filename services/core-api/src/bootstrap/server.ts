@@ -21,7 +21,7 @@ export function createServer(): Hono {
     process.env.NEXT_PUBLIC_APP_URL,
     'https://poroshka.ir',
     'https://www.poroshka.ir',
-    'https://promptjoo.localme.ir',
+    'https://poroshka.localme.ir',
     'http://localhost:3000',
     'http://localhost:4000',
     'http://127.0.0.1:3000',
@@ -129,7 +129,7 @@ export function createServer(): Hono {
   app.notFound((c) => {
     return c.json({
       error: 'NOT_FOUND',
-      message: 'مسیر درخواستی در سرور پرامپت‌جو یافت نشد.',
+      message: 'مسیر درخواستی در سرور پوروشکا یافت نشد.',
       path: c.req.path
     }, 404);
   });

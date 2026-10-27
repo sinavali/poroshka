@@ -21,11 +21,15 @@ fi
 export NEXT_PUBLIC_APP_URL="${NEXT_PUBLIC_APP_URL:-https://poroshka.ir}"
 export ADMIN_PHONE="${ADMIN_PHONE:-+989015389399}"
 
-echo "🧹 1. Cleaning up stale build caches..."
-rm -rf apps/web/dist-next dist/services/core-api apps/web/.next dist/runflare-web 2>/dev/null || true
+if [ -f "apps/web/dist-next/BUILD_ID" ] && [ -f "dist/services/core-api/main.js" ] && [ "${FORCE_REBUILD:-0}" != "1" ]; then
+  echo "⚡ Pre-built artifacts exist, skipping local rebuild..."
+else
+  echo "🧹 1. Cleaning up stale build caches..."
+  rm -rf apps/web/dist-next dist/services/core-api apps/web/.next dist/runflare-web 2>/dev/null || true
 
-echo "🔨 2. Pre-building backend, shared libraries, and Next.js frontend locally..."
-NODE_ENV=production npx nx run-many -t build --skip-nx-cache -p contracts,persian-normalizer,prompt-compiler,core-api,web
+  echo "🔨 2. Pre-building backend, shared libraries, and Next.js frontend locally..."
+  NODE_ENV=production npx nx run-many -t build --skip-nx-cache -p contracts,persian-normalizer,prompt-compiler,core-api,web
+fi
 
 if [ ! -f "apps/web/dist-next/BUILD_ID" ]; then
   echo "❌ Error: apps/web/dist-next/BUILD_ID not found after build!"
@@ -35,6 +39,9 @@ if [ ! -f "dist/services/core-api/main.js" ]; then
   echo "❌ Error: dist/services/core-api/main.js not found after build!"
   exit 1
 fi
+
+# Remove heavyweight Next.js build cache (not needed at runtime, speeds up upload significantly)
+rm -rf apps/web/dist-next/cache apps/web/dist-next/trace 2>/dev/null || true
 
 echo "🗄️ 3. Verifying remote database schema migrations..."
 if [ -n "${DATABASE_URL}" ]; then
@@ -61,10 +68,14 @@ if curl -s --connect-timeout 1 http://127.0.0.1:20170 >/dev/null 2>&1; then
 fi
 python3 -c "
 import base64, json, urllib.request, os
-token_path = os.path.expanduser('~/.config/.runflare/token')
-if os.path.exists(token_path):
+token_paths = [
+    os.path.expanduser('~/.config/.runflare/token'),
+    os.path.expanduser('~/.config/runflare-profiles/sina1vali@gmail.com/.config/.runflare/token')
+]
+primary_path = token_paths[0]
+if os.path.exists(primary_path):
     try:
-        with open(token_path, 'r') as f:
+        with open(primary_path, 'r') as f:
             raw = f.read().strip()
         decoded = json.loads(base64.b64decode(raw).decode('utf-8', errors='ignore'))
         refresh = decoded.get('refresh', '')
@@ -75,9 +86,12 @@ if os.path.exists(token_path):
                 new_token = res.get('access') or res.get('token')
                 if new_token:
                     decoded['token'] = new_token
-                    with open(token_path, 'w') as f_out:
-                        f_out.write(base64.b64encode(json.dumps(decoded).encode()).decode())
-                    print('✅ Runflare auth token refreshed.')
+                    encoded_payload = base64.b64encode(json.dumps(decoded).encode()).decode()
+                    for tp in token_paths:
+                        os.makedirs(os.path.dirname(tp), exist_ok=True)
+                        with open(tp, 'w') as f_out:
+                            f_out.write(encoded_payload)
+                    print('✅ Runflare auth token refreshed across all profile stores.')
     except Exception as e:
         print('⚠️ Token refresh notice:', e)
 "

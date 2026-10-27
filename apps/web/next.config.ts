@@ -36,7 +36,7 @@ const nextConfig: NextConfig = {
       },
       {
         protocol: 'https',
-        hostname: 'promptjoo.localme.ir',
+        hostname: 'poroshka.localme.ir',
       },
       {
         protocol: 'https',

@@ -19,7 +19,7 @@ resources:
 # Project Agent Manifest: tg-relay-worker
 
 ## 1. Scope & Business Intent
-Cloudflare Worker edge proxy on custom domain (`tg-relay.promptjoo.ir`). Relays outbound requests from `core-api` to Telegram Bot API, and verifies inbound webhooks forwarding them to `core-api`.
+Cloudflare Worker edge proxy on custom domain (`tg-relay.poroshka.ir`). Relays outbound requests from `core-api` to Telegram Bot API, and verifies inbound webhooks forwarding them to `core-api`.
 
 ## 2. Architectural Profile & Boundaries
 - **Profile**: A (Backend & Core Services)

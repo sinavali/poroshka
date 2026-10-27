@@ -258,7 +258,7 @@ export async function testEmbeddingProfile(profile: EmbeddingProfile): Promise<{
       headers,
       body: JSON.stringify({
         model: profile.model,
-        input: 'تست اعتبارسنجی اتصال سرویس امبدینگ پرامپت‌جو'
+        input: 'تست اعتبارسنجی اتصال سرویس امبدینگ پوروشکا'
       }),
       signal: controller.signal
     });

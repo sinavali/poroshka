@@ -58,7 +58,7 @@ export const SEED_PROMPTS = [
       }
     ],
     preview_alt_fa: 'نمونه تصویر ادیت شده با استایل فیلم کداک و رنگ‌های گرم',
-    preview_after_webp_url: 'https://promptjoo.ir/assets/samples/vintage-film-after.webp',
+    preview_after_webp_url: 'https://poroshka.ir/assets/samples/vintage-film-after.webp',
     faq_schema_json: [
       { question: 'آیا نیاز است عکس باکیفیت آپلود کنم؟', answer: 'بله، هرچه وضوح عکس اولیه بالاتر باشد، خروجی بدون افت کیفیت و طبیعی‌تر خواهد بود.' },
       { question: 'کدام هوش مصنوعی بهترین نتیجه را می‌دهد؟', answer: 'مدل‌های چندحالته Gemini 1.5 Pro و GPT-4o Vision بهترین درک رنگ و ادیت را دارند.' }
@@ -101,7 +101,7 @@ export const SEED_PROMPTS = [
       }
     ],
     preview_alt_fa: 'طراحی نئونی برج آزادی در تهران سال ۲۰۹۹ با کاشی‌کاری‌های نئونی',
-    preview_after_webp_url: 'https://promptjoo.ir/assets/samples/cyberpunk-tehran.webp',
+    preview_after_webp_url: 'https://poroshka.ir/assets/samples/cyberpunk-tehran.webp',
     faq_schema_json: [
       { question: 'آیا در میدجورنی نسخه ۶ کار می‌کند؟', answer: 'بله، این پرامپت کاملاً با Midjourney v6 و Flux.1 Dev سازگار است.' }
     ],

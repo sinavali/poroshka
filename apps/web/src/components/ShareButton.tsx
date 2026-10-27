@@ -35,8 +35,8 @@ export function ShareButton({ slug, title, size = 'sm', showLabel = false }: Sha
     if (typeof navigator !== 'undefined' && typeof navigator.share === 'function') {
       try {
         await navigator.share({
-          title: `${title} | پرامپت‌جو`,
-          text: `پرامپت مهندسی‌شده «${title}» در پرامپت‌جو:`,
+          title: `${title} | پوروشکا`,
+          text: `پرامپت مهندسی‌شده «${title}» در پوروشکا:`,
           url
         });
         return;
