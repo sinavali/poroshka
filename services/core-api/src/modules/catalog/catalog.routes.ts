@@ -66,7 +66,10 @@ catalogRoutes.get('/prompts', async (c) => {
   const search = c.req.query('q');
   const sort = c.req.query('sort') || 'trending';
   const page = Math.max(1, parseInt(c.req.query('page') || '1', 10));
-  const limit = Math.min(50, Math.max(1, parseInt(c.req.query('limit') || '12', 10)));
+  const requestedLimit = parseInt(c.req.query('limit') || '12', 10);
+  const isSitemap = c.req.header('x-internal-source') === 'sitemap' || c.req.query('sitemap') === 'true';
+  const maxLimit = isSitemap ? 1000 : 50;
+  const limit = Math.min(maxLimit, Math.max(1, isNaN(requestedLimit) ? 12 : requestedLimit));
   const offset = (page - 1) * limit;
 
   let whereClause = ' WHERE p.is_published = true AND p.is_ai_enriched = true';

@@ -13,12 +13,6 @@ export const bulkIngestionRoutes = new Hono();
 
 // Authentication middleware: Admin or Operator access
 bulkIngestionRoutes.use('*', async (c, next) => {
-  // In development, allow unauthenticated access for tests
-  if (process.env.NODE_ENV !== 'production' && !c.req.header('authorization')) {
-    c.set('userRole' as never, 'ADMIN');
-    return next();
-  }
-
   const authHeader = c.req.header('authorization');
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
     return c.json({ error: 'UNAUTHORIZED', message: 'توکن دسترسی معتبر نیست.' }, 401);

@@ -157,6 +157,7 @@ Bootstrap the canonical enterprise monorepo workspace for Promptjoo according to
 - `services/core-api/src/infrastructure/database/migrate.ts`
 - `services/core-api/src/infrastructure/http-clients/altcha.validator.ts`
 - `services/core-api/src/infrastructure/sms/melipayamak.client.ts`
+- `services/core-api/src/modules/admin/admin-ad-configs.routes.ts`
 - `services/core-api/src/modules/admin/admin-embedding.routes.ts`
 - `services/core-api/src/modules/admin/admin-sessions.routes.ts`
 - `services/core-api/src/modules/admin/admin.routes.ts`
@@ -173,6 +174,7 @@ Bootstrap the canonical enterprise monorepo workspace for Promptjoo according to
 - `services/core-api/src/modules/tickets/`
 - `services/core-api/tests/api.spec.ts`
 - `services/tg-relay-worker/AGENT.md`
+- `services/tg-relay-worker/package.json`
 - `services/tg-relay-worker/project.json`
 - `services/tg-relay-worker/src/index.ts`
 - `services/tg-relay-worker/tsconfig.json`

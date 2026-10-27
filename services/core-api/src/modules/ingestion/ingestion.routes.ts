@@ -210,7 +210,7 @@ ingestionRoutes.get('/export/snapshot', async (c) => {
       p.slots_schema_json, p.faq_schema_json, p.copy_count, p.view_count
     FROM prompts p
     JOIN categories c ON p.category_id = c.id
-    WHERE p.is_published = true AND p.is_ai_enriched = true AND p.is_ai_enriched = true AND p.is_ai_enriched = true
+    WHERE p.is_published = true AND p.is_ai_enriched = true
     ORDER BY p.copy_count DESC;
   `);
 
@@ -232,7 +232,7 @@ ingestionRoutes.get('/export/csv', async () => {
       p.template_en, p.slots_schema_json, p.faq_schema_json, p.copy_count, p.view_count
     FROM prompts p
     JOIN categories c ON p.category_id = c.id
-    WHERE p.is_published = true AND p.is_ai_enriched = true AND p.is_ai_enriched = true AND p.is_ai_enriched = true
+    WHERE p.is_published = true AND p.is_ai_enriched = true
     ORDER BY p.copy_count DESC;
   `);
 
@@ -276,7 +276,7 @@ ingestionRoutes.get('/export/json', async (c) => {
       p.slots_schema_json, p.faq_schema_json, p.copy_count, p.view_count
     FROM prompts p
     JOIN categories c ON p.category_id = c.id
-    WHERE p.is_published = true AND p.is_ai_enriched = true AND p.is_ai_enriched = true AND p.is_ai_enriched = true
+    WHERE p.is_published = true AND p.is_ai_enriched = true
     ORDER BY p.copy_count DESC;
   `);
 

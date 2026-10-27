@@ -12,7 +12,7 @@ monetizationRoutes.get('/configs', async (c) => {
   const params: unknown[] = [];
 
   if (slot) {
-    query += ' AND placement_slot = $1';
+    query += ' AND placement_slot::text = $1';
     params.push(slot);
   }
 
@@ -39,7 +39,7 @@ monetizationRoutes.post('/events/click', async (c) => {
   // Check 10-minute cooldown rate limit to prevent click fraud
   const cooldownKey = `ad:click:${parsed.data.placement_slot}:${parsed.data.client_uuid}`;
   const check = await pool.query(
-    'SELECT hit_count FROM rate_limit_buckets WHERE bucket_key = $1',
+    'SELECT hit_count FROM rate_limit_buckets WHERE bucket_key = $1 AND expires_at > NOW()',
     [cooldownKey]
   );
 
@@ -48,11 +48,13 @@ monetizationRoutes.post('/events/click', async (c) => {
     return c.json({ ok: true, deduplicated: true });
   }
 
-  // Set 10-minute cooldown
+  // Set 10-minute cooldown with window reset support
   await pool.query(`
     INSERT INTO rate_limit_buckets (bucket_key, hit_count, expires_at)
     VALUES ($1, 1, NOW() + INTERVAL '10 minutes')
-    ON CONFLICT (bucket_key) DO UPDATE SET hit_count = rate_limit_buckets.hit_count + 1;
+    ON CONFLICT (bucket_key) DO UPDATE SET 
+      hit_count = CASE WHEN rate_limit_buckets.expires_at <= NOW() THEN 1 ELSE rate_limit_buckets.hit_count + 1 END,
+      expires_at = CASE WHEN rate_limit_buckets.expires_at <= NOW() THEN EXCLUDED.expires_at ELSE rate_limit_buckets.expires_at END;
   `, [cooldownKey]);
 
   // Record audit trace in local SQLite

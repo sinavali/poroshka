@@ -30,7 +30,7 @@ export const AuthResponseSchema = z.object({
     id: z.string().uuid(),
     phone_e164: z.string(),
     is_phone_verified: z.boolean(),
-    role: z.enum(['USER', 'ADMIN']),
+    role: z.enum(['USER', 'ADMIN', 'OPERATOR']),
     saved_context_profile_json: SavedContextProfileSchema
   })
 }).openapi('AuthResponse');

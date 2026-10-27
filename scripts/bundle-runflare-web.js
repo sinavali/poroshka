@@ -23,7 +23,9 @@ if (fs.existsSync(outputDir)) {
 fs.mkdirSync(outputDir, { recursive: true });
 
 // 3. Copy standalone directory
-const standaloneSrc = path.join(webDir, '.next/standalone');
+const standaloneSrc = fs.existsSync(path.join(webDir, 'dist-next/standalone'))
+  ? path.join(webDir, 'dist-next/standalone')
+  : path.join(webDir, '.next/standalone');
 if (!fs.existsSync(standaloneSrc)) {
   console.error('❌ Standalone build not found at:', standaloneSrc);
   process.exit(1);
@@ -33,17 +35,23 @@ console.log('📂 Step 2: Copying standalone server & dependencies...');
 fs.cpSync(standaloneSrc, outputDir, { recursive: true });
 
 // 4. Copy static assets and public directory to both apps/web and root inside standalone bundle
-const staticSrc = path.join(webDir, '.next/static');
-const staticDestWeb = path.join(outputDir, 'apps/web/.next/static');
+const staticSrc = fs.existsSync(path.join(webDir, 'dist-next/static'))
+  ? path.join(webDir, 'dist-next/static')
+  : path.join(webDir, '.next/static');
+const staticDestWebNext = path.join(outputDir, 'apps/web/.next/static');
+const staticDestWebDist = path.join(outputDir, 'apps/web/dist-next/static');
 const staticDestRoot = path.join(outputDir, '.next/static');
 if (fs.existsSync(staticSrc)) {
-  console.log('🎨 Step 3: Copying static chunk assets (.next/static)...');
-  fs.cpSync(staticSrc, staticDestWeb, { recursive: true });
+  console.log('🎨 Step 3: Copying static chunk assets (dist-next/static)...');
+  fs.cpSync(staticSrc, staticDestWebNext, { recursive: true });
+  fs.cpSync(staticSrc, staticDestWebDist, { recursive: true });
   fs.cpSync(staticSrc, staticDestRoot, { recursive: true });
 }
 
-// Ensure .next directory exists at root as well (for CWD resolution)
-const dotNextSrc = path.join(webDir, '.next');
+// Ensure build directory exists at root as well (for CWD resolution)
+const dotNextSrc = fs.existsSync(path.join(webDir, 'dist-next'))
+  ? path.join(webDir, 'dist-next')
+  : path.join(webDir, '.next');
 const dotNextRoot = path.join(outputDir, '.next');
 if (fs.existsSync(dotNextSrc)) {
   fs.cpSync(dotNextSrc, dotNextRoot, { recursive: true });

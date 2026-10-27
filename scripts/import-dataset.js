@@ -54,18 +54,95 @@ async function importDataset() {
   const fileContent = fs.readFileSync(resolvedPath, 'utf-8');
   let items = [];
 
+function parseRFC4180CSV(text) {
+  const clean = text.replace(/^\uFEFF/, '');
+  const rows = [];
+  let currentRow = [];
+  let currentField = '';
+  let insideQuotes = false;
+  let i = 0;
+
+  while (i < clean.length) {
+    const char = clean[i];
+    const nextChar = clean[i + 1];
+
+    if (insideQuotes) {
+      if (char === '"') {
+        if (nextChar === '"') {
+          currentField += '"';
+          i += 2;
+          continue;
+        } else {
+          insideQuotes = false;
+          i++;
+          continue;
+        }
+      } else {
+        currentField += char;
+        i++;
+        continue;
+      }
+    } else {
+      if (char === '"') {
+        insideQuotes = true;
+        i++;
+        continue;
+      } else if (char === ',') {
+        currentRow.push(currentField);
+        currentField = '';
+        i++;
+        continue;
+      } else if (char === '\r') {
+        if (nextChar === '\n') {
+          i++;
+        }
+        currentRow.push(currentField);
+        currentField = '';
+        if (currentRow.length > 1 || (currentRow.length === 1 && currentRow[0].trim() !== '')) {
+          rows.push(currentRow);
+        }
+        currentRow = [];
+        i++;
+        continue;
+      } else if (char === '\n') {
+        currentRow.push(currentField);
+        currentField = '';
+        if (currentRow.length > 1 || (currentRow.length === 1 && currentRow[0].trim() !== '')) {
+          rows.push(currentRow);
+        }
+        currentRow = [];
+        i++;
+        continue;
+      } else {
+        currentField += char;
+        i++;
+        continue;
+      }
+    }
+  }
+
+  if (currentField !== '' || currentRow.length > 0) {
+    currentRow.push(currentField);
+    if (currentRow.length > 1 || (currentRow.length === 1 && currentRow[0].trim() !== '')) {
+      rows.push(currentRow);
+    }
+  }
+
+  return rows;
+}
+
   if (resolvedPath.endsWith('.json')) {
     items = JSON.parse(fileContent);
   } else {
-    // Parse CSV
-    const csvLines = fileContent.replace(/^\uFEFF/, '').split(/\r?\n/).filter(l => l.trim().length > 0);
-    if (csvLines.length > 1) {
-      const headerCols = csvLines[0].split(',').map(h => h.replace(/^"|"$/g, '').trim());
-      for (let i = 1; i < csvLines.length; i++) {
-        const values = csvLines[i].split(',').map(v => v.replace(/^"|"$/g, '').trim());
+    // Parse RFC 4180 compliant CSV
+    const rows = parseRFC4180CSV(fileContent);
+    if (rows.length > 1) {
+      const headerCols = rows[0].map(h => h.trim());
+      for (let i = 1; i < rows.length; i++) {
+        const values = rows[i];
         const itemObj = {};
         for (let h = 0; h < headerCols.length; h++) {
-          itemObj[headerCols[h]] = values[h] || '';
+          itemObj[headerCols[h]] = values[h] !== undefined ? values[h].trim() : '';
         }
         items.push(itemObj);
       }

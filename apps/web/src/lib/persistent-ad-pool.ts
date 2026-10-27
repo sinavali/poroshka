@@ -83,7 +83,7 @@ export function triggerYektanetSpaReset() {
     if (bus && typeof bus.emit === 'function') {
       bus.emit('reset-ads');
     }
-  } catch (err) {
-    console.debug('Yektanet SPA reset notice:', err);
+  } catch {
+    // Silently ignore Yektanet SPA reset notice
   }
 }

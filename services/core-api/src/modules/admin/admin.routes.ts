@@ -1,4 +1,4 @@
-import { Hono } from 'hono';
+import { Hono, type Context } from 'hono';
 import crypto from 'node:crypto';
 import { pool } from '../../infrastructure/database/client.ts';
 import { sqliteLogger } from '../../infrastructure/observability/sqlite-logger.ts';
@@ -7,12 +7,9 @@ import { redisService } from '../../infrastructure/cache/redis.ts';
 import { bulkIngestionManager } from '../ingestion/bulk-ingestion.service.ts';
 import { adminSessionsRoutes } from './admin-sessions.routes.ts';
 import { adminEmbeddingRoutes } from './admin-embedding.routes.ts';
+import { adminAdConfigsRoutes } from './admin-ad-configs.routes.ts';
 
 export const adminRoutes = new Hono();
-
-// Mount Modular Sub-routes
-adminRoutes.route('/', adminSessionsRoutes);
-adminRoutes.route('/', adminEmbeddingRoutes);
 
 // Admin Authentication Middleware
 adminRoutes.use('*', async (c, next) => {
@@ -25,7 +22,7 @@ adminRoutes.use('*', async (c, next) => {
 
   const superadminToken = process.env.SUPERADMIN_TOKEN;
   if (superadminToken && rawToken === superadminToken) {
-    c.set('adminUser' as never, { id: 'superadmin', role: 'ADMIN', phone_e164: 'superadmin' } as never);
+    c.set('adminUser' as never, { id: '00000000-0000-0000-0000-000000000001', role: 'ADMIN', phone_e164: 'superadmin' } as never);
     return next();
   }
 
@@ -46,6 +43,11 @@ adminRoutes.use('*', async (c, next) => {
   c.set('tokenHash' as never, tokenHash as never);
   return next();
 });
+
+// Mount Modular Sub-routes (Protected by Admin Auth Middleware)
+adminRoutes.route('/', adminSessionsRoutes);
+adminRoutes.route('/', adminEmbeddingRoutes);
+adminRoutes.route('/', adminAdConfigsRoutes);
 
 // Current Admin / Operator Profile
 adminRoutes.get('/me', async (c) => {
@@ -299,7 +301,7 @@ adminRoutes.get('/settings', async (c) => {
 });
 
 // 6. System Settings: Update Specific Config (Operators cannot modify system settings)
-const saveSystemSetting = async (c: any, keyOverride?: string) => {
+const saveSystemSetting = async (c: Context, keyOverride?: string) => {
   const adminUser = c.get('adminUser' as never) as { id: string; role: string; phone_e164: string };
   if (adminUser.role !== 'ADMIN') {
     return c.json({ error: 'FORBIDDEN', message: 'تنها مدیر ارشد سامانه مجاز به ویرایش تنظیمات است.' }, 403);
@@ -634,53 +636,6 @@ adminRoutes.post('/prompts/bulk', async (c) => {
   } finally {
     client.release();
   }
-});
-
-// 10. Get All Ad Network Configs
-adminRoutes.get('/ad-configs', async (c) => {
-  let res = await pool.query(`
-    SELECT id, placement_slot, provider, zone_id, is_active, script_tag_html, target_modalities, updated_at
-    FROM ad_network_configs
-    ORDER BY created_at ASC;
-  `);
-
-  if (res.rows.length === 0) {
-    await pool.query(`
-      INSERT INTO ad_network_configs (placement_slot, provider, zone_id, is_active, script_tag_html)
-      VALUES 
-        ('HEADER_BANNER', 'yektanet', 'yn-slot-header', true, '<!-- Yektanet Header Banner Slot -->'),
-        ('PROMPT_DETAIL_BOTTOM', 'yektanet', 'yn-slot-detail', true, '<!-- Yektanet Prompt Detail Bottom Slot -->'),
-        ('POST_COPY_DRAWER', 'tapsell', 'tapsell-drawer-slot', true, '<!-- Tapsell Post Copy Drawer Slot -->')
-      ON CONFLICT (placement_slot) DO NOTHING;
-    `);
-
-    res = await pool.query(`
-      SELECT id, placement_slot, provider, zone_id, is_active, script_tag_html, target_modalities, updated_at
-      FROM ad_network_configs
-      ORDER BY created_at ASC;
-    `);
-  }
-
-  return c.json(res.rows);
-});
-
-// 10.1 Update Ad Network Config
-adminRoutes.put('/ad-configs/:id', async (c) => {
-  const idOrSlot = c.req.param('id');
-  const body = await c.req.json().catch(() => ({}));
-
-  await pool.query(`
-    UPDATE ad_network_configs
-    SET 
-      zone_id = COALESCE($1, zone_id),
-      provider = COALESCE($2, provider),
-      is_active = COALESCE($3, is_active),
-      script_tag_html = COALESCE($4, script_tag_html),
-      updated_at = NOW()
-    WHERE id::text = $5 OR placement_slot::text = $5;
-  `, [body.zone_id, body.provider, body.is_active, body.script_tag_html, idOrSlot]);
-
-  return c.json({ ok: true });
 });
 
 // 11. Clean Start / Hard Reset: Reset entire project data and state for production

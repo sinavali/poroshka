@@ -104,4 +104,57 @@ describe('Prompt Compiler Unit Tests', () => {
     assert.ok(stitched.includes('[CONSTRAINTS]\nUnder 10 words each'));
     assert.ok(stitched.includes('[OUTPUT FORMAT]\nNumbered bullet list'));
   });
+
+  it('correctly distinguishes required vs optional slots when values are missing', () => {
+    const template = 'Hello {{name}}, welcome to {{city}}! Your code is {{code}}.';
+    const slots: PromptSlot[] = [
+      {
+        slot_key: 'name',
+        label_fa: 'نام',
+        placeholder_fa: '',
+        input_type: 'SHORT_TEXT',
+        default_value_en: '',
+        profile_binding_key: 'NONE',
+        preset_options: [],
+        options: [],
+        is_required: true,
+        priority: 1
+      },
+      {
+        slot_key: 'city',
+        label_fa: 'شهر',
+        placeholder_fa: '',
+        input_type: 'SHORT_TEXT',
+        default_value_en: '',
+        profile_binding_key: 'NONE',
+        preset_options: [],
+        options: [],
+        is_required: false,
+        priority: 2
+      },
+      {
+        slot_key: 'code',
+        label_fa: 'کد',
+        placeholder_fa: '',
+        input_type: 'SHORT_TEXT',
+        default_value_en: '',
+        profile_binding_key: 'NONE',
+        preset_options: [],
+        options: [],
+        is_required: true,
+        priority: 3
+      }
+    ];
+
+    const result = compilePrompt(template, slots, { code: '12345' });
+
+    // 'name' is required and empty -> missing
+    // 'city' is optional and empty -> not in missingRequiredSlots
+    // 'code' is required and provided -> resolved
+    assert.deepStrictEqual(result.missingRequiredSlots, ['name']);
+    assert.strictEqual(result.resolvedSlotValues.city, '');
+    assert.strictEqual(result.resolvedSlotValues.code, '12345');
+    assert.strictEqual(result.compiledText, 'Hello , welcome to ! Your code is 12345.');
+  });
 });
+

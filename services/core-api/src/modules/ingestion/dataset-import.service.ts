@@ -67,11 +67,11 @@ interface PreparedPrompt {
 
 const MODALITY_TO_CAT_MAP: Record<string, string> = {
   text_writing: 'content-writing',
-  code_tech: 'code-generation',
+  code_tech: 'coding-tech',
   text_to_image: 'image-generation',
   image_edit: 'photo-editing',
-  data_structuring: 'data-automation',
-  video_audio: 'video-scripting'
+  data_structuring: 'excel-data',
+  video_audio: 'reels-voice'
 };
 
 const VALID_MODALITIES = ['text_writing', 'code_tech', 'text_to_image', 'image_edit', 'data_structuring', 'video_audio'];

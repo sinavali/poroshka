@@ -36,7 +36,7 @@ const handleOtpRequest = async (c: Context) => {
   // Validate Altcha PoW verification
   const altchaPayload = parsed.data.altcha_payload || c.req.header('x-altcha-payload');
   if (altchaPayload) {
-    const isValid = altchaValidator.verify(altchaPayload);
+    const isValid = await altchaValidator.verify(altchaPayload);
     if (!isValid) {
       return c.json({ error: 'INVALID_CAPTCHA', message: 'اعتبارسنجی کپچای امنیتی ناموفق بود. لطفاً صفحه را مجدداً بارگذاری کنید.' }, 400);
     }
@@ -52,7 +52,7 @@ const handleOtpRequest = async (c: Context) => {
   const ipRateKey = `otp:ip:${clientIp}`;
 
   const rateCheck = await pool.query(
-    'SELECT bucket_key, hit_count FROM rate_limit_buckets WHERE bucket_key IN ($1, $2)',
+    'SELECT bucket_key, hit_count FROM rate_limit_buckets WHERE bucket_key IN ($1, $2) AND expires_at > NOW()',
     [phoneRateKey, ipRateKey]
   );
 
@@ -78,17 +78,21 @@ const handleOtpRequest = async (c: Context) => {
     [phoneE164, parsed.data.purpose, codeHash, messengerToken, expiresAt]
   );
 
-  // Update rate limit buckets
+  // Update rate limit buckets with window reset support
   await pool.query(`
     INSERT INTO rate_limit_buckets (bucket_key, hit_count, expires_at)
     VALUES ($1, 1, NOW() + INTERVAL '1 hour')
-    ON CONFLICT (bucket_key) DO UPDATE SET hit_count = rate_limit_buckets.hit_count + 1;
+    ON CONFLICT (bucket_key) DO UPDATE SET 
+      hit_count = CASE WHEN rate_limit_buckets.expires_at <= NOW() THEN 1 ELSE rate_limit_buckets.hit_count + 1 END,
+      expires_at = CASE WHEN rate_limit_buckets.expires_at <= NOW() THEN EXCLUDED.expires_at ELSE rate_limit_buckets.expires_at END;
   `, [phoneRateKey]);
 
   await pool.query(`
     INSERT INTO rate_limit_buckets (bucket_key, hit_count, expires_at)
     VALUES ($1, 1, NOW() + INTERVAL '1 hour')
-    ON CONFLICT (bucket_key) DO UPDATE SET hit_count = rate_limit_buckets.hit_count + 1;
+    ON CONFLICT (bucket_key) DO UPDATE SET 
+      hit_count = CASE WHEN rate_limit_buckets.expires_at <= NOW() THEN 1 ELSE rate_limit_buckets.hit_count + 1 END,
+      expires_at = CASE WHEN rate_limit_buckets.expires_at <= NOW() THEN EXCLUDED.expires_at ELSE rate_limit_buckets.expires_at END;
   `, [ipRateKey]);
 
   // Dispatch OTP via MeliPayamak official REST API
@@ -114,7 +118,7 @@ identityRoutes.post('/send-otp', handleOtpRequest);
 identityRoutes.post('/request-otp', handleOtpRequest);
 
 // 1b. Request Random Password Generated & Sent via SMS
-identityRoutes.post('/request-password', async (c: Context) => {
+const handlePasswordRequest = async (c: Context) => {
   const body = await c.req.json().catch(() => ({}));
   const phone = body.phone;
   if (!phone || typeof phone !== 'string') {
@@ -124,7 +128,7 @@ identityRoutes.post('/request-password', async (c: Context) => {
   // Validate Altcha PoW verification
   const altchaPayload = body.altcha_payload || c.req.header('x-altcha-payload');
   if (altchaPayload) {
-    const isValid = altchaValidator.verify(altchaPayload);
+    const isValid = await altchaValidator.verify(altchaPayload);
     if (!isValid) {
       return c.json({ error: 'INVALID_CAPTCHA', message: 'اعتبارسنجی کپچای امنیتی ناموفق بود. لطفاً صفحه را مجدداً بارگذاری کنید.' }, 400);
     }
@@ -140,7 +144,7 @@ identityRoutes.post('/request-password', async (c: Context) => {
   const ipRateKey = `pwd:ip:${clientIp}`;
 
   const rateCheck = await pool.query(
-    'SELECT bucket_key, hit_count FROM rate_limit_buckets WHERE bucket_key IN ($1, $2)',
+    'SELECT bucket_key, hit_count FROM rate_limit_buckets WHERE bucket_key IN ($1, $2) AND expires_at > NOW()',
     [phoneRateKey, ipRateKey]
   );
 
@@ -171,16 +175,20 @@ identityRoutes.post('/request-password', async (c: Context) => {
     SET password_hash = $2, updated_at = NOW();
   `, [phoneE164, passwordHash]);
 
-  // Update rate limit buckets
+  // Update rate limit buckets with window reset support
   await pool.query(`
     INSERT INTO rate_limit_buckets (bucket_key, hit_count, expires_at)
     VALUES ($1, 1, NOW() + INTERVAL '1 hour')
-    ON CONFLICT (bucket_key) DO UPDATE SET hit_count = rate_limit_buckets.hit_count + 1;
+    ON CONFLICT (bucket_key) DO UPDATE SET 
+      hit_count = CASE WHEN rate_limit_buckets.expires_at <= NOW() THEN 1 ELSE rate_limit_buckets.hit_count + 1 END,
+      expires_at = CASE WHEN rate_limit_buckets.expires_at <= NOW() THEN EXCLUDED.expires_at ELSE rate_limit_buckets.expires_at END;
   `, [phoneRateKey]);
   await pool.query(`
     INSERT INTO rate_limit_buckets (bucket_key, hit_count, expires_at)
     VALUES ($1, 1, NOW() + INTERVAL '1 hour')
-    ON CONFLICT (bucket_key) DO UPDATE SET hit_count = rate_limit_buckets.hit_count + 1;
+    ON CONFLICT (bucket_key) DO UPDATE SET 
+      hit_count = CASE WHEN rate_limit_buckets.expires_at <= NOW() THEN 1 ELSE rate_limit_buckets.hit_count + 1 END,
+      expires_at = CASE WHEN rate_limit_buckets.expires_at <= NOW() THEN EXCLUDED.expires_at ELSE rate_limit_buckets.expires_at END;
   `, [ipRateKey]);
 
   // Send generated password via MeliPayamak
@@ -198,8 +206,10 @@ identityRoutes.post('/request-password', async (c: Context) => {
     sms_delivered: smsRes.success,
     ...(process.env.NODE_ENV === 'development' ? { dev_password: generatedPassword } : {})
   });
-});
-identityRoutes.post('/send-password', async (c) => identityRoutes.fetch(c.req.raw));
+};
+
+identityRoutes.post('/request-password', handlePasswordRequest);
+identityRoutes.post('/send-password', handlePasswordRequest);
 
 // 2. Verify OTP & Authenticate
 identityRoutes.post('/verify-otp', async (c) => {
@@ -339,7 +349,7 @@ identityRoutes.post('/quota/check-anonymous', async (c) => {
 
   const key = `quota:anon:${clientUuid || ipSubnet}`;
   const res = await pool.query(
-    'SELECT hit_count FROM rate_limit_buckets WHERE bucket_key = $1',
+    'SELECT hit_count FROM rate_limit_buckets WHERE bucket_key = $1 AND expires_at > NOW()',
     [key]
   );
 
@@ -367,7 +377,9 @@ identityRoutes.post('/quota/consume-anonymous', async (c) => {
   const res = await pool.query(`
     INSERT INTO rate_limit_buckets (bucket_key, hit_count, expires_at)
     VALUES ($1, 1, NOW() + INTERVAL '24 hours')
-    ON CONFLICT (bucket_key) DO UPDATE SET hit_count = rate_limit_buckets.hit_count + 1
+    ON CONFLICT (bucket_key) DO UPDATE SET 
+      hit_count = CASE WHEN rate_limit_buckets.expires_at <= NOW() THEN 1 ELSE rate_limit_buckets.hit_count + 1 END,
+      expires_at = CASE WHEN rate_limit_buckets.expires_at <= NOW() THEN EXCLUDED.expires_at ELSE rate_limit_buckets.expires_at END
     RETURNING hit_count;
   `, [key]);
 

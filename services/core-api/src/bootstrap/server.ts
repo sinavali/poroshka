@@ -8,6 +8,7 @@ import { campaignsRoutes } from '../modules/campaigns/campaigns.routes.ts';
 import { ingestionRoutes } from '../modules/ingestion/ingestion.routes.ts';
 import { ticketsRoutes } from '../modules/tickets/tickets.routes.ts';
 import { altchaValidator } from '../infrastructure/http-clients/altcha.validator.ts';
+import { idempotencyMiddleware } from '../infrastructure/http-clients/idempotency.middleware.ts';
 import { sqliteLogger } from '../infrastructure/observability/sqlite-logger.ts';
 import { logger } from '../infrastructure/observability/pino-logger.ts';
 import { pool } from '../infrastructure/database/client.ts';
@@ -115,6 +116,9 @@ export function createServer(): Hono {
     const challenge = altchaValidator.createChallenge();
     return c.json(challenge);
   });
+
+  // 4b. Idempotency Middleware for Mutating API Routes
+  app.use('/api/v1/*', idempotencyMiddleware);
 
   // 5. Mount Bounded Context Route Handlers
   app.route('/api/v1/catalog', catalogRoutes);

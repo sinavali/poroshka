@@ -1,5 +1,4 @@
 import pg from 'pg';
-import { drizzle } from 'drizzle-orm/node-postgres';
 import { logger } from '../observability/pino-logger.ts';
 
 const { Pool } = pg;
@@ -31,7 +30,6 @@ pool.on('connect', (client) => {
   });
 });
 
-export const db = drizzle(pool);
 
 export async function checkDatabaseHealth(): Promise<{ ok: boolean; latencyMs: number }> {
   const start = Date.now();

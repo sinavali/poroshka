@@ -4,6 +4,11 @@ import { pool } from '../../infrastructure/database/client.ts';
 import { logger } from '../../infrastructure/observability/pino-logger.ts';
 
 export const campaignsRoutes = new Hono();
+ 
+// Inbound Telegram Webhook Receiver (from tg-relay-worker)
+campaignsRoutes.post('/webhook/telegram', async (c) => {
+  return c.json({ ok: true });
+});
 
 // 1. Enqueue Broadcast Notification / SMS Campaign (Admin Only)
 campaignsRoutes.post('/broadcast', async (c) => {

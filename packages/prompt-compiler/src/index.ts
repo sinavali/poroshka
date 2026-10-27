@@ -77,7 +77,7 @@ export function compilePrompt(
     const value = resolveSlotValue(slot, userValues[slot.slot_key], profile);
     resolvedSlotValues[slot.slot_key] = value;
 
-    if (!value) {
+    if (slot.is_required && !value) {
       missingRequiredSlots.push(slot.slot_key);
     }
 

@@ -6,13 +6,14 @@
   "scripts": {
     "start": "react-native start",
     "android": "react-native run-android",
-    "lint": "echo 'Mobile lint passed'",
+    "lint": "tsc --noEmit",
     "test": "node --experimental-strip-types --test tests/*.spec.ts"
   },
   "dependencies": {
     "@promptjoo/contracts": "workspace:*",
     "@promptjoo/persian-normalizer": "workspace:*",
     "@promptjoo/prompt-compiler": "workspace:*",
+    "@react-native-clipboard/clipboard": "^1.16.3",
     "react": "^18.3.1",
     "react-native": "^0.76.0"
   },

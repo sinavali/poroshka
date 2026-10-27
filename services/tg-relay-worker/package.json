@@ -1,0 +1,14 @@
+{
+  "name": "@promptjoo/tg-relay-worker",
+  "version": "1.0.0",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "build": "esbuild src/index.ts --bundle --outfile=../../dist/services/tg-relay-worker/index.js --format=esm --target=es2022",
+    "lint": "tsc --noEmit -p tsconfig.json",
+    "test": "node --experimental-strip-types --test tests/*.spec.ts"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.3"
+  }
+}

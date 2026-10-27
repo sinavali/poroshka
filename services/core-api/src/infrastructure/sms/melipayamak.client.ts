@@ -158,10 +158,10 @@ export async function sendMeliPayamakOtp(
       signal: AbortSignal.timeout(9000)
     });
 
-    const data = (await res.json().catch(() => ({}))) as Record<string, any>;
+    const data = (await res.json().catch(() => ({}))) as Record<string, unknown>;
     if (!res.ok) {
       logger.error({ status: res.status, data, phone_masked: masked }, 'MeliPayamak Console Shared API error');
-      return { success: false, error: data.message || `MeliPayamak HTTP ${res.status}` };
+      return { success: false, error: (typeof data.message === 'string' ? data.message : undefined) || `MeliPayamak HTTP ${res.status}` };
     }
 
     logger.info({ phone_masked: masked, recId: data.recId }, 'MeliPayamak Console OTP dispatched successfully');

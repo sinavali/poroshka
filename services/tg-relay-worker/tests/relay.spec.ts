@@ -42,4 +42,46 @@ describe('Telegram Relay Worker Tests', () => {
     const res = await worker.fetch(req, env);
     assert.equal(res.status, 404);
   });
+
+  it('Proxies inbound Telegram webhook to core-api with X-Relay-Secret', async () => {
+    const originalFetch = globalThis.fetch;
+    let interceptedUrl = '';
+    let interceptedHeaders: any = null;
+    let interceptedMethod = '';
+    let interceptedBody = '';
+
+    globalThis.fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
+      interceptedUrl = String(input);
+      interceptedMethod = init?.method || 'GET';
+      interceptedHeaders = new Headers(init?.headers);
+      if (init?.body) {
+        interceptedBody = new TextDecoder().decode(init.body as ArrayBuffer);
+      }
+      return new Response(JSON.stringify({ ok: true }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' }
+      });
+    };
+
+    try {
+      const payload = JSON.stringify({ update_id: 9999, message: { text: 'test webhook' } });
+      const req = new Request('https://tg-relay.poroshka.ir/webhook', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: payload
+      });
+
+      const res = await worker.fetch(req, env);
+      assert.equal(res.status, 200);
+      const data = await res.json();
+      assert.deepEqual(data, { ok: true });
+      assert.equal(interceptedUrl, 'https://core-api.poroshka.ir/api/v1/campaigns/webhook/telegram');
+      assert.equal(interceptedMethod, 'POST');
+      assert.equal(interceptedHeaders?.get('X-Relay-Secret'), env.RELAY_SECRET);
+      assert.equal(interceptedBody, payload);
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+  });
 });
+

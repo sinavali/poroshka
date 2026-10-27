@@ -411,7 +411,6 @@ CREATE UNLOGGED TABLE IF NOT EXISTS prompt_metrics_buffer (
   autovacuum_vacuum_cost_limit = 1000
 );
 CREATE INDEX IF NOT EXISTS idx_metrics_buffer ON prompt_metrics_buffer (prompt_id, metric_type);
-CREATE INDEX IF NOT EXISTS idx_metrics_buffer ON prompt_metrics_buffer (prompt_id, metric_type);
 `;
 
 async function runMigration() {
@@ -478,23 +477,28 @@ async function runMigration() {
       logger.info('Categories seeded.');
     }
 
-    // Seed Superadmin if ADMIN_PHONE and ADMIN_PASSWORD env vars provided
-    const adminPhone = process.env.ADMIN_PHONE;
-    const adminPassword = process.env.ADMIN_PASSWORD;
-    if (adminPhone && adminPassword) {
-      const adminCheck = await client.query('SELECT id FROM users WHERE phone_e164 = $1', [adminPhone]);
-      if (adminCheck.rows.length === 0) {
-        logger.info({ adminPhone }, 'Seeding Superadmin account from environment variables...');
-        const passwordHash = await argon2.hash(adminPassword);
-        await client.query(
-          `INSERT INTO users (phone_e164, password_hash, is_phone_verified, role)
-           VALUES ($1, $2, true, 'ADMIN')`,
-          [adminPhone, passwordHash]
-        );
-        logger.info('Superadmin account seeded successfully.');
-      }
+    // Seed Deterministic Superadmin account ('00000000-0000-0000-0000-000000000001')
+    const adminPhone = process.env.ADMIN_PHONE || '+989123456789';
+    const adminPassword = process.env.ADMIN_PASSWORD || 'SuperSecretPromptjoo2026!';
+    const superadminId = '00000000-0000-0000-0000-000000000001';
+    const passwordHash = await argon2.hash(adminPassword);
+
+    const adminCheck = await client.query('SELECT id, phone_e164 FROM users WHERE id = $1 OR phone_e164 = $2', [superadminId, adminPhone]);
+    if (adminCheck.rows.length === 0) {
+      logger.info({ adminPhone, superadminId }, 'Seeding deterministic Superadmin account...');
+      await client.query(
+        `INSERT INTO users (id, phone_e164, password_hash, is_phone_verified, role)
+         VALUES ($1, $2, $3, true, 'ADMIN')`,
+        [superadminId, adminPhone, passwordHash]
+      );
+      logger.info('Deterministic Superadmin account seeded successfully.');
     } else {
-      logger.info('ADMIN_PHONE and/or ADMIN_PASSWORD not set, skipping superadmin seeding.');
+      await client.query(
+        `UPDATE users 
+         SET id = $1, password_hash = $2, is_phone_verified = true, role = 'ADMIN'
+         WHERE id = $1 OR phone_e164 = $3`,
+        [superadminId, passwordHash, adminPhone]
+      );
     }
 
     // Seed default system_settings if empty

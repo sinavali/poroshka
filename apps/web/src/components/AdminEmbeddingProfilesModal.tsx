@@ -369,7 +369,7 @@ export function AdminEmbeddingProfilesModal({ isOpen, onClose, onSaved }: AdminE
                   <label className="block font-bold text-slate-700 mb-1">فرمت هدر احراز هویت (Auth Format)</label>
                   <select
                     value={editingProfile.auth_header_format}
-                    onChange={(e) => setEditingProfile({ ...editingProfile, auth_header_format: e.target.value as any })}
+                    onChange={(e) => setEditingProfile({ ...editingProfile, auth_header_format: e.target.value as EmbeddingProfileUI['auth_header_format'] })}
                     className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-slate-800"
                   >
                     <option value="raw">مستقیم و خام (مثل apikey UUID در آروان)</option>

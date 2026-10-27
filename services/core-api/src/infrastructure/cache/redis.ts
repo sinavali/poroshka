@@ -146,6 +146,20 @@ class RedisService {
     } catch {}
   }
 
+  public async setIfNotExists(key: string, value: string, ttlSeconds = 300): Promise<boolean> {
+    this.ensureConnection();
+    if (!this.client || !this.isAvailable) {
+      return true;
+    }
+    this.lastUsedAt = Date.now();
+    try {
+      const res = await this.client.set(key, value, 'EX', ttlSeconds, 'NX');
+      return res === 'OK';
+    } catch {
+      return true;
+    }
+  }
+
   public async del(key: string): Promise<void> {
     this.ensureConnection();
     if (!this.client || !this.isAvailable) return;

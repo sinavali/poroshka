@@ -8,9 +8,9 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   StyleSheet,
-  StatusBar,
-  Clipboard
+  StatusBar
 } from 'react-native';
+import Clipboard from '@react-native-clipboard/clipboard';
 import { PromptCard } from './components/PromptCard';
 import { SlotEditor } from './components/SlotEditor';
 import type { AppState, MobilePrompt } from './types';

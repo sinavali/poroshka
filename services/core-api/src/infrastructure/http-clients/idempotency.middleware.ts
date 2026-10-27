@@ -1,6 +1,7 @@
 import type { MiddlewareHandler } from 'hono';
 import crypto from 'node:crypto';
 import { pool } from '../database/client.ts';
+import { logger } from '../observability/pino-logger.ts';
 
 export const idempotencyMiddleware: MiddlewareHandler = async (c, next) => {
   const method = c.req.method;
@@ -83,6 +84,6 @@ export const idempotencyMiddleware: MiddlewareHandler = async (c, next) => {
       );
     }
   } catch (err) {
-    console.error('Failed to update idempotency response body:', err);
+    logger.error({ err }, 'Failed to update idempotency response body');
   }
 };
