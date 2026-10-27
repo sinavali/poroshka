@@ -1,0 +1,9 @@
+# Monorepo Code Ownership Governance
+* @sinavali
+/apps/web/ @sinavali
+/apps/mobile/ @sinavali
+/services/core-api/ @sinavali
+/services/tg-relay-worker/ @sinavali
+/packages/contracts/ @sinavali
+/packages/persian-normalizer/ @sinavali
+/packages/prompt-compiler/ @sinavali

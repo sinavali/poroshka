@@ -11,6 +11,22 @@ import fs from 'node:fs';
 
 const isDev = process.argv.includes('--dev') || process.env.NODE_ENV === 'development';
 
+// Load .env files if present
+const envCandidates = [
+  path.join(ROOT_DIR, '.env'),
+  path.join(ROOT_DIR, '.env.local'),
+  path.join(ROOT_DIR, 'services/core-api/.env')
+];
+for (const envPath of envCandidates) {
+  if (fs.existsSync(envPath)) {
+    try {
+      if (typeof process.loadEnvFile === 'function') {
+        process.loadEnvFile(envPath);
+      }
+    } catch {}
+  }
+}
+
 console.log('\x1b[36m%s\x1b[0m', '========================================================================');
 console.log('\x1b[36m%s\x1b[0m', '🚀 STARTING PROMPTJOO ENTERPRISE PLATFORM (Core API + Web App)');
 console.log('\x1b[36m%s\x1b[0m', `Mode: ${isDev ? 'DEVELOPMENT' : 'PRODUCTION'}`);
@@ -67,6 +83,25 @@ const coreApiDistPath = path.join(ROOT_DIR, 'dist/services/core-api/main.js');
 const useCoreApiDist = !isDev && fs.existsSync(coreApiDistPath);
 
 console.log('\x1b[34m[startup]\x1b[0m Launching Core API on internal port ' + INTERNAL_API_PORT + ' ...');
+const defaultDevDbUrl = process.env.DATABASE_URL || 'postgresql://localhost:5432/promptjoo_dev';
+const databaseUrl = process.env.DATABASE_URL || (isDev ? defaultDevDbUrl : '');
+
+// Optional schema migration execution on container boot
+if (databaseUrl && process.env.AUTO_MIGRATE !== 'false') {
+  try {
+    console.log('\x1b[34m[startup]\x1b[0m Checking/applying database schema migrations...');
+    const { execSync } = await import('node:child_process');
+    execSync('node --experimental-strip-types src/infrastructure/database/migrate.ts', {
+      cwd: path.join(ROOT_DIR, 'services/core-api'),
+      stdio: 'inherit',
+      env: { ...process.env, DATABASE_URL: databaseUrl }
+    });
+    console.log('\x1b[34m[startup]\x1b[0m Database migrations verified.');
+  } catch (err) {
+    console.error('\x1b[33m[startup]\x1b[0m Warning: Migration notice:', err.message);
+  }
+}
+
 startProcess(
   'core-api',
   'node',
@@ -75,13 +110,19 @@ startProcess(
     : ['--experimental-strip-types', 'src/bootstrap/main.ts'],
   useCoreApiDist ? ROOT_DIR : path.join(ROOT_DIR, 'services/core-api'),
   '\x1b[34m',
-  { PORT: INTERNAL_API_PORT, HOST: '0.0.0.0', NODE_ENV: isDev ? 'development' : 'production' },
+  {
+    PORT: INTERNAL_API_PORT,
+    HOST: '0.0.0.0',
+    NODE_ENV: isDev ? 'development' : 'production',
+    ...(databaseUrl ? { DATABASE_URL: databaseUrl } : {}),
+    ...(process.env.REDIS_URL ? { REDIS_URL: process.env.REDIS_URL } : {})
+  },
   true // autoRestart on crash
 );
 
 // 2. Start Web Frontend on public port with internal API proxying
-const webCommand = isDev ? 'npx' : 'npx';
-const webArgs = isDev ? ['next', 'dev', '-p', PUBLIC_PORT] : ['next', 'start', '-p', PUBLIC_PORT];
+const webCommand = 'npx';
+const webArgs = isDev ? ['next', 'dev', '-H', '0.0.0.0', '-p', PUBLIC_PORT] : ['next', 'start', '-H', '0.0.0.0', '-p', PUBLIC_PORT];
 
 console.log('\x1b[32m[startup]\x1b[0m Launching Web Frontend on public port ' + PUBLIC_PORT + ' (serving both UI and /api/*) ...');
 startProcess(
@@ -90,7 +131,7 @@ startProcess(
   webArgs,
   path.join(ROOT_DIR, 'apps/web'),
   '\x1b[32m',
-  { PORT: PUBLIC_PORT, INTERNAL_API_URL, NEXT_PUBLIC_API_URL: '' }
+  { PORT: PUBLIC_PORT, INTERNAL_API_URL, NEXT_PUBLIC_API_URL: '', NEXT_PUBLIC_APP_URL: 'https://poroshka.ir' }
 );
 
 console.log('\n\x1b[35m%s\x1b[0m', '------------------------------------------------------------------------');

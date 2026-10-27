@@ -5,6 +5,15 @@ stack: "node-22-hono-drizzle-pgvector"
 scope: "backend"
 owner: "sinavali"
 tier_overrides: []
+dr:
+  rto: "1h"
+  rpo: "15m"
+slo:
+  tier: "tier-1"
+  availability_target: "0.999"
+resources:
+  cpu_limit: "1000m"
+  memory_limit: "1Gi"
 ---
 
 # Project Agent Manifest: core-api
@@ -33,8 +42,18 @@ Core backend service implementing Domain-Driven Design (DDD) and Hexagonal Archi
 - `nx audit core-api` -> `python3 scripts/audit-runner.py --scope services/core-api`
 
 ## 4. Test & Verification Rules
-- Domain unit tests $\ge 95\%$ coverage.
-- Integration tests $\ge 80\%$ coverage using real `pgvector/pgvector:pg16` Testcontainers (configured for rootless Podman/Lerd).
-- In-memory SQL emulators (SQLite) are strictly forbidden.
+- Pure domain unit tests located in `tests/` and domain unit suites (Fast, in-process, zero I/O).
+- Integration tests $\ge 80\%$ coverage using real `pgvector/pgvector:pg16` Testcontainers.
+- In-memory SQL emulators (SQLite for Postgres) are strictly forbidden.
 - All stored and API timestamps use UTC ISO-8601 (`TIMESTAMPTZ` / `Z`).
-- Mutating HTTP boundaries enforce UUIDv4 `Idempotency-Key` tracking.
+- Single-turn context ingestion via `ep pack --surface`.
+
+## 5. Approved Tier 2 Deviations
+| Rule | Justification | ADR Reference |
+|---|---|---|
+| *(None)* | Strictly conforms to Profile A invariants | - |
+
+## 6. Project Invariants
+- Aggregate roots enforce transactional boundary.
+- Transactional Outbox pattern mandatory for all asynchronously broadcast domain events.
+- Zero-stub guarantee: all error paths, retries, and edge cases fully implemented.

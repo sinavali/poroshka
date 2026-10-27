@@ -30,40 +30,152 @@ Bootstrap the canonical enterprise monorepo workspace for Promptjoo according to
 | `apps/web` | Profile B (Web) | Project manifest and Next.js targets |
 | `apps/mobile` | Profile C (Mobile) | Project manifest and React Native TypeScript targets |
 
-## 3. Code Surface (Targeted Symbols & Files)
-
-### Added Files
-- `nx.json`: Root Nx DAG configuration and task targets.
-- `package.json`: Monorepo root workspace dependencies and scripts.
-- `pnpm-workspace.yaml`: pnpm monorepo workspace package declarations.
-- `.pre-commit-config.yaml`: Mechanical compliance hooks for commits.
-- `docs/adr/ADR-001-zero-redis-hybrid-persistence.md`: Hybrid persistence architecture decision.
-- `docs/adr/ADR-002-zero-runtime-llm-block-forging.md`: Zero-LLM block forging architecture decision.
-- `docs/adr/ADR-003-cloudflare-worker-telegram-relay.md`: Cloudflare Telegram relay proxy decision.
-- `docs/adr/ADR-004-domestic-bale-failover-resilience.md`: Domestic Bale failover resilience decision.
-- `docs/adr/ADR-005-react-native-code-sharing.md`: React Native mobile client code sharing decision.
-- `docs/adr/ADR-006-dual-tier-sqlite-logging.md`: Dual-tier local SQLite logging decision.
-- `docs/nc/NC-001-zod-to-dart-openapi-pipeline.md`: Direct TypeScript sharing for mobile record.
-- `docs/nc/NC-002-ephemeral-vs-persistent-auth-state.md`: Redis-free ephemeral state record.
-- `docs/nc/NC-003-idempotency-key-wal-persistence.md`: Idempotency key persistence record.
-- `docs/nc/NC-004-pure-ads-anti-abuse-retention.md`: Pure ad model and retention record.
-- `packages/contracts/project.json`: Contracts Nx target definitions.
-- `packages/contracts/AGENT.md`: Profile D contracts manifest.
-- `packages/persian-normalizer/project.json`: Persian normalizer Nx target definitions.
-- `packages/persian-normalizer/AGENT.md`: Profile D normalizer manifest.
-- `packages/prompt-compiler/project.json`: Prompt compiler Nx target definitions.
-- `packages/prompt-compiler/AGENT.md`: Profile D prompt compiler manifest.
-- `services/core-api/project.json`: Core API Nx target definitions.
-- `services/core-api/AGENT.md`: Profile A core API manifest.
-- `services/tg-relay-worker/project.json`: Telegram relay worker Nx target definitions.
-- `services/tg-relay-worker/AGENT.md`: Profile A edge manifest.
-- `apps/web/project.json`: Web application Nx target definitions.
-- `apps/web/AGENT.md`: Profile B web manifest.
-- `apps/mobile/project.json`: Mobile React Native app Nx target definitions.
-- `apps/mobile/AGENT.md`: Profile C mobile manifest.
-
-### Modified Files
-- `promptjoo.md`: Master Source of Truth specification upgraded with remote database, local SQLite logging, and React Native mobile stack.
+## 3. Code Surface
+### Declared Touched Files
+- `.dockerignore`
+- `.env.example`
+- `.ep/`
+- `.github/`
+- `.gitignore`
+- `.runflareignore`
+- `AGENT.md`
+- `Dockerfile`
+- `Dockerfile.web`
+- `apps/mobile/AGENT.md`
+- `apps/mobile/app.json`
+- `apps/mobile/index.js`
+- `apps/mobile/metro.config.js`
+- `apps/mobile/project.json`
+- `apps/mobile/src/App.tsx`
+- `apps/mobile/src/components/PromptCard.tsx`
+- `apps/mobile/src/components/SlotEditor.tsx`
+- `apps/mobile/tests/mobile.spec.ts`
+- `apps/mobile/tsconfig.json`
+- `apps/web/AGENT.md`
+- `apps/web/next.config.ts`
+- `apps/web/package.json`
+- `apps/web/project.json`
+- `apps/web/public/fonts/`
+- `apps/web/tsconfig.json`
+- `apps/web/src/app/AppShell.tsx`
+- `apps/web/src/app/about/page.tsx`
+- `apps/web/src/app/admin/page.tsx`
+- `apps/web/src/app/api/`
+- `apps/web/src/app/contact/layout.tsx`
+- `apps/web/src/app/contact/page.tsx`
+- `apps/web/src/app/faq/page.tsx`
+- `apps/web/src/app/globals.css`
+- `apps/web/src/app/hub/`
+- `apps/web/src/app/layout.tsx`
+- `apps/web/src/app/my-prompts/layout.tsx`
+- `apps/web/src/app/my-prompts/page.tsx`
+- `apps/web/src/app/not-found.tsx`
+- `apps/web/src/app/p/[slug]/page.tsx`
+- `apps/web/src/app/page.tsx`
+- `apps/web/src/app/privacy/page.tsx`
+- `apps/web/src/app/robots.ts`
+- `apps/web/src/app/sitemap.xml/`
+- `apps/web/src/app/sitemaps/`
+- `apps/web/src/app/terms/page.tsx`
+- `apps/web/src/components/AdBanner.tsx`
+- `apps/web/src/components/AdPlacement.tsx`
+- `apps/web/src/components/AdminAdsTab.tsx`
+- `apps/web/src/components/AdminBatchUploader.tsx`
+- `apps/web/src/components/AdminBulkIngestionMetrics.tsx`
+- `apps/web/src/components/AdminBulkIngestionTab.tsx`
+- `apps/web/src/components/AdminCleanStartModal.tsx`
+- `apps/web/src/components/AdminDatasetsView.tsx`
+- `apps/web/src/components/AdminEmbeddingProfilesModal.tsx`
+- `apps/web/src/components/AdminEmbeddingTab.tsx`
+- `apps/web/src/components/AdminGeneralSettingsTab.tsx`
+- `apps/web/src/components/AdminParametersModal.tsx`
+- `apps/web/src/components/AdminPromptCreatorModal.tsx`
+- `apps/web/src/components/AdminPromptTagsModal.tsx`
+- `apps/web/src/components/AdminPromptsView.tsx`
+- `apps/web/src/components/AdminReportsView.tsx`
+- `apps/web/src/components/AdminSettingsView.tsx`
+- `apps/web/src/components/AdminTicketsView.tsx`
+- `apps/web/src/components/AdminUserProfileModal.tsx`
+- `apps/web/src/components/AdminUsersView.tsx`
+- `apps/web/src/components/AuthModal.tsx`
+- `apps/web/src/components/BlockForger.tsx`
+- `apps/web/src/components/Footer.tsx`
+- `apps/web/src/components/Header.tsx`
+- `apps/web/src/components/PersonalMemoryModal.tsx`
+- `apps/web/src/components/PoroshkaLogo.tsx`
+- `apps/web/src/components/PostCopyDrawer.tsx`
+- `apps/web/src/components/PromptCard.tsx`
+- `apps/web/src/components/PromptDetailClient.tsx`
+- `apps/web/src/components/PromptSearchCarousel.tsx`
+- `apps/web/src/components/ShareButton.tsx`
+- `apps/web/src/components/StyledSelect.tsx`
+- `apps/web/src/components/UserTicketsModal.tsx`
+- `apps/web/src/components/admin-ingestion-types.ts`
+- `apps/web/src/lib/api-client.ts`
+- `apps/web/src/lib/dataset-parser.ts`
+- `apps/web/src/lib/public-settings.tsx`
+- `apps/web/tests/web.spec.ts`
+- `docker-compose.yml`
+- `docs/PROMPT_INGESTION_STANDARDS.md`
+- `docs/adr/ADR-006-dual-tier-sqlite-logging.md`
+- `docs/slo/`
+- `package.json`
+- `packages/contracts/AGENT.md`
+- `packages/contracts/openapi-v1.json`
+- `packages/contracts/package.json`
+- `packages/contracts/project.json`
+- `packages/contracts/src/bin/`
+- `packages/contracts/src/catalog.schema.ts`
+- `packages/contracts/src/monetization.schema.ts`
+- `packages/contracts/tsconfig.json`
+- `packages/contracts/tsconfig.lib.json`
+- `packages/persian-normalizer/AGENT.md`
+- `packages/persian-normalizer/project.json`
+- `packages/persian-normalizer/tsconfig.json`
+- `packages/prompt-compiler/AGENT.md`
+- `packages/prompt-compiler/project.json`
+- `packages/prompt-compiler/src/index.ts`
+- `packages/prompt-compiler/tests/compiler.spec.ts`
+- `packages/prompt-compiler/tsconfig.json`
+- `packages/prompt-compiler/tsconfig.lib.json`
+- `pnpm-lock.yaml`
+- `scripts/bundle-runflare-web.js`
+- `scripts/deploy-runflare.sh`
+- `scripts/deploy-unified-docker.sh`
+- `scripts/export-dataset.js`
+- `scripts/import-dataset.js`
+- `scripts/start-all.js`
+- `services/core-api/AGENT.md`
+- `services/core-api/package.json`
+- `services/core-api/project.json`
+- `services/core-api/src/bootstrap/main.ts`
+- `services/core-api/src/bootstrap/scheduler.ts`
+- `services/core-api/src/bootstrap/server.ts`
+- `services/core-api/src/infrastructure/ai/`
+- `services/core-api/src/infrastructure/cache/`
+- `services/core-api/src/infrastructure/database/client.ts`
+- `services/core-api/src/infrastructure/database/migrate.ts`
+- `services/core-api/src/infrastructure/http-clients/altcha.validator.ts`
+- `services/core-api/src/infrastructure/sms/melipayamak.client.ts`
+- `services/core-api/src/modules/admin/admin-embedding.routes.ts`
+- `services/core-api/src/modules/admin/admin-sessions.routes.ts`
+- `services/core-api/src/modules/admin/admin.routes.ts`
+- `services/core-api/src/modules/campaigns/campaigns.routes.ts`
+- `services/core-api/src/modules/catalog/catalog.routes.ts`
+- `services/core-api/src/modules/identity/identity.routes.ts`
+- `services/core-api/src/modules/ingestion/atomic-decomposer.service.ts`
+- `services/core-api/src/modules/ingestion/bulk-ingestion.routes.ts`
+- `services/core-api/src/modules/ingestion/bulk-ingestion.service.ts`
+- `services/core-api/src/modules/ingestion/dataset-import.service.ts`
+- `services/core-api/src/modules/ingestion/ingestion.routes.ts`
+- `services/core-api/src/modules/ingestion/llm-enricher.service.ts`
+- `services/core-api/src/modules/ingestion/seed-fixtures.ts`
+- `services/core-api/src/modules/tickets/`
+- `services/core-api/tests/api.spec.ts`
+- `services/tg-relay-worker/AGENT.md`
+- `services/tg-relay-worker/project.json`
+- `services/tg-relay-worker/src/index.ts`
+- `services/tg-relay-worker/tsconfig.json`
 
 ## 4. Test Surface
 

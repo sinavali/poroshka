@@ -24,16 +24,29 @@ export const BilingualPresetOptionSchema = z.object({
   value_en: z.string().min(1).max(160)
 }).openapi('BilingualPresetOption');
 
+export const PromptSlotInputTypeSchema = z.enum([
+  'SHORT_TEXT',
+  'LONG_TEXT',
+  'SELECT_CHIP',
+  'text',
+  'textarea',
+  'select'
+]).openapi('PromptSlotInputType');
+
 export const PromptSlotSchema = z.object({
   slot_key: z.string().regex(/^[a-z0-9_]+$/),
   label_fa: z.string().min(1).max(80),
-  placeholder_fa: z.string().max(120),
-  input_type: z.enum(['SHORT_TEXT', 'LONG_TEXT', 'SELECT_CHIP']),
-  default_value_en: z.string().min(1),
+  placeholder_fa: z.string().max(120).default(''),
+  input_type: PromptSlotInputTypeSchema,
+  default_value_en: z.string().default(''),
+  default_value: z.string().optional(),
   profile_binding_key: z.enum([
     'NONE', 'BRAND_NAME', 'NICHE_TOPIC', 'TARGET_AUDIENCE', 'BRAND_TONE', 'CALL_TO_ACTION'
   ]).default('NONE'),
-  preset_options: z.array(BilingualPresetOptionSchema).default([])
+  preset_options: z.array(BilingualPresetOptionSchema).default([]),
+  options: z.array(z.union([z.string(), BilingualPresetOptionSchema])).default([]),
+  is_required: z.boolean().default(false),
+  priority: z.number().int().default(1)
 }).openapi('PromptSlot');
 
 export const SavedContextProfileSchema = z.object({
@@ -83,15 +96,19 @@ export const PromptListItemSchema = z.object({
   created_at: z.string().datetime()
 }).openapi('PromptListItem');
 
+export const FaqItemSchema = z.object({
+  question: z.string().optional(),
+  answer: z.string().optional(),
+  q_fa: z.string().optional(),
+  a_fa: z.string().optional()
+}).openapi('FaqItem');
+
 export const PromptDetailSchema = PromptListItemSchema.extend({
   direct_answer_summary_fa: z.string(),
   search_keywords_fa: z.string(),
   template_en: z.string().min(10),
   slots_schema_json: z.array(PromptSlotSchema),
-  faq_schema_json: z.array(z.object({
-    q_fa: z.string(),
-    a_fa: z.string()
-  })),
+  faq_schema_json: z.array(FaqItemSchema),
   preview_alt_fa: z.string().nullable(),
   is_saved: z.boolean().default(false)
 }).openapi('PromptDetail');
@@ -114,3 +131,4 @@ export type Category = z.infer<typeof CategorySchema>;
 export type PromptListItem = z.infer<typeof PromptListItemSchema>;
 export type PromptDetail = z.infer<typeof PromptDetailSchema>;
 export type AtomicBlock = z.infer<typeof AtomicBlockSchema>;
+export type FaqItem = z.infer<typeof FaqItemSchema>;

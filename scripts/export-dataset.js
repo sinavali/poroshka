@@ -19,7 +19,11 @@ if (!fs.existsSync(DATASETS_DIR)) {
   fs.mkdirSync(DATASETS_DIR, { recursive: true });
 }
 
-const DATABASE_URL = process.env.DATABASE_URL || 'postgresql://postgres:jsF68GOoGS5inojpHmRa@remote-respina-free.runflare.com:31725/promptjoo_db';
+const DATABASE_URL = process.env.DATABASE_URL;
+if (!DATABASE_URL) {
+  console.error('\x1b[31mError:\x1b[0m DATABASE_URL environment variable is required');
+  process.exit(1);
+}
 
 const { Pool } = pg;
 const pool = new Pool({ connectionString: DATABASE_URL });

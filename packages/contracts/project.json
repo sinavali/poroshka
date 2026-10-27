@@ -16,12 +16,13 @@
     "lint": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "echo 'Contracts lint passed'",
+        "command": "tsc --noEmit -p tsconfig.json",
         "cwd": "packages/contracts"
       }
     },
     "test": {
       "executor": "nx:run-commands",
+      "dependsOn": ["build"],
       "options": {
         "command": "node --test tests/*.spec.ts",
         "cwd": "packages/contracts"
@@ -29,14 +30,9 @@
     },
     "export-openapi": {
       "executor": "nx:run-commands",
+      "dependsOn": ["build"],
       "options": {
-        "command": "node packages/contracts/src/bin/export-openapi.ts"
-      }
-    },
-    "generate-dart": {
-      "executor": "nx:run-commands",
-      "options": {
-        "command": "cd apps/mobile && dart run swagger_parser"
+        "command": "node packages/contracts/dist/src/bin/export-openapi.js && cp packages/contracts/dist/openapi-v1.json packages/contracts/openapi-v1.json"
       }
     },
     "audit": {

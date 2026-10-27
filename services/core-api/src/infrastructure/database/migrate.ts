@@ -4,7 +4,12 @@ import { logger } from '../observability/pino-logger.ts';
 
 const { Client } = pg;
 
-const DATABASE_URL = process.env.DATABASE_URL || 'postgresql://postgres:jsF68GOoGS5inojpHmRa@remote-respina-free.runflare.com:31725/promptjoo_db';
+const defaultDevDb = process.env.NODE_ENV === 'development' ? (process.env.DEV_DATABASE_URL || 'postgresql://localhost:5432/poroshka_dev') : undefined;
+const rawDatabaseUrl = process.env.DATABASE_URL || defaultDevDb;
+if (!rawDatabaseUrl) {
+  throw new Error('DATABASE_URL environment variable is required');
+}
+const DATABASE_URL: string = rawDatabaseUrl;
 
 const DDL = `
 -- Extensions
@@ -78,10 +83,10 @@ END $$;
 -- 1. Categories
 CREATE TABLE IF NOT EXISTS categories (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  slug VARCHAR(80) UNIQUE NOT NULL,
-  title_fa VARCHAR(120) NOT NULL,
+  slug TEXT UNIQUE NOT NULL,
+  title_fa TEXT NOT NULL,
   description_fa TEXT NOT NULL,
-  icon_name VARCHAR(60) NOT NULL,
+  icon_name TEXT NOT NULL,
   primary_modality prompt_modality NOT NULL,
   sort_order INT NOT NULL DEFAULT 0,
   is_active BOOLEAN NOT NULL DEFAULT TRUE,
@@ -91,16 +96,16 @@ CREATE TABLE IF NOT EXISTS categories (
 -- 2. Prompts Table
 CREATE TABLE IF NOT EXISTS prompts (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  slug VARCHAR(160) UNIQUE NOT NULL,
+  slug TEXT UNIQUE NOT NULL,
   content_hash CHAR(64) UNIQUE NOT NULL,
-  external_source_id VARCHAR(160) UNIQUE,
+  external_source_id TEXT UNIQUE,
   modality prompt_modality NOT NULL,
   category_id UUID NOT NULL REFERENCES categories(id),
   requires_image_upload BOOLEAN NOT NULL DEFAULT FALSE,
-  supported_models VARCHAR(40)[] NOT NULL DEFAULT '{chatgpt,gemini}',
+  supported_models TEXT[] NOT NULL DEFAULT '{chatgpt,gemini}',
   
-  title_fa VARCHAR(200) NOT NULL,
-  short_desc_fa VARCHAR(320) NOT NULL,
+  title_fa TEXT NOT NULL,
+  short_desc_fa TEXT NOT NULL,
   direct_answer_summary_fa TEXT NOT NULL,
   search_keywords_fa TEXT NOT NULL,
   faq_schema_json JSONB NOT NULL DEFAULT '[]'::jsonb,
@@ -110,8 +115,8 @@ CREATE TABLE IF NOT EXISTS prompts (
   
   preview_after_webp_url TEXT,
   preview_before_webp_url TEXT,
-  preview_blurhash VARCHAR(64),
-  preview_alt_fa VARCHAR(220),
+  preview_blurhash TEXT,
+  preview_alt_fa TEXT,
   needs_custom_preview BOOLEAN NOT NULL DEFAULT FALSE,
   
   embedding vector(1024) NOT NULL,
@@ -122,6 +127,7 @@ CREATE TABLE IF NOT EXISTS prompts (
   trending_score_7d REAL NOT NULL DEFAULT 0.0,
   is_admin_locked BOOLEAN NOT NULL DEFAULT FALSE,
   is_published BOOLEAN NOT NULL DEFAULT TRUE,
+  is_ai_enriched BOOLEAN NOT NULL DEFAULT FALSE,
   created_at TIMESTAMPTZ NOT NULL DEFAULT (NOW() AT TIME ZONE 'UTC'),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT (NOW() AT TIME ZONE 'UTC')
 );
@@ -141,7 +147,7 @@ CREATE TABLE IF NOT EXISTS prompt_blocks (
   source_prompt_id UUID REFERENCES prompts(id) ON DELETE SET NULL,
   block_type prompt_block_type NOT NULL,
   modality prompt_modality NOT NULL,
-  title_fa VARCHAR(160) NOT NULL,
+  title_fa TEXT NOT NULL,
   block_template_en TEXT NOT NULL,
   slots_schema_json JSONB NOT NULL DEFAULT '[]'::jsonb,
   embedding vector(1024) NOT NULL,
@@ -156,7 +162,7 @@ CREATE INDEX IF NOT EXISTS idx_prompt_blocks_filter ON prompt_blocks (block_type
 -- 4. Query Embedding Cache
 CREATE TABLE IF NOT EXISTS query_embedding_cache (
   normalized_query_hash CHAR(64) PRIMARY KEY,
-  normalized_query_text VARCHAR(255) NOT NULL,
+  normalized_query_text TEXT NOT NULL,
   embedding vector(1024) NOT NULL,
   hit_count INT NOT NULL DEFAULT 1,
   last_used_at TIMESTAMPTZ NOT NULL DEFAULT (NOW() AT TIME ZONE 'UTC')
@@ -165,24 +171,25 @@ CREATE TABLE IF NOT EXISTS query_embedding_cache (
 -- 5. Users
 CREATE TABLE IF NOT EXISTS users (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  phone_e164 VARCHAR(16) UNIQUE NOT NULL,
-  password_hash VARCHAR(255),
+  phone_e164 TEXT UNIQUE NOT NULL,
+  password_hash TEXT,
   is_phone_verified BOOLEAN NOT NULL DEFAULT FALSE,
   telegram_chat_id BIGINT UNIQUE,
   bale_chat_id BIGINT UNIQUE,
   web_push_subscription_json JSONB,
   saved_context_profile_json JSONB NOT NULL DEFAULT '{}'::jsonb,
-  role VARCHAR(20) NOT NULL DEFAULT 'USER',
+  role TEXT NOT NULL DEFAULT 'USER',
   is_blocked BOOLEAN NOT NULL DEFAULT FALSE,
   last_login_at TIMESTAMPTZ,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT (NOW() AT TIME ZONE 'UTC')
+  created_at TIMESTAMPTZ NOT NULL DEFAULT (NOW() AT TIME ZONE 'UTC'),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT (NOW() AT TIME ZONE 'UTC')
 );
 
 -- 6. Persistent Auth Sessions
 CREATE TABLE IF NOT EXISTS auth_sessions (
   token_hash CHAR(64) PRIMARY KEY,
   user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  device_label VARCHAR(120),
+  device_label TEXT,
   ip_address INET,
   last_active_at TIMESTAMPTZ NOT NULL DEFAULT (NOW() AT TIME ZONE 'UTC'),
   expires_at TIMESTAMPTZ NOT NULL,
@@ -200,11 +207,73 @@ CREATE TABLE IF NOT EXISTS user_saved_prompts (
   PRIMARY KEY (user_id, prompt_id)
 );
 
+-- 7b. User Copied Prompts
+CREATE TABLE IF NOT EXISTS user_copied_prompts (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+  client_uuid TEXT,
+  prompt_id UUID REFERENCES prompts(id) ON DELETE SET NULL,
+  custom_category_id UUID REFERENCES categories(id) ON DELETE SET NULL,
+  custom_title_fa TEXT,
+  custom_modality TEXT,
+  custom_values_json JSONB NOT NULL DEFAULT '{}'::jsonb,
+  compiled_text TEXT NOT NULL,
+  copy_count INT NOT NULL DEFAULT 1,
+  last_copied_at TIMESTAMPTZ NOT NULL DEFAULT (NOW() AT TIME ZONE 'UTC'),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT (NOW() AT TIME ZONE 'UTC')
+);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_user_copied_user_prompt ON user_copied_prompts (user_id, prompt_id) WHERE user_id IS NOT NULL AND prompt_id IS NOT NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS idx_user_copied_client_prompt ON user_copied_prompts (client_uuid, prompt_id) WHERE user_id IS NULL AND prompt_id IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_user_copied_user ON user_copied_prompts (user_id);
+CREATE INDEX IF NOT EXISTS idx_user_copied_client ON user_copied_prompts (client_uuid);
+CREATE INDEX IF NOT EXISTS idx_user_copied_last ON user_copied_prompts (last_copied_at DESC);
+
+-- 7c. Ticketing System
+CREATE TABLE IF NOT EXISTS tickets (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  subject TEXT NOT NULL,
+  category TEXT NOT NULL DEFAULT 'general',
+  priority TEXT NOT NULL DEFAULT 'MEDIUM',
+  status TEXT NOT NULL DEFAULT 'OPEN',
+  target_role TEXT NOT NULL DEFAULT 'OPERATOR',
+  last_message_at TIMESTAMPTZ NOT NULL DEFAULT (NOW() AT TIME ZONE 'UTC'),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT (NOW() AT TIME ZONE 'UTC'),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT (NOW() AT TIME ZONE 'UTC')
+);
+CREATE INDEX IF NOT EXISTS idx_tickets_user ON tickets (user_id);
+CREATE INDEX IF NOT EXISTS idx_tickets_status ON tickets (status);
+CREATE INDEX IF NOT EXISTS idx_tickets_target_role ON tickets (target_role);
+CREATE INDEX IF NOT EXISTS idx_tickets_last_msg ON tickets (last_message_at DESC);
+
+CREATE TABLE IF NOT EXISTS ticket_messages (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  ticket_id UUID NOT NULL REFERENCES tickets(id) ON DELETE CASCADE,
+  sender_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  sender_role TEXT NOT NULL,
+  message TEXT NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT (NOW() AT TIME ZONE 'UTC')
+);
+CREATE INDEX IF NOT EXISTS idx_ticket_messages_ticket ON ticket_messages (ticket_id, created_at ASC);
+
+-- 7c. System Settings
+CREATE TABLE IF NOT EXISTS system_settings (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  setting_key TEXT UNIQUE NOT NULL,
+  category TEXT NOT NULL DEFAULT 'general',
+  description_fa TEXT NOT NULL DEFAULT '',
+  setting_value JSONB NOT NULL DEFAULT '{}'::jsonb,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT (NOW() AT TIME ZONE 'UTC'),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT (NOW() AT TIME ZONE 'UTC')
+);
+CREATE INDEX IF NOT EXISTS idx_system_settings_category ON system_settings (category);
+CREATE INDEX IF NOT EXISTS idx_system_settings_key ON system_settings (setting_key);
+
 -- 8. Ingestion Batches
 CREATE TABLE IF NOT EXISTS ingestion_batches (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  batch_name VARCHAR(160) NOT NULL,
-  source_filename VARCHAR(255) NOT NULL,
+  batch_name TEXT NOT NULL,
+  source_filename TEXT NOT NULL,
   total_rows INT NOT NULL DEFAULT 0,
   processed_rows INT NOT NULL DEFAULT 0,
   skipped_duplicates INT NOT NULL DEFAULT 0,
@@ -236,23 +305,45 @@ CREATE TABLE IF NOT EXISTS ingestion_items (
 );
 CREATE INDEX IF NOT EXISTS idx_ingestion_items_worker ON ingestion_items (batch_id, status, retry_count);
 
+-- 8b. Bulk Ingestion Jobs (Smart Background Processing for ~118k Prompts)
+CREATE TABLE IF NOT EXISTS bulk_ingestion_jobs (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  status TEXT NOT NULL DEFAULT 'IDLE',
+  total_items INT NOT NULL DEFAULT 0,
+  processed_items INT NOT NULL DEFAULT 0,
+  enriched_items INT NOT NULL DEFAULT 0,
+  skipped_items INT NOT NULL DEFAULT 0,
+  failed_items INT NOT NULL DEFAULT 0,
+  current_slug TEXT,
+  batch_size INT NOT NULL DEFAULT 10,
+  delay_ms INT NOT NULL DEFAULT 300,
+  provider_used TEXT,
+  model_used TEXT,
+  last_error TEXT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT (NOW() AT TIME ZONE 'UTC'),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT (NOW() AT TIME ZONE 'UTC'),
+  completed_at TIMESTAMPTZ
+);
+CREATE INDEX IF NOT EXISTS idx_bulk_ingestion_jobs_status ON bulk_ingestion_jobs (status);
+
 -- 9. Ad Network Configs (Yektanet & Tapsell)
 CREATE TABLE IF NOT EXISTS ad_network_configs (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   placement_slot ad_placement_slot NOT NULL,
-  provider VARCHAR(30) NOT NULL,
-  zone_id VARCHAR(120) NOT NULL,
+  provider TEXT NOT NULL,
+  zone_id TEXT NOT NULL,
   script_tag_html TEXT,
   target_modalities prompt_modality[] DEFAULT NULL,
   is_active BOOLEAN NOT NULL DEFAULT TRUE,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT (NOW() AT TIME ZONE 'UTC')
+  created_at TIMESTAMPTZ NOT NULL DEFAULT (NOW() AT TIME ZONE 'UTC'),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT (NOW() AT TIME ZONE 'UTC')
 );
 
 -- 10. Persistent Idempotency Keys
 CREATE TABLE IF NOT EXISTS idempotency_keys (
   idempotency_key UUID PRIMARY KEY,
-  actor_scope VARCHAR(120) NOT NULL,
-  endpoint_path VARCHAR(160) NOT NULL,
+  actor_scope TEXT NOT NULL,
+  endpoint_path TEXT NOT NULL,
   request_hash CHAR(64) NOT NULL,
   response_status SMALLINT,
   response_body_json JSONB,
@@ -264,9 +355,9 @@ CREATE INDEX IF NOT EXISTS idx_idempotency_exp ON idempotency_keys (expires_at);
 -- 11. Transactional Outbox
 CREATE TABLE IF NOT EXISTS outbox_events (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  aggregate_type VARCHAR(60) NOT NULL,
-  aggregate_id VARCHAR(120) NOT NULL,
-  event_type VARCHAR(80) NOT NULL,
+  aggregate_type TEXT NOT NULL,
+  aggregate_id TEXT NOT NULL,
+  event_type TEXT NOT NULL,
   payload_json JSONB NOT NULL,
   status outbox_status NOT NULL DEFAULT 'PENDING',
   retry_count SMALLINT NOT NULL DEFAULT 0,
@@ -280,10 +371,10 @@ CREATE INDEX IF NOT EXISTS idx_outbox_pending ON outbox_events (status, next_att
 -- 12. Autovacuum-Tuned Ephemeral Tables
 CREATE UNLOGGED TABLE IF NOT EXISTS otp_challenges (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  phone_e164 VARCHAR(16) NOT NULL,
-  purpose VARCHAR(24) NOT NULL,
+  phone_e164 TEXT NOT NULL,
+  purpose TEXT NOT NULL,
   code_hash CHAR(64) NOT NULL,
-  messenger_token VARCHAR(48) UNIQUE,
+  messenger_token TEXT UNIQUE,
   attempts SMALLINT NOT NULL DEFAULT 0,
   is_consumed BOOLEAN NOT NULL DEFAULT FALSE,
   expires_at TIMESTAMPTZ NOT NULL,
@@ -297,7 +388,7 @@ CREATE UNLOGGED TABLE IF NOT EXISTS otp_challenges (
 CREATE INDEX IF NOT EXISTS idx_otp_phone_purpose ON otp_challenges (phone_e164, purpose, expires_at);
 
 CREATE UNLOGGED TABLE IF NOT EXISTS rate_limit_buckets (
-  bucket_key VARCHAR(140) PRIMARY KEY,
+  bucket_key TEXT PRIMARY KEY,
   hit_count INT NOT NULL DEFAULT 1,
   expires_at TIMESTAMPTZ NOT NULL
 ) WITH (
@@ -311,7 +402,7 @@ CREATE INDEX IF NOT EXISTS idx_rate_limit_exp ON rate_limit_buckets (expires_at)
 CREATE UNLOGGED TABLE IF NOT EXISTS prompt_metrics_buffer (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   prompt_id UUID NOT NULL,
-  metric_type VARCHAR(20) NOT NULL,
+  metric_type TEXT NOT NULL,
   created_at TIMESTAMPTZ NOT NULL DEFAULT (NOW() AT TIME ZONE 'UTC')
 ) WITH (
   fillfactor = 70,
@@ -319,6 +410,7 @@ CREATE UNLOGGED TABLE IF NOT EXISTS prompt_metrics_buffer (
   autovacuum_vacuum_threshold = 50,
   autovacuum_vacuum_cost_limit = 1000
 );
+CREATE INDEX IF NOT EXISTS idx_metrics_buffer ON prompt_metrics_buffer (prompt_id, metric_type);
 CREATE INDEX IF NOT EXISTS idx_metrics_buffer ON prompt_metrics_buffer (prompt_id, metric_type);
 `;
 
@@ -330,6 +422,37 @@ async function runMigration() {
   try {
     logger.info('Executing DDL migrations...');
     await client.query(DDL);
+
+    // Idempotent column migrations for existing databases
+    await client.query(`
+      ALTER TABLE user_copied_prompts ADD COLUMN IF NOT EXISTS custom_category_id UUID REFERENCES categories(id) ON DELETE SET NULL;
+      ALTER TABLE tickets ADD COLUMN IF NOT EXISTS target_role TEXT NOT NULL DEFAULT 'OPERATOR';
+      ALTER TABLE tickets ADD COLUMN IF NOT EXISTS last_message_at TIMESTAMPTZ NOT NULL DEFAULT (NOW() AT TIME ZONE 'UTC');
+      ALTER TABLE prompts ADD COLUMN IF NOT EXISTS is_ai_enriched BOOLEAN NOT NULL DEFAULT FALSE;
+      ALTER TABLE ad_network_configs ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ NOT NULL DEFAULT (NOW() AT TIME ZONE 'UTC');
+      ALTER TABLE system_settings ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ NOT NULL DEFAULT (NOW() AT TIME ZONE 'UTC');
+      DO $$ BEGIN
+        ALTER TABLE system_settings ADD CONSTRAINT uq_system_settings_key UNIQUE (setting_key);
+      EXCEPTION WHEN duplicate_table OR duplicate_object THEN null;
+      END $$;
+      CREATE INDEX IF NOT EXISTS idx_prompts_is_ai_enriched ON prompts (is_ai_enriched);
+      CREATE INDEX IF NOT EXISTS idx_prompts_published_enriched ON prompts (is_published, is_ai_enriched);
+
+      -- Harmonize all character varying columns to text (as per production schema upgrade)
+      DO $$
+      DECLARE
+        col_rec RECORD;
+      BEGIN
+        FOR col_rec IN (
+          SELECT table_name, column_name
+          FROM information_schema.columns
+          WHERE table_schema = 'public'
+            AND data_type = 'character varying'
+        ) LOOP
+          EXECUTE format('ALTER TABLE %I ALTER COLUMN %I TYPE text', col_rec.table_name, col_rec.column_name);
+        END LOOP;
+      END $$;
+    `);
     logger.info('All DDL migrations executed successfully.');
 
     // Seed default Categories if empty
@@ -355,18 +478,41 @@ async function runMigration() {
       logger.info('Categories seeded.');
     }
 
-    // Seed default Superadmin if not exists
-    const adminPhone = '+989000000000';
-    const adminCheck = await client.query('SELECT id FROM users WHERE phone_e164 = $1', [adminPhone]);
-    if (adminCheck.rows.length === 0) {
-      logger.info('Seeding initial Superadmin account...');
-      const passwordHash = await argon2.hash('promptjoo123456');
-      await client.query(
-        `INSERT INTO users (phone_e164, password_hash, is_phone_verified, role)
-         VALUES ($1, $2, true, 'ADMIN')`,
-        [adminPhone, passwordHash]
-      );
-      logger.info('Default Superadmin seeded (+989000000000 / promptjoo123456).');
+    // Seed Superadmin if ADMIN_PHONE and ADMIN_PASSWORD env vars provided
+    const adminPhone = process.env.ADMIN_PHONE;
+    const adminPassword = process.env.ADMIN_PASSWORD;
+    if (adminPhone && adminPassword) {
+      const adminCheck = await client.query('SELECT id FROM users WHERE phone_e164 = $1', [adminPhone]);
+      if (adminCheck.rows.length === 0) {
+        logger.info({ adminPhone }, 'Seeding Superadmin account from environment variables...');
+        const passwordHash = await argon2.hash(adminPassword);
+        await client.query(
+          `INSERT INTO users (phone_e164, password_hash, is_phone_verified, role)
+           VALUES ($1, $2, true, 'ADMIN')`,
+          [adminPhone, passwordHash]
+        );
+        logger.info('Superadmin account seeded successfully.');
+      }
+    } else {
+      logger.info('ADMIN_PHONE and/or ADMIN_PASSWORD not set, skipping superadmin seeding.');
+    }
+
+    // Seed default system_settings if empty
+    const settingsCheck = await client.query('SELECT COUNT(*) FROM system_settings');
+    if (parseInt(settingsCheck.rows[0].count, 10) === 0) {
+      logger.info('Seeding default system settings...');
+      const defaultSettings = [
+        ['sms_provider_config', 'infrastructure', 'تنظیمات درگاه پیامک ملی پیامک', { provider: 'melipayamak', is_active: true, simulation_mode: true }],
+        ['llm_provider_config', 'ai_engines', 'تنظیمات موتورهای هوش مصنوعی پردازش پرامپت', { provider: 'gemini', model: 'gemini-1.5-flash', is_active: false }]
+      ];
+      for (const s of defaultSettings) {
+        await client.query(
+          `INSERT INTO system_settings (setting_key, category, description_fa, setting_value)
+           VALUES ($1, $2, $3, $4) ON CONFLICT (setting_key) DO NOTHING`,
+          [s[0], s[1], s[2], JSON.stringify(s[3])]
+        );
+      }
+      logger.info('Default system settings seeded.');
     }
 
     // Seed default Yektanet / Tapsell Ad Network configs

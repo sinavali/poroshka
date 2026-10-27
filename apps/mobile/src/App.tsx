@@ -8,13 +8,14 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   StyleSheet,
-  StatusBar
+  StatusBar,
+  Clipboard
 } from 'react-native';
 import { PromptCard } from './components/PromptCard';
 import { SlotEditor } from './components/SlotEditor';
 import type { AppState, MobilePrompt } from './types';
 
-const API_BASE = 'https://core-api.promptjoo.ir';
+const API_BASE = 'https://core-api.poroshka.ir';
 
 export function App() {
   const [state, setState] = useState<AppState>({
@@ -27,7 +28,7 @@ export function App() {
       brand_name: '',
       niche_topic: '',
       target_audience: '',
-      brand_tone: 'صمیمی و حرفه‌ای',
+      brand_tone: 'CASUAL',
       call_to_action: ''
     }
   });
@@ -35,7 +36,7 @@ export function App() {
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   const fetchPrompts = async (modality = 'all', query = '') => {
-    setState((prev) => ({ ...prev, status: 'loading' }));
+    setState((prev: AppState) => ({ ...prev, status: 'loading' }));
     try {
       let url = `${API_BASE}/api/v1/catalog/prompts?limit=25`;
       if (modality !== 'all') url += `&modality=${modality}`;
@@ -46,14 +47,14 @@ export function App() {
       const data = await res.json();
       const items: MobilePrompt[] = data.items || [];
 
-      setState((prev) => ({
+      setState((prev: AppState) => ({
         ...prev,
         status: items.length === 0 ? 'empty' : 'loaded',
         prompts: items
       }));
     } catch (err: unknown) {
       // Fallback offline state
-      setState((prev) => ({
+      setState((prev: AppState) => ({
         ...prev,
         status: prev.prompts.length > 0 ? 'loaded' : 'failure',
         error: 'امکان اتصال به سرور وجود ندارد. لطفاً اینترنت خود را بررسی کنید.'
@@ -71,6 +72,9 @@ export function App() {
   };
 
   const handleQuickCopy = (prompt: MobilePrompt) => {
+    try {
+      Clipboard.setString(prompt.template_en);
+    } catch {}
     showToast(`پرامپت «${prompt.title_fa}» کپی شد!`);
   };
 
@@ -82,8 +86,11 @@ export function App() {
         <SlotEditor
           prompt={state.selectedPrompt}
           userProfile={state.userProfile}
-          onBack={() => setState((prev) => ({ ...prev, selectedPrompt: null }))}
-          onCopy={(text) => {
+          onBack={() => setState((prev: AppState) => ({ ...prev, selectedPrompt: null }))}
+          onCopy={(text: string) => {
+            try {
+              Clipboard.setString(text);
+            } catch {}
             showToast('پرامپت نهایی با موفقیت کپی شد!');
           }}
         />
@@ -97,7 +104,7 @@ export function App() {
 
       {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.brandTitle}>پرامپت‌جو</Text>
+        <Text style={styles.brandTitle}>پوروشکا</Text>
         <Text style={styles.brandSubtitle}>مرجع تخصصی پرامپت هوش مصنوعی</Text>
       </View>
 
@@ -108,18 +115,18 @@ export function App() {
           placeholder="جستجو در صدها پرامپت آماده..."
           placeholderTextColor="#64748b"
           value={state.searchQuery}
-          onChangeText={(text) => setState((prev) => ({ ...prev, searchQuery: text }))}
+          onChangeText={(text: string) => setState((prev: AppState) => ({ ...prev, searchQuery: text }))}
           onSubmitEditing={() => fetchPrompts(state.selectedModality, state.searchQuery)}
         />
       </View>
 
       {/* Modality Chips */}
       <View style={styles.chipsContainer}>
-        {['all', 'text_writing', 'text_to_image', 'image_edit', 'data_structuring', 'code_tech'].map((m) => (
+        {['all', 'text_writing', 'text_to_image', 'image_edit', 'data_structuring', 'code_tech'].map((m: string) => (
           <TouchableOpacity
             key={m}
             style={[styles.chip, state.selectedModality === m && styles.chipActive]}
-            onPress={() => setState((prev) => ({ ...prev, selectedModality: m }))}
+            onPress={() => setState((prev: AppState) => ({ ...prev, selectedModality: m }))}
           >
             <Text style={[styles.chipText, state.selectedModality === m && styles.chipTextActive]}>
               {m === 'all' ? 'همه' : m === 'text_writing' ? 'محتوا' : m === 'text_to_image' ? 'تصویر' : m === 'image_edit' ? 'ادیت' : m === 'data_structuring' ? 'اکسل' : 'کد'}
@@ -161,7 +168,7 @@ export function App() {
           renderItem={({ item }) => (
             <PromptCard
               prompt={item}
-              onPress={(p) => setState((prev) => ({ ...prev, selectedPrompt: p }))}
+              onPress={(p: MobilePrompt) => setState((prev: AppState) => ({ ...prev, selectedPrompt: p }))}
               onQuickCopy={handleQuickCopy}
             />
           )}

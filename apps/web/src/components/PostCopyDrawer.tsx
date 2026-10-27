@@ -13,13 +13,17 @@ interface PostCopyDrawerProps {
 
 export function PostCopyDrawer({ isOpen, onClose, compiledText, promptTitle }: PostCopyDrawerProps) {
   useEffect(() => {
+    if (!isOpen) return;
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose();
     };
-    if (isOpen) {
-      window.addEventListener('keydown', handleKeyDown);
-    }
-    return () => window.removeEventListener('keydown', handleKeyDown);
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.body.style.overflow = prevOverflow;
+      window.removeEventListener('keydown', handleKeyDown);
+    };
   }, [isOpen, onClose]);
 
   if (!isOpen) return null;
@@ -29,7 +33,13 @@ export function PostCopyDrawer({ isOpen, onClose, compiledText, promptTitle }: P
   const geminiUrl = 'https://gemini.google.com/app';
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center sm:justify-end bg-slate-900/40 backdrop-blur-md animate-fade-in">
+    <div
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+      style={{ margin: 0, marginTop: 0 }}
+      className="fixed inset-0 top-0 left-0 right-0 bottom-0 z-50 flex items-end sm:items-center justify-center sm:justify-end bg-slate-900/50 backdrop-blur-md animate-fade-in w-screen h-screen !m-0 !mt-0"
+    >
       <div className="w-full sm:max-w-md h-[88vh] sm:h-full glass-dropdown rounded-t-[32px] sm:rounded-none sm:rounded-r-none sm:rounded-l-3xl border-t sm:border-t-0 sm:border-r border-slate-200/80 p-6 flex flex-col justify-between overflow-y-auto animate-fade-in shadow-2xl">
         <div>
           {/* Tactile Mobile Grab Handle */}
@@ -69,8 +79,8 @@ export function PostCopyDrawer({ isOpen, onClose, compiledText, promptTitle }: P
                   <Bot className="w-4 h-4" />
                 </div>
                 <div className="text-right">
-                  <div className="text-xs font-bold text-slate-900 group-hover:text-emerald-700 spring-transition">اجرا در ChatGPT 4o</div>
-                  <div className="text-[10px] text-slate-500">ارسال خودکار متن پرامپت به چت</div>
+                  <div className="text-xs font-bold text-slate-900 group-hover:text-emerald-700 spring-transition">اجرا در چت‌جی‌پی‌تی (ChatGPT)</div>
+                  <div className="text-[10px] text-slate-500">ارسال خودکار متن پرامپت به گفتگو</div>
                 </div>
               </div>
               <ExternalLink className="w-4 h-4 text-slate-400 group-hover:text-emerald-600 spring-transition" />
@@ -87,8 +97,8 @@ export function PostCopyDrawer({ isOpen, onClose, compiledText, promptTitle }: P
                   <Sparkles className="w-4 h-4" />
                 </div>
                 <div className="text-right">
-                  <div className="text-xs font-bold text-slate-900 group-hover:text-blue-700 spring-transition">اجرا در Google Gemini</div>
-                  <div className="text-[10px] text-slate-500">پشتیبانی همزمان از متن و فایل تصویری</div>
+                  <div className="text-xs font-bold text-slate-900 group-hover:text-blue-700 spring-transition">اجرا در جمینی (Gemini)</div>
+                  <div className="text-[10px] text-slate-500">ورود مستقیم به گوگل جمینی</div>
                 </div>
               </div>
               <ExternalLink className="w-4 h-4 text-slate-400 group-hover:text-blue-600 spring-transition" />
@@ -105,20 +115,12 @@ export function PostCopyDrawer({ isOpen, onClose, compiledText, promptTitle }: P
                   <MessageSquare className="w-4 h-4" />
                 </div>
                 <div className="text-right">
-                  <div className="text-xs font-bold text-slate-900 group-hover:text-amber-700 spring-transition">اجرا در Claude 3.5 Sonnet</div>
-                  <div className="text-[10px] text-slate-500">تحلیل عمیق، متون خلاقانه و کدنویسی دقیق</div>
+                  <div className="text-xs font-bold text-slate-900 group-hover:text-amber-700 spring-transition">اجرا در کلاد (Claude)</div>
+                  <div className="text-[10px] text-slate-500">ورود به محیط هوش مصنوعی کلاد</div>
                 </div>
               </div>
               <ExternalLink className="w-4 h-4 text-slate-400 group-hover:text-amber-600 spring-transition" />
             </a>
-          </div>
-
-          {/* Bilingual Isolated Copied Text Snippet */}
-          <div className="mb-4">
-            <span className="text-xs font-bold text-slate-700 block mb-2">پیش‌نمایش متن کپی شده:</span>
-            <pre className="bilingual-code text-[11px] bg-slate-100 p-3.5 rounded-2xl border border-slate-200 text-slate-800 max-h-36 overflow-y-auto leading-relaxed">
-              {compiledText}
-            </pre>
           </div>
 
           {/* Ad Placement Slot */}

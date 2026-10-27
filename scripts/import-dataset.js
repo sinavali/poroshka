@@ -10,7 +10,11 @@ import path from 'node:path';
 import crypto from 'node:crypto';
 import pg from 'pg';
 
-const DATABASE_URL = process.env.DATABASE_URL || 'postgresql://postgres:jsF68GOoGS5inojpHmRa@remote-respina-free.runflare.com:31725/promptjoo_db';
+const DATABASE_URL = process.env.DATABASE_URL;
+if (!DATABASE_URL) {
+  console.error('\x1b[31mError:\x1b[0m DATABASE_URL environment variable is required');
+  process.exit(1);
+}
 
 const targetFile = process.argv[2];
 if (!targetFile) {
@@ -26,6 +30,20 @@ if (!fs.existsSync(resolvedPath)) {
 
 const { Pool } = pg;
 const pool = new Pool({ connectionString: DATABASE_URL });
+
+function generateMockEmbedding(seedStr) {
+  const hash = crypto.createHash('sha256').update(seedStr).digest();
+  const vector = new Array(1024);
+  let sumSq = 0;
+  for (let i = 0; i < 1024; i++) {
+    const byte = hash[i % hash.length];
+    const val = (byte / 128.0) - 1.0;
+    vector[i] = val;
+    sumSq += val * val;
+  }
+  const norm = Math.sqrt(sumSq) || 1.0;
+  return `[${vector.map((v) => (v / norm).toFixed(6)).join(',')}]`;
+}
 
 async function importDataset() {
   console.log('\x1b[36m%s\x1b[0m', '================================================');
@@ -94,18 +112,22 @@ async function importDataset() {
       ? item.search_keywords_fa
       : (item.search_keywords_fa ? String(item.search_keywords_fa).split(',').map(k => k.trim()) : []);
 
+    const embedding = generateMockEmbedding(template);
+    const keywordsText = Array.isArray(keywords) ? keywords.join(' ') : String(keywords || '');
+
     await pool.query(`
       INSERT INTO prompts (
         slug, category_id, modality, title_fa, short_desc_fa, direct_answer_summary_fa,
         search_keywords_fa, template_en, content_hash, slots_schema_json, faq_schema_json,
-        is_published
+        embedding, is_published
       )
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, true)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, true)
     `, [
       slug, categoryId, detected, titleFa,
       item.short_desc_fa || titleFa,
       item.direct_answer_summary_fa || '',
-      keywords, template, hash, JSON.stringify(slots), JSON.stringify(faqs)
+      keywordsText, template, hash, JSON.stringify(slots), JSON.stringify(faqs),
+      embedding
     ]);
 
     inserted++;

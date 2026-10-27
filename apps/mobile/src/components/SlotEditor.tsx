@@ -4,6 +4,14 @@ import { compilePrompt } from '@promptjoo/prompt-compiler';
 import type { MobilePrompt } from '../types';
 import type { PromptModality, SavedContextProfile } from '@promptjoo/contracts';
 
+interface SlotItem {
+  slot_key: string;
+  label_fa: string;
+  is_required?: boolean;
+  default_value_en?: string;
+  placeholder_fa?: string;
+}
+
 interface SlotEditorProps {
   prompt: MobilePrompt;
   userProfile?: SavedContextProfile;
@@ -45,7 +53,7 @@ export function SlotEditor({ prompt, userProfile, onBack, onCopy }: SlotEditorPr
       {prompt.slots_schema_json && prompt.slots_schema_json.length > 0 && (
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>شخصی‌سازی متغیرها:</Text>
-          {prompt.slots_schema_json.map((slot) => (
+          {prompt.slots_schema_json.map((slot: SlotItem) => (
             <View key={slot.slot_key} style={styles.slotRow}>
               <Text style={styles.slotLabel}>
                 {slot.label_fa} {slot.is_required && <Text style={styles.required}>*</Text>}

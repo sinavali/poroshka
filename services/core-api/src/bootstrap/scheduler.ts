@@ -7,7 +7,7 @@ export function startBackgroundScheduler(): () => void {
   // 1. Table sweeper running every 5 minutes
   const sweeperInterval = setInterval(async () => {
     try {
-      const now = new Date().toISOString();
+      const now = new Date(Date.now()).toISOString();
       const res = await pool.query(`
         WITH del_otp AS (
           DELETE FROM otp_challenges WHERE expires_at < NOW() RETURNING id
@@ -20,12 +20,18 @@ export function startBackgroundScheduler(): () => void {
         ),
         del_idemp AS (
           DELETE FROM idempotency_keys WHERE expires_at < NOW() RETURNING idempotency_key
+        ),
+        close_tickets AS (
+          UPDATE tickets SET status = 'CLOSED', updated_at = NOW()
+          WHERE status != 'CLOSED' AND last_message_at < NOW() - INTERVAL '3 days'
+          RETURNING id
         )
         SELECT 
           (SELECT COUNT(*) FROM del_otp) as otp_deleted,
           (SELECT COUNT(*) FROM del_rate) as rate_deleted,
           (SELECT COUNT(*) FROM del_sessions) as sessions_deleted,
-          (SELECT COUNT(*) FROM del_idemp) as idemp_deleted;
+          (SELECT COUNT(*) FROM del_idemp) as idemp_deleted,
+          (SELECT COUNT(*) FROM close_tickets) as tickets_autoclosed;
       `);
       const counts = res.rows[0];
       if (counts && (counts.otp_deleted > 0 || counts.sessions_deleted > 0)) {

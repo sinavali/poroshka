@@ -19,17 +19,57 @@ catalogRoutes.get('/categories', async (c) => {
   return c.json(res.rows);
 });
 
+// 1.1. Public Platform & Ads Governance Settings
+catalogRoutes.get('/public-settings', async (c) => {
+  try {
+    const res = await pool.query(
+      "SELECT setting_key, setting_value FROM system_settings WHERE setting_key IN ('general_platform_config', 'ads_governance_config')"
+    );
+
+    let general = {
+      site_title_fa: 'پوروشکا | مرجع تخصصی پرامپت‌های مهندسی‌شده هوش مصنوعی',
+      site_slogan_fa: 'سریع‌ترین موتور پرامپت‌های مهندسی‌شده و پارامتریک هوش مصنوعی در ایران',
+      contact_phone: '۰۲۱-۸۸۸۸۸۸۸۸',
+      contact_email: 'support@poroshka.ir',
+      telegram_channel: '@poroshka',
+      maintenance_mode: false,
+      allow_guest_copies: true
+    };
+
+    let ads = {
+      ads_enabled: true,
+      fixed_banner_position: 'top',
+      yektanet_script_url: 'https://cdn.yektanet.com/rg_service/scripts/yektanet.js',
+      placements: {}
+    };
+
+    for (const row of res.rows) {
+      if (row.setting_key === 'general_platform_config' && row.setting_value) {
+        general = { ...general, ...row.setting_value };
+      } else if (row.setting_key === 'ads_governance_config' && row.setting_value) {
+        ads = { ...ads, ...row.setting_value };
+      }
+    }
+
+    return c.json({ general, ads });
+  } catch (err: unknown) {
+    logger.error({ err }, 'Error fetching public settings');
+    return c.json({ error: 'FAILED_TO_FETCH_SETTINGS' }, 500);
+  }
+});
+
 // 2. List Prompts (Faceted search, filter by modality, category, trending, with real pagination)
 catalogRoutes.get('/prompts', async (c) => {
   const modality = c.req.query('modality');
   const categorySlug = c.req.query('category');
+  const model = c.req.query('model') || c.req.query('tag');
   const search = c.req.query('q');
   const sort = c.req.query('sort') || 'trending';
   const page = Math.max(1, parseInt(c.req.query('page') || '1', 10));
   const limit = Math.min(50, Math.max(1, parseInt(c.req.query('limit') || '12', 10)));
   const offset = (page - 1) * limit;
 
-  let whereClause = ' WHERE p.is_published = true';
+  let whereClause = ' WHERE p.is_published = true AND p.is_ai_enriched = true';
   const params: unknown[] = [];
   let paramIdx = 1;
 
@@ -41,6 +81,11 @@ catalogRoutes.get('/prompts', async (c) => {
   if (categorySlug && categorySlug !== 'all') {
     whereClause += ` AND c.slug = $${paramIdx++}`;
     params.push(categorySlug);
+  }
+
+  if (model && model !== 'all') {
+    whereClause += ` AND array_to_string(p.supported_models, ',') ILIKE $${paramIdx++}`;
+    params.push(`%${model}%`);
   }
 
   if (search && search.trim() !== '') {
@@ -108,7 +153,7 @@ catalogRoutes.get('/prompts/:slug', async (c) => {
       p.trending_score_7d, p.created_at
     FROM prompts p
     JOIN categories c ON p.category_id = c.id
-    WHERE p.slug = $1 AND p.is_published = true;
+    WHERE p.slug = $1 AND p.is_published = true AND p.is_ai_enriched = true;
   `, [slug]);
 
   if (res.rows.length === 0) {
@@ -132,7 +177,7 @@ catalogRoutes.post('/prompts/:slug/copy', async (c) => {
   const body = await c.req.json().catch(() => ({}));
 
   const res = await pool.query(
-    'SELECT id, template_en, slots_schema_json, modality FROM prompts WHERE slug = $1 AND is_published = true',
+    'SELECT id, template_en, slots_schema_json, modality FROM prompts WHERE slug = $1 AND is_published = true AND is_ai_enriched = true',
     [slug]
   );
 
@@ -151,7 +196,27 @@ catalogRoutes.post('/prompts/:slug/copy', async (c) => {
     modality: prompt.modality
   });
 
-  // Buffer COPY metric event
+  // Immediate Atomic Metric Update to Prompts Table (Ensures Reports, Dashboard KPIs & Detail Pages update in real time)
+  let updatedCopyCount = 1;
+  try {
+    const updateRes = await pool.query(`
+      UPDATE prompts
+      SET 
+        copy_count = copy_count + 1,
+        trending_score_7d = (
+          ((copy_count + 1) * 3 + view_count * 1) /
+          POWER(EXTRACT(EPOCH FROM (NOW() - created_at)) / 86400.0 + 2, 1.5)
+        ),
+        updated_at = NOW()
+      WHERE id = $1
+      RETURNING copy_count;
+    `, [prompt.id]);
+    updatedCopyCount = updateRes.rows[0]?.copy_count ?? 1;
+  } catch (updateErr) {
+    logger.warn({ updateErr }, 'Could not immediately increment prompt copy_count');
+  }
+
+  // Buffer COPY metric event for analytical aggregation
   pool.query(`
     INSERT INTO prompt_metrics_buffer (prompt_id, metric_type)
     VALUES ($1, 'COPY')
@@ -161,49 +226,70 @@ catalogRoutes.post('/prompts/:slug/copy', async (c) => {
   const authHeader = c.req.header('authorization');
   const clientUuid = c.req.header('x-client-uuid') || '';
 
-  (async () => {
-    try {
-      let userId: string | null = null;
-      if (authHeader && authHeader.startsWith('Bearer ')) {
-        const rawToken = authHeader.slice(7).trim();
-        const tokenHash = crypto.createHash('sha256').update(rawToken).digest('hex');
-        const sRes = await pool.query('SELECT user_id FROM auth_sessions WHERE token_hash = $1 AND expires_at > NOW() LIMIT 1', [tokenHash]);
-        if (sRes.rows.length > 0) userId = sRes.rows[0].user_id;
-      }
-
-      if (userId) {
-        await pool.query(`
-          INSERT INTO user_copied_prompts (user_id, client_uuid, prompt_id, custom_values_json, compiled_text, copy_count, last_copied_at)
-          VALUES ($1, $2, $3, $4, $5, 1, NOW())
-          ON CONFLICT (user_id, prompt_id) WHERE user_id IS NOT NULL AND prompt_id IS NOT NULL
-          DO UPDATE SET
-            copy_count = user_copied_prompts.copy_count + 1,
-            custom_values_json = EXCLUDED.custom_values_json,
-            compiled_text = EXCLUDED.compiled_text,
-            last_copied_at = NOW();
-        `, [userId, clientUuid || null, prompt.id, JSON.stringify(userValues), compiled.compiledText]);
-      } else if (clientUuid) {
-        await pool.query(`
-          INSERT INTO user_copied_prompts (client_uuid, prompt_id, custom_values_json, compiled_text, copy_count, last_copied_at)
-          VALUES ($1, $2, $3, $4, 1, NOW())
-          ON CONFLICT (client_uuid, prompt_id) WHERE user_id IS NULL AND prompt_id IS NOT NULL
-          DO UPDATE SET
-            copy_count = user_copied_prompts.copy_count + 1,
-            custom_values_json = EXCLUDED.custom_values_json,
-            compiled_text = EXCLUDED.compiled_text,
-            last_copied_at = NOW();
-        `, [clientUuid, prompt.id, JSON.stringify(userValues), compiled.compiledText]);
-      }
-    } catch (copyErr) {
-      logger.warn({ copyErr }, 'Failed to record prompt copy metric');
+  try {
+    let userId: string | null = null;
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      const rawToken = authHeader.slice(7).trim();
+      const tokenHash = crypto.createHash('sha256').update(rawToken).digest('hex');
+      const sRes = await pool.query('SELECT user_id FROM auth_sessions WHERE token_hash = $1 AND expires_at > NOW() LIMIT 1', [tokenHash]);
+      if (sRes.rows.length > 0) userId = sRes.rows[0].user_id;
     }
-  })();
+
+    if (userId) {
+      await pool.query(`
+        INSERT INTO user_copied_prompts (user_id, client_uuid, prompt_id, custom_values_json, compiled_text, copy_count, last_copied_at)
+        VALUES ($1, $2, $3, $4, $5, 1, NOW())
+        ON CONFLICT (user_id, prompt_id) WHERE user_id IS NOT NULL AND prompt_id IS NOT NULL
+        DO UPDATE SET
+          copy_count = user_copied_prompts.copy_count + 1,
+          custom_values_json = EXCLUDED.custom_values_json,
+          compiled_text = EXCLUDED.compiled_text,
+          last_copied_at = NOW();
+      `, [userId, clientUuid || null, prompt.id, JSON.stringify(userValues), compiled.compiledText]);
+    } else if (clientUuid) {
+      await pool.query(`
+        INSERT INTO user_copied_prompts (client_uuid, prompt_id, custom_values_json, compiled_text, copy_count, last_copied_at)
+        VALUES ($1, $2, $3, $4, 1, NOW())
+        ON CONFLICT (client_uuid, prompt_id) WHERE user_id IS NULL AND prompt_id IS NOT NULL
+        DO UPDATE SET
+          copy_count = user_copied_prompts.copy_count + 1,
+          custom_values_json = EXCLUDED.custom_values_json,
+          compiled_text = EXCLUDED.compiled_text,
+          last_copied_at = NOW();
+      `, [clientUuid, prompt.id, JSON.stringify(userValues), compiled.compiledText]);
+    }
+  } catch (copyErr) {
+    logger.warn({ copyErr }, 'Failed to record prompt copy metric in user_copied_prompts');
+  }
 
   return c.json({
     compiled_text: compiled.compiledText,
     resolved_slot_values: compiled.resolvedSlotValues,
-    missing_required_slots: compiled.missingRequiredSlots
+    missing_required_slots: compiled.missingRequiredSlots,
+    updated_copy_count: updatedCopyCount
   });
+});
+
+// 2b. Track Prompt Share
+catalogRoutes.post('/prompts/:slug/share', async (c) => {
+  const slug = c.req.param('slug');
+  const res = await pool.query('SELECT id FROM prompts WHERE slug = $1 AND is_published = true AND is_ai_enriched = true', [slug]);
+  if (res.rows.length === 0) {
+    return c.json({ error: 'NOT_FOUND' }, 404);
+  }
+
+  const promptId = res.rows[0].id;
+
+  pool.query(`
+    UPDATE prompts SET share_count = share_count + 1, updated_at = NOW() WHERE id = $1;
+  `, [promptId]).catch(() => {});
+
+  pool.query(`
+    INSERT INTO prompt_metrics_buffer (prompt_id, metric_type)
+    VALUES ($1, 'SHARE')
+  `, [promptId]).catch(() => {});
+
+  return c.json({ ok: true });
 });
 
 // Slot Dictionary for pre-filling prompt engine inputs with intelligent Persian defaults

@@ -1,3 +1,21 @@
+---
+project_name: "promptjoo"
+profile: "A"
+stack: "node-22-pnpm-nx"
+scope: "backend"
+owner: "sinavali"
+tier_overrides: []
+dr:
+  rto: "1h"
+  rpo: "15m"
+slo:
+  tier: "tier-1"
+  availability_target: "0.999"
+resources:
+  cpu_limit: "2000m"
+  memory_limit: "2Gi"
+---
+
 # PROMPTJOO — ROOT ENTERPRISE AGENT MANIFEST (`AGENT.md`)
 
 This manifest defines the **Tier-1 Enterprise Inviolables** and root governance policies for all AI coding agents and human engineers contributing to [`promptjoo`](https://github.com/sinavali/promptjoo).
@@ -22,11 +40,34 @@ The repository is governed as an **Nx Monorepo** partitioned into strictly bound
 | `services/core-api` | **Profile A** | Node.js 22 + Hono + Drizzle + PostgreSQL 16 | DDD + Hexagonal backend, Outbox, and Sweeper workers |
 | `services/tg-relay-worker` | **Profile A** | Cloudflare Workers + TypeScript | Bidirectional Telegram relay proxy |
 | `apps/web` | **Profile B** | Next.js 15 (App Router) + Tailwind CSS | Mobile-first RTL web application & Admin dashboard |
-| `apps/mobile` | **Profile C** | Flutter 3.27+ / Dart | Cafe Bazaar, Myket & Play Store cross-platform client |
+| `apps/mobile` | **Profile C** | React Native 0.76+ (TypeScript) | Cafe Bazaar, Myket & Play Store cross-platform client |
 
 ---
 
-## 3. Tier 1 Enterprise Inviolables (Non-Negotiable)
+## 3. Local Nx Target Delegations
+
+- Root verification: `nx run-many -t lint test build audit`
+- Affected check: `nx affected -t lint test build audit`
+- Governance verification:
+  - `ep preflight`
+  - `ep verify`
+  - `ep security scan`
+  - `ep migration check`
+  - `ep codeowners`
+  - `ep audit`
+
+---
+
+## 4. Test & Verification Rules
+
+- Deterministic DAG task graph executed through Nx root orchestration.
+- Integration tests for databases use real containers or verified database instances.
+- Zero-stub guarantee: all error paths, retries, and edge cases fully implemented.
+- Strict human-only production merge policy (`ep pr create-prod`).
+
+---
+
+## 5. Tier 1 Enterprise Inviolables (Non-Negotiable)
 
 1. **Single Monorepo Standard:** All code lives in this monorepo orchestrated by Nx (`nx.json`). Standalone satellite repos are forbidden.
 2. **Pure Domain Isolation:** Pure domain entities and use cases in `src/domain/` MUST contain zero imports from ORMs, frameworks (Hono, Next.js, Express), or external infrastructure.
@@ -42,12 +83,8 @@ The repository is governed as an **Nx Monorepo** partitioned into strictly bound
 
 ---
 
-## 4. Local Nx Target Delegations
+## 6. Approved Tier 2 Deviations
 
-- Root verification: `nx run-many -t lint test build audit`
-- Affected check: `nx affected -t lint test build audit`
-- Scripts verification:
-  - `python3 scripts/verify-nx-targets.py --root .`
-  - `python3 scripts/verify-agent-manifests.py --root .`
-  - `python3 scripts/check-nc-items.py --dir docs/nc --max-age 14`
-  - `python3 scripts/audit-runner.py --scope .`
+| Rule | Justification | ADR Reference |
+|---|---|---|
+| *(None)* | All subprojects strictly enforce enterprise defaults | - |

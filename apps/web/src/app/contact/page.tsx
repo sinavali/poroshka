@@ -2,10 +2,13 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { Mail, MessageCircle, Send, ArrowRight, CheckCircle, HelpCircle, Phone, MapPin } from 'lucide-react';
+import { Mail, MessageCircle, ArrowRight, CheckCircle, HelpCircle, Phone, MapPin, LifeBuoy } from 'lucide-react';
 import { showDynamicToast } from '../../components/DynamicIslandToast';
+import { AdPlacement } from '../../components/AdPlacement';
+import { usePublicSettings } from '../../lib/public-settings';
 
 export default function ContactPage() {
+  const { general } = usePublicSettings();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [message, setMessage] = useState('');
@@ -26,23 +29,25 @@ export default function ContactPage() {
   const jsonLd = {
     '@context': 'https://schema.org',
     '@type': 'ContactPage',
-    name: 'تماس با ما | پرامپت‌جو',
-    description: 'راه‌های ارتباطی و کانال‌های پشتیبانی پلتفرم پرامپت‌جو.',
+    name: 'تماس با ما | پوروشکا',
+    description: 'راه‌های ارتباطی و کانال‌های پشتیبانی پلتفرم پوروشکا.',
     inLanguage: 'fa-IR',
     mainEntity: {
       '@type': 'Organization',
-      name: 'پرامپت‌جو',
-      url: 'https://promptjoo.ir',
+      name: 'پوروشکا',
+      url: 'https://poroshka.ir',
       contactPoint: {
         '@type': 'ContactPoint',
         contactType: 'customer support',
+        telephone: general.contact_phone,
+        email: general.contact_email,
         availableLanguage: ['Persian', 'English']
       }
     }
   };
 
   return (
-    <div className="max-w-4xl mx-auto py-8 px-4 sm:px-6 space-y-10 animate-fade-in">
+    <div className="max-w-4xl mx-auto py-8 px-4 sm:px-6 space-y-10 animate-fade-in" dir="rtl">
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
@@ -55,7 +60,7 @@ export default function ContactPage() {
           <span>پشتیبانی و ارتباط مستقیم</span>
         </div>
         <h1 className="text-3xl sm:text-4xl font-black text-slate-900 tracking-tight">
-          تماس با پرامپت‌جو
+          تماس با پوروشکا
         </h1>
         <p className="text-sm text-slate-500 leading-relaxed">
           سؤالی دارید؟ پرامپت جدیدی مد نظرتان است یا مایل به همکاری هستید؟ خوشحال می‌شویم با ما در ارتباط باشید.
@@ -65,57 +70,78 @@ export default function ContactPage() {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
         {/* Contact Information & Channels */}
         <div className="space-y-4">
-          <h2 className="text-sm font-bold text-slate-900">کانال‌های ارتباطی سریع</h2>
+          <h2 className="text-sm font-bold text-slate-900">کانال‌های ارتباطی و پشتیبانی</h2>
 
           <div className="glass-panel p-5 rounded-2xl border border-slate-200/80 space-y-3">
             <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-xl bg-sky-50 text-sky-600 flex items-center justify-center border border-sky-200/60">
-                <Send className="w-4 h-4" />
+              <div className="w-9 h-9 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center border border-blue-200/60">
+                <LifeBuoy className="w-4 h-4" />
               </div>
               <div>
-                <h3 className="text-xs font-bold text-slate-900">پشتیبانی تلگرام</h3>
-                <p className="text-[11px] text-slate-500">پاسخ‌گویی سریع و معرفی پرامپت‌های روز</p>
+                <h3 className="text-xs font-bold text-slate-900">ثبت تیکت پشتیبانی آنلاین</h3>
+                <p className="text-[11px] text-slate-500">پاسخ‌گویی مستقیم کارشناسان فنی و بررسی گزارش‌ها</p>
               </div>
             </div>
-            <a
-              href="https://t.me/promptjoo_bot"
-              target="_blank"
-              rel="noreferrer"
-              className="block w-full py-2 px-3 text-center text-xs font-bold bg-sky-600 hover:bg-sky-500 text-white rounded-xl spring-transition"
+            <button
+              type="button"
+              onClick={() => {
+                if (typeof window !== 'undefined') {
+                  window.dispatchEvent(new CustomEvent('poroshka:open-tickets'));
+                  window.dispatchEvent(new CustomEvent('promptjoo:open-tickets'));
+                }
+              }}
+              className="w-full py-2 px-3 text-center text-xs font-bold bg-blue-600 hover:bg-blue-500 text-white rounded-xl spring-transition"
             >
-              ارسال پیام به بات تلگرام (@promptjoo_bot)
-            </a>
+              باز کردن مرکز تیکت‌های پشتیبانی
+            </button>
+          </div>
+
+          <div className="glass-panel p-5 rounded-2xl border border-slate-200/80 space-y-3">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center border border-indigo-200/60">
+                <Phone className="w-4 h-4" />
+              </div>
+              <div>
+                <h3 className="text-xs font-bold text-slate-900">تماس تلفنی با پشتیبانی</h3>
+                <p className="text-[11px] text-slate-500">پاسخ‌گویی به سوالات و راهنمایی کاربران</p>
+              </div>
+            </div>
+            <div className="p-2.5 rounded-xl bg-slate-50 flex items-center justify-between text-xs">
+              <span className="text-slate-500">تلفن پشتیبانی:</span>
+              <a href={`tel:${general.contact_phone}`} className="font-bold font-mono text-blue-600 hover:underline dir-ltr">
+                {general.contact_phone}
+              </a>
+            </div>
           </div>
 
           <div className="glass-panel p-5 rounded-2xl border border-slate-200/80 space-y-3">
             <div className="flex items-center gap-3">
               <div className="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center border border-emerald-200/60">
-                <MessageCircle className="w-4 h-4" />
+                <Mail className="w-4 h-4" />
               </div>
               <div>
-                <h3 className="text-xs font-bold text-slate-900">بازوی بله (پیام‌رسان بومی)</h3>
-                <p className="text-[11px] text-slate-500">دسترسی بدون فیلتر بر بستر شبکه ملی</p>
+                <h3 className="text-xs font-bold text-slate-900">ایمیل مستقیم پشتیبانی</h3>
+                <p className="text-[11px] text-slate-500">پیشنهاد پرامپت، گزارش باگ یا درخواست همکاری</p>
               </div>
             </div>
-            <a
-              href="https://ble.ir/promptjoo_bot"
-              target="_blank"
-              rel="noreferrer"
-              className="block w-full py-2 px-3 text-center text-xs font-bold bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl spring-transition"
-            >
-              اتصال به بازوی بله
-            </a>
+            <div className="space-y-1 text-xs">
+              <div className="flex items-center justify-between p-2 rounded-lg bg-slate-50 font-mono text-[11px]">
+                <span className="text-slate-500">پشتیبانی:</span>
+                <a href={`mailto:${general.contact_email}`} className="text-blue-600 font-bold hover:underline">{general.contact_email}</a>
+              </div>
+              <div className="flex items-center justify-between p-2 rounded-lg bg-slate-50 font-mono text-[11px]">
+                <span className="text-slate-500">کانال اطلاع‌رسانی:</span>
+                <span className="text-slate-700 font-bold">{general.telegram_channel}</span>
+              </div>
+            </div>
           </div>
 
+          <AdPlacement slot="contact_1" />
+
           <div className="glass-panel p-5 rounded-2xl border border-slate-200/80 space-y-2 text-xs text-slate-600">
-            <div className="flex items-center gap-2">
-              <Mail className="w-4 h-4 text-slate-400" />
-              <span>ایمیل رسمی: </span>
-              <a href="mailto:support@promptjoo.ir" className="font-mono text-blue-600 hover:underline">support@promptjoo.ir</a>
-            </div>
             <div className="flex items-center gap-2 pt-1">
               <MapPin className="w-4 h-4 text-slate-400" />
-              <span>مرکز میزبانی: تهران، شبکه ملی اطلاعات</span>
+              <span>مرکز میزبانی: تهران، شبکه ملی اطلاعات ایران</span>
             </div>
           </div>
         </div>
@@ -140,65 +166,49 @@ export default function ContactPage() {
             <form onSubmit={handleSubmit} className="space-y-4">
               <h3 className="text-sm font-bold text-slate-900 mb-2">ارسال پیام مستقیم</h3>
               <div>
-                <label className="block text-xs font-medium text-slate-700 mb-1">نام یا عنوان شما (اختیاری)</label>
+                <label className="block text-xs font-bold text-slate-700 mb-1">نام شما</label>
                 <input
                   type="text"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  placeholder="مثال: علی رضایی"
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-800 focus:outline-none focus:border-blue-500"
+                  placeholder="مثلاً: سینا والی"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs text-slate-800"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-slate-700 mb-1">شماره تماس یا ایمیل (برای پاسخ)</label>
+                <label className="block text-xs font-bold text-slate-700 mb-1">ایمیل یا شماره تماس</label>
                 <input
                   type="text"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="0912... یا email@example.com"
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-800 focus:outline-none focus:border-blue-500"
+                  placeholder="sina@example.com یا ۰۹۱۲..."
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs text-slate-800"
+                  dir="ltr"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-slate-700 mb-1">متن پیام یا پرامپت پیشنهادی *</label>
+                <label className="block text-xs font-bold text-slate-700 mb-1">متن پیام یا بازخورد شما</label>
                 <textarea
                   rows={4}
                   value={message}
                   onChange={(e) => setMessage(e.target.value)}
+                  placeholder="دیدگاه، پیشنهاد یا پرامپتی که می‌خواهید به پوروشکا اضافه شود را بنویسید..."
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs text-slate-800 leading-relaxed"
                   required
-                  placeholder="دیدگاه، پیشنهاد یا پرامپتی که می‌خواهید به پرامپت‌جو اضافه شود را بنویسید..."
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-800 focus:outline-none focus:border-blue-500"
                 />
               </div>
 
               <button
                 type="submit"
-                className="w-full py-2.5 px-4 bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold rounded-xl spring-transition shadow-sm shadow-blue-500/20"
+                className="w-full py-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs shadow-md shadow-blue-600/20 spring-transition"
               >
-                ارسال پیام
+                ارسال پیام به تیم فنی
               </button>
             </form>
           )}
         </div>
-      </div>
-
-      {/* Footer Navigation */}
-      <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-6 border-t border-slate-200">
-        <Link
-          href="/"
-          className="text-xs font-bold text-blue-600 hover:text-blue-500 flex items-center gap-1.5"
-        >
-          <ArrowRight className="w-4 h-4" />
-          <span>بازگشت به کاتالوگ پرامپت‌ها</span>
-        </Link>
-        <Link
-          href="/faq"
-          className="text-xs text-slate-500 hover:text-slate-800"
-        >
-          پرسش‌های متداول و راهنمای کاربری ←
-        </Link>
       </div>
     </div>
   );

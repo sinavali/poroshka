@@ -5,6 +5,15 @@ stack: "nextjs-15-react-19-tailwind"
 scope: "frontend"
 owner: "sinavali"
 tier_overrides: []
+dr:
+  rto: "1h"
+  rpo: "15m"
+slo:
+  tier: "tier-1"
+  availability_target: "0.999"
+resources:
+  cpu_limit: "1000m"
+  memory_limit: "1Gi"
 ---
 
 # Project Agent Manifest: web
@@ -32,3 +41,14 @@ Mobile-first RTL Next.js 15 (App Router) web application and granular Admin dash
 - 4-State UI coverage (Loading, Empty, Success, Error) on every major view.
 - Strict WCAG 2.2 AA accessibility and zero layout shifts (CLS < 0.1).
 - Vazirmatn font with tabular digits (`tnum`) and strict `<pre dir="ltr">` bilingual isolation.
+- Single-turn context ingestion via `ep pack --surface`.
+
+## 5. Approved Tier 2 Deviations
+| Rule | Justification | ADR Reference |
+|---|---|---|
+| *(None)* | Strictly conforms to Profile B invariants | - |
+
+## 6. Project Invariants
+- Zero layout shifts (CLS < 0.1) across all responsive breakpoints.
+- Strict hydration safety without unescaped client-only properties.
+- All persisted and displayed dates handled via UTC ISO-8601 strings.

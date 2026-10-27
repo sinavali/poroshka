@@ -51,39 +51,79 @@ export function PromptSearchCarousel({ query }: PromptSearchCarouselProps) {
       }
     };
 
-    const timer = setTimeout(fetchClosest, 350);
+    const timer = setTimeout(fetchClosest, 550);
     return () => {
       active = false;
       clearTimeout(timer);
     };
   }, [query]);
 
-  // Auto-slide 2-by-2 every 4.5 seconds
+  const [cardsPerView, setCardsPerView] = useState(3);
+  const touchStartXRef = useRef<number | null>(null);
+  const touchDeltaXRef = useRef<number>(0);
+
   useEffect(() => {
-    if (isPaused || prompts.length <= 3) return;
+    const updateCardsPerView = () => {
+      if (window.innerWidth < 640) {
+        setCardsPerView(1);
+      } else if (window.innerWidth < 1024) {
+        setCardsPerView(2);
+      } else {
+        setCardsPerView(3);
+      }
+    };
+    updateCardsPerView();
+    window.addEventListener('resize', updateCardsPerView);
+    return () => window.removeEventListener('resize', updateCardsPerView);
+  }, []);
+
+  const maxIndex = Math.max(0, prompts.length - cardsPerView);
+
+  // Auto-slide every 5 seconds
+  useEffect(() => {
+    if (isPaused || prompts.length <= cardsPerView) return;
 
     const interval = setInterval(() => {
-      setCurrentIndex((prev) => {
-        const next = prev + 2;
-        return next >= prompts.length ? 0 : next;
-      });
-    }, 4500);
+      setCurrentIndex((prev) => (prev >= maxIndex ? 0 : prev + 1));
+    }, 5000);
 
     return () => clearInterval(interval);
-  }, [isPaused, prompts.length]);
+  }, [isPaused, prompts.length, cardsPerView, maxIndex]);
 
   const handleNext = () => {
-    setCurrentIndex((prev) => {
-      const next = prev + 2;
-      return next >= prompts.length ? 0 : next;
-    });
+    setCurrentIndex((prev) => (prev >= maxIndex ? 0 : prev + 1));
   };
 
   const handlePrev = () => {
-    setCurrentIndex((prev) => {
-      const prevIdx = prev - 2;
-      return prevIdx < 0 ? Math.max(0, prompts.length - 2) : prevIdx;
-    });
+    setCurrentIndex((prev) => (prev <= 0 ? maxIndex : prev - 1));
+  };
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    setIsPaused(true);
+    touchStartXRef.current = e.touches[0].clientX;
+    touchDeltaXRef.current = 0;
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (touchStartXRef.current === null) return;
+    touchDeltaXRef.current = e.touches[0].clientX - touchStartXRef.current;
+  };
+
+  const handleTouchEnd = () => {
+    setIsPaused(false);
+    const delta = touchDeltaXRef.current;
+    if (Math.abs(delta) > 35) {
+      // In RTL (Persian):
+      // Swiping finger to left (delta < 0) moves forward to next items
+      // Swiping finger to right (delta > 0) moves back to previous items
+      if (delta < 0) {
+        handleNext();
+      } else {
+        handlePrev();
+      }
+    }
+    touchStartXRef.current = null;
+    touchDeltaXRef.current = 0;
   };
 
   const handleQuickCopy = async (e: React.MouseEvent, prompt: PromptCardData) => {
@@ -120,8 +160,6 @@ export function PromptSearchCarousel({ query }: PromptSearchCarouselProps) {
       className="space-y-3 pt-2"
       onMouseEnter={() => setIsPaused(true)}
       onMouseLeave={() => setIsPaused(false)}
-      onTouchStart={() => setIsPaused(true)}
-      onTouchEnd={() => setIsPaused(false)}
     >
       {/* Carousel Header Controls */}
       <div className="flex items-center justify-between px-1">
@@ -132,12 +170,12 @@ export function PromptSearchCarousel({ query }: PromptSearchCarouselProps) {
           </h3>
         </div>
 
-        {prompts.length > 3 && (
+        {prompts.length > cardsPerView && (
           <div className="flex items-center gap-1.5">
             <button
               onClick={handlePrev}
               className="w-7 h-7 rounded-full bg-white border border-slate-200 hover:bg-slate-50 flex items-center justify-center text-slate-600 hover:text-slate-900 shadow-xs spring-transition pressable"
-              title="قبلی (۲ تا)"
+              title="قبلی"
               aria-label="اسلاید قبلی"
             >
               <ChevronRight className="w-4 h-4" />
@@ -145,7 +183,7 @@ export function PromptSearchCarousel({ query }: PromptSearchCarouselProps) {
             <button
               onClick={handleNext}
               className="w-7 h-7 rounded-full bg-white border border-slate-200 hover:bg-slate-50 flex items-center justify-center text-slate-600 hover:text-slate-900 shadow-xs spring-transition pressable"
-              title="بعدی (۲ تا)"
+              title="بعدی"
               aria-label="اسلاید بعدی"
             >
               <ChevronLeft className="w-4 h-4" />
@@ -154,8 +192,13 @@ export function PromptSearchCarousel({ query }: PromptSearchCarouselProps) {
         )}
       </div>
 
-      {/* Carousel Viewport */}
-      <div className="relative overflow-hidden rounded-3xl p-1">
+      {/* Carousel Viewport with Touch Swiping */}
+      <div
+        className="relative overflow-hidden rounded-3xl p-1 touch-pan-y"
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+      >
         {loading && prompts.length === 0 ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
             {[1, 2, 3].map((n) => (
@@ -166,13 +209,16 @@ export function PromptSearchCarousel({ query }: PromptSearchCarouselProps) {
           <div
             className="flex gap-4 transition-transform duration-500 ease-out"
             style={{
-              transform: `translateX(${currentIndex * (100 / 3)}%)`,
+              transform: `translateX(calc(${currentIndex} * ((100% + 16px) / ${cardsPerView})))`,
             }}
           >
             {prompts.map((p) => (
               <div
                 key={p.id}
-                className="w-full sm:w-[calc(50%-8px)] md:w-[calc(33.333%-11px)] flex-shrink-0"
+                className="flex-shrink-0"
+                style={{
+                  width: `calc((100% - ${(cardsPerView - 1) * 16}px) / ${cardsPerView})`
+                }}
               >
                 <div className="glass-panel h-full rounded-2xl p-4 border border-slate-200/90 hover:border-blue-500/50 hover:shadow-md flex flex-col justify-between group spring-transition">
                   <div>
@@ -238,14 +284,14 @@ export function PromptSearchCarousel({ query }: PromptSearchCarouselProps) {
       </div>
 
       {/* Pagination Indicator Dots */}
-      {prompts.length > 3 && (
+      {prompts.length > cardsPerView && (
         <div className="flex items-center justify-center gap-1.5 pt-1">
-          {Array.from({ length: Math.ceil(prompts.length / 2) }).map((_, idx) => (
+          {Array.from({ length: maxIndex + 1 }).map((_, idx) => (
             <button
               key={idx}
-              onClick={() => setCurrentIndex(idx * 2)}
+              onClick={() => setCurrentIndex(idx)}
               className={`h-1.5 rounded-full spring-transition ${
-                Math.floor(currentIndex / 2) === idx
+                currentIndex === idx
                   ? 'w-6 bg-blue-600'
                   : 'w-1.5 bg-slate-300 hover:bg-slate-400'
               }`}

@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { X, Plus, Sparkles, Check, AlertCircle, Wand2, Sliders } from 'lucide-react';
 import { fetchFromApi } from '../lib/api-client';
 import { showDynamicToast } from './DynamicIslandToast';
+import { StyledSelect } from './StyledSelect';
 
 interface AdminPromptCreatorModalProps {
   isOpen: boolean;
@@ -41,6 +42,20 @@ export function AdminPromptCreatorModal({ isOpen, onClose, onCreated }: AdminPro
     const unique = Array.from(new Set(matches.map((m) => m[1])));
     setDetectedSlots(unique);
   }, [templateEn]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.body.style.overflow = prevOverflow;
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isOpen, onClose]);
 
   if (!isOpen) return null;
 
@@ -104,7 +119,12 @@ export function AdminPromptCreatorModal({ isOpen, onClose, onCreated }: AdminPro
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-fade-in">
+    <div
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-md animate-fade-in w-screen h-screen"
+    >
       <div className="glass-panel w-full max-w-2xl bg-white rounded-3xl p-6 sm:p-8 border border-slate-200/90 shadow-2xl space-y-6 max-h-[90vh] overflow-y-auto">
         {/* Header */}
         <div className="flex items-center justify-between border-b border-slate-100 pb-4">
@@ -139,15 +159,12 @@ export function AdminPromptCreatorModal({ isOpen, onClose, onCreated }: AdminPro
 
             <div>
               <label className="block text-xs font-bold text-slate-700 mb-1">دسته‌بندی موضوعی</label>
-              <select
+              <StyledSelect
+                size="md"
                 value={categorySlug}
-                onChange={(e) => setCategorySlug(e.target.value)}
-                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs text-slate-800 focus:bg-white focus:outline-none focus:border-blue-500"
-              >
-                {categories.map((c) => (
-                  <option key={c.slug} value={c.slug}>{c.title_fa}</option>
-                ))}
-              </select>
+                onChange={setCategorySlug}
+                options={categories.map((c) => ({ value: c.slug, label: c.title_fa }))}
+              />
             </div>
           </div>
 
@@ -155,18 +172,19 @@ export function AdminPromptCreatorModal({ isOpen, onClose, onCreated }: AdminPro
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-bold text-slate-700 mb-1">مدالیته (قالب کاری)</label>
-              <select
+              <StyledSelect
+                size="md"
                 value={modality}
-                onChange={(e) => setModality(e.target.value)}
-                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs text-slate-800 focus:bg-white focus:outline-none focus:border-blue-500"
-              >
-                <option value="text_writing">تولید محتوا و نگارش</option>
-                <option value="image_edit">ادیت و ویرایش عکس</option>
-                <option value="text_to_image">تولید تصویر با میدجرنی</option>
-                <option value="data_structuring">اکسل و تحلیل داده</option>
-                <option value="code_tech">برنامه‌نویسی و SQL</option>
-                <option value="video_audio">ویدیو و ریلز</option>
-              </select>
+                onChange={setModality}
+                options={[
+                  { value: 'text_writing', label: 'تولید محتوا و نگارش' },
+                  { value: 'image_edit', label: 'ادیت و ویرایش عکس' },
+                  { value: 'text_to_image', label: 'تولید تصویر با هوش مصنوعی' },
+                  { value: 'data_structuring', label: 'اکسل و تحلیل داده' },
+                  { value: 'code_tech', label: 'برنامه‌نویسی و SQL' },
+                  { value: 'video_audio', label: 'ویدیو و ریلز' }
+                ]}
+              />
             </div>
 
             <div>

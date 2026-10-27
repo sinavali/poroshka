@@ -8,14 +8,14 @@
     "build": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "echo 'Worker build passed'",
+        "command": "esbuild src/index.ts --bundle --outfile=../../dist/services/tg-relay-worker/index.js --format=esm --target=es2022",
         "cwd": "services/tg-relay-worker"
       }
     },
     "lint": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "echo 'Worker lint passed'",
+        "command": "tsc --noEmit -p tsconfig.json",
         "cwd": "services/tg-relay-worker"
       }
     },

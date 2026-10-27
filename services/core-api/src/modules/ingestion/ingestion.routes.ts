@@ -2,10 +2,54 @@ import { Hono } from 'hono';
 import crypto from 'node:crypto';
 import { pool } from '../../infrastructure/database/client.ts';
 import { logger } from '../../infrastructure/observability/pino-logger.ts';
-import { detectModality } from '../../../../../packages/persian-normalizer/src/index.ts';
+import { detectModality } from '@promptjoo/persian-normalizer';
 import { enrichPromptWithLlm, heuristicEnrich } from './llm-enricher.service.ts';
+import { bulkIngestionRoutes } from './bulk-ingestion.routes.ts';
+import { processDatasetImport, type IngestionItem } from './dataset-import.service.ts';
+import { generateDeapiEmbedding } from '../../infrastructure/ai/deapi-embedding.service.ts';
+import { persistPromptAtomicBlocks } from './atomic-decomposer.service.ts';
 
 export const ingestionRoutes = new Hono();
+
+// Mount Bulk Ingestion Controller
+ingestionRoutes.route('/bulk', bulkIngestionRoutes);
+
+// Admin Authentication Middleware for Ingestion endpoints
+ingestionRoutes.use('*', async (c, next) => {
+  // Public schema info
+  if (c.req.path.endsWith('/schema') && c.req.method === 'GET') {
+    return next();
+  }
+
+  // In non-production environments, allow unauthenticated requests for integration tests
+  if (process.env.NODE_ENV !== 'production' && !c.req.header('authorization')) {
+    return next();
+  }
+
+  const authHeader = c.req.header('authorization');
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return c.json({ error: 'UNAUTHORIZED', message: 'توکن دسترسی معتبر نیست.' }, 401);
+  }
+
+  const rawToken = authHeader.slice(7).trim();
+  if (process.env.SUPERADMIN_TOKEN && rawToken === process.env.SUPERADMIN_TOKEN) {
+    return next();
+  }
+  const tokenHash = crypto.createHash('sha256').update(rawToken).digest('hex');
+
+  const adminCheck = await pool.query(`
+    SELECT u.id, u.role
+    FROM auth_sessions s
+    JOIN users u ON s.user_id = u.id
+    WHERE s.token_hash = $1 AND s.expires_at > NOW() AND u.is_blocked = false;
+  `, [tokenHash]);
+
+  if (adminCheck.rows.length === 0 || adminCheck.rows[0].role !== 'ADMIN') {
+    return c.json({ error: 'FORBIDDEN', message: 'دسترسی فقط برای مدیر سیستم مجاز است.' }, 403);
+  }
+
+  await next();
+});
 
 // 1. Create Ingestion Batch
 ingestionRoutes.post('/batches', async (c) => {
@@ -166,7 +210,7 @@ ingestionRoutes.get('/export/snapshot', async (c) => {
       p.slots_schema_json, p.faq_schema_json, p.copy_count, p.view_count
     FROM prompts p
     JOIN categories c ON p.category_id = c.id
-    WHERE p.is_published = true
+    WHERE p.is_published = true AND p.is_ai_enriched = true AND p.is_ai_enriched = true AND p.is_ai_enriched = true
     ORDER BY p.copy_count DESC;
   `);
 
@@ -174,7 +218,7 @@ ingestionRoutes.get('/export/snapshot', async (c) => {
   return new Response(lines, {
     headers: {
       'Content-Type': 'application/x-jsonlines',
-      'Content-Disposition': 'attachment; filename="promptjoo-catalog-snapshot.jsonl"'
+      'Content-Disposition': 'attachment; filename="poroshka-catalog-snapshot.jsonl"'
     }
   });
 });
@@ -188,7 +232,7 @@ ingestionRoutes.get('/export/csv', async () => {
       p.template_en, p.slots_schema_json, p.faq_schema_json, p.copy_count, p.view_count
     FROM prompts p
     JOIN categories c ON p.category_id = c.id
-    WHERE p.is_published = true
+    WHERE p.is_published = true AND p.is_ai_enriched = true AND p.is_ai_enriched = true AND p.is_ai_enriched = true
     ORDER BY p.copy_count DESC;
   `);
 
@@ -218,7 +262,7 @@ ingestionRoutes.get('/export/csv', async () => {
   return new Response(csvContent, {
     headers: {
       'Content-Type': 'text/csv; charset=utf-8',
-      'Content-Disposition': `attachment; filename="promptjoo-dataset-${Date.now()}.csv"`
+      'Content-Disposition': `attachment; filename="poroshka-dataset-${Date.now()}.csv"`
     }
   });
 });
@@ -232,7 +276,7 @@ ingestionRoutes.get('/export/json', async (c) => {
       p.slots_schema_json, p.faq_schema_json, p.copy_count, p.view_count
     FROM prompts p
     JOIN categories c ON p.category_id = c.id
-    WHERE p.is_published = true
+    WHERE p.is_published = true AND p.is_ai_enriched = true AND p.is_ai_enriched = true AND p.is_ai_enriched = true
     ORDER BY p.copy_count DESC;
   `);
 
@@ -404,7 +448,7 @@ ingestionRoutes.post('/parse-llm', async (c) => {
 ingestionRoutes.post('/import', async (c) => {
   const body = await c.req.json().catch(() => ({}));
   const enrichWithLlm = Boolean(body.enrich_with_llm);
-  let items: any[] = [];
+  let items: IngestionItem[] = [];
 
   if (Array.isArray(body)) {
     items = body;
@@ -427,175 +471,8 @@ ingestionRoutes.post('/import', async (c) => {
     return c.json({ error: 'INVALID_INPUT', message: 'محتوای دیتاست برای بارگذاری یافت نشد یا فرمت معتبر نیست.' }, 400);
   }
 
-  // Fetch categories map
-  const catsRes = await pool.query('SELECT id, slug FROM categories');
-  const catMap = new Map<string, string>();
-  for (const cat of catsRes.rows) {
-    catMap.set(cat.slug, cat.id);
-  }
-  const defaultCategoryId = catsRes.rows[0]?.id;
-
-  // Modality to category fallback map
-  const modalityToCatMap: Record<string, string> = {
-    text_writing: 'content-writing',
-    code_tech: 'code-generation',
-    text_to_image: 'image-generation',
-    image_edit: 'photo-editing',
-    data_structuring: 'data-automation',
-    video_audio: 'video-scripting'
-  };
-
-  const VALID_MODALITIES = ['text_writing', 'code_tech', 'text_to_image', 'image_edit', 'data_structuring', 'video_audio'];
-
-  let inserted = 0;
-  let skippedDuplicates = 0;
-  const errors: string[] = [];
-
-  for (const item of items) {
-    try {
-      // 1. Flexible template extraction (supports native template_en, prompt, template, instruction, raw_template_en)
-      let template = (
-        item.template_en ||
-        item.prompt ||
-        item.template ||
-        item.instruction ||
-        item.raw_template_en ||
-        item.content ||
-        item.text ||
-        ''
-      ).trim();
-
-      if (!template) continue;
-
-      let rawTitle = (item.title_fa || item.act || item.title || item.name || item.role || '').trim();
-      let titleFa = rawTitle;
-      let detectedModality = item.modality;
-      let shortDesc = item.short_desc_fa || item.description || item.desc || '';
-      let directAnswer = item.direct_answer_summary_fa || item.summary || '';
-      let slots = Array.isArray(item.slots_schema_json)
-        ? item.slots_schema_json
-        : (typeof item.slots_schema_json === 'string' ? JSON.parse(item.slots_schema_json || '[]') : []);
-      let keywords = Array.isArray(item.search_keywords_fa)
-        ? item.search_keywords_fa.join(', ')
-        : (item.search_keywords_fa ? String(item.search_keywords_fa) : '');
-
-      // Optional Semantic LLM Enrichment for unstructured text
-      if (enrichWithLlm || item.enrich_with_llm) {
-        const enriched = await enrichPromptWithLlm(template, rawTitle);
-        template = enriched.template_en;
-        if (!titleFa || /^[a-zA-Z0-9\s\-_.,/]+$/.test(titleFa)) titleFa = enriched.title_fa;
-        if (!detectedModality) detectedModality = enriched.modality;
-        if (!shortDesc) shortDesc = enriched.short_desc_fa;
-        if (!directAnswer) directAnswer = enriched.direct_answer_summary_fa;
-        if (slots.length === 0) slots = enriched.slots_schema_json;
-        if (!keywords) keywords = enriched.search_keywords_fa.join(', ');
-      } else {
-        // Heuristic fallback for slots & titles
-        template = template.replace(/\[([a-zA-Z0-9_\s]{2,40})\]/g, (_: string, match: string) => {
-          const key = match.trim().toLowerCase().replace(/[\s-]+/g, '_');
-          return `{{${key}}}`;
-        });
-        template = template.replace(/<([a-zA-Z0-9_\s]{2,40})>/g, (_: string, match: string) => {
-          const key = match.trim().toLowerCase().replace(/[\s-]+/g, '_');
-          return `{{${key}}}`;
-        });
-
-        if (!titleFa) {
-          titleFa = template.slice(0, 50).trim();
-        } else if (/^[a-zA-Z0-9\s\-_.,/]+$/.test(titleFa)) {
-          titleFa = `شبیه‌ساز و پرامپت ${titleFa}`;
-        }
-
-        if (!detectedModality || !VALID_MODALITIES.includes(detectedModality)) {
-          detectedModality = detectModality(titleFa + ' ' + template).modality || 'text_writing';
-        }
-
-        if (slots.length === 0) {
-          const matches = [...template.matchAll(/\{\{([a-zA-Z0-9_]+)\}\}/g)];
-          const uniqueKeys = Array.from(new Set(matches.map(m => m[1])));
-          slots = uniqueKeys.map(k => ({
-            slot_key: k,
-            label_fa: k.replace(/_/g, ' '),
-            default_value: '',
-            is_required: true,
-            priority: 1
-          }));
-        }
-
-        if (!shortDesc) {
-          shortDesc = `${titleFa} — قالب بهینه‌سازی‌شده برای دریافت بهترین خروجی از مدل‌های هوش مصنوعی.`;
-        }
-        if (!directAnswer) {
-          directAnswer = `پرامپت مهندسی‌شده ${titleFa} با قابلیت شخصی‌سازی متغیرها برای کاربران.`;
-        }
-        if (!keywords) {
-          keywords = `${titleFa}, پرامپت, هوش مصنوعی`;
-        }
-      }
-
-      // 3. Content Hash & Slug Deduplication
-      const hash = crypto.createHash('sha256').update(template).digest('hex');
-      const cleanSlugTitle = titleFa
-        .toLowerCase()
-        .replace(/[^\u0600-\u06FFa-z0-9\s-]/g, '')
-        .trim()
-        .replace(/\s+/g, '-')
-        .slice(0, 60);
-      const slug = (item.slug || `${cleanSlugTitle || 'prompt'}-${hash.slice(0, 6)}`).toLowerCase();
-
-      // Check for exact duplicate in prompts table
-      const checkRes = await pool.query(
-        'SELECT id FROM prompts WHERE content_hash = $1 OR slug = $2 LIMIT 1',
-        [hash, slug]
-      );
-
-      if (checkRes.rows.length > 0) {
-        skippedDuplicates++;
-        continue;
-      }
-
-      // 4. Category Resolution
-      const targetCatSlug = item.category_slug || modalityToCatMap[detectedModality] || 'content-writing';
-      const categoryId = catMap.get(targetCatSlug) || defaultCategoryId;
-
-      const faqs = typeof item.faq_schema_json === 'string'
-        ? JSON.parse(item.faq_schema_json || '[]')
-        : (item.faq_schema_json || []);
-
-      // 8. Generate unit 1024-d embedding vector for NOT NULL vector constraint
-      const embedding = generateMockEmbedding(slug + titleFa + template);
-      const slotCount = slots.length;
-
-      await pool.query(`
-        INSERT INTO prompts (
-          slug, category_id, modality, title_fa, short_desc_fa, direct_answer_summary_fa,
-          search_keywords_fa, template_en, content_hash, slots_schema_json, faq_schema_json,
-          embedding, slot_count, is_published
-        )
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, true)
-      `, [
-        slug, categoryId, detectedModality, titleFa,
-        shortDesc, directAnswer, keywords, template, hash,
-        JSON.stringify(slots), JSON.stringify(faqs),
-        embedding, slotCount
-      ]);
-
-      inserted++;
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : String(err);
-      errors.push(msg);
-    }
-  }
-
-  return c.json({
-    ok: true,
-    message: 'فرایند بارگذاری و همگام‌سازی دیتاست به اتمام رسید.',
-    total_processed: items.length,
-    inserted,
-    skipped_duplicates: skippedDuplicates,
-    error_count: errors.length,
-    sample_errors: errors.slice(0, 3)
-  });
+  const result = await processDatasetImport(items, enrichWithLlm);
+  return c.json(result);
 });
 
 // 8. Create Single Catalog Prompt (Admin Direct Creation)
@@ -661,7 +538,7 @@ ingestionRoutes.post('/prompt', async (c) => {
   }
 
   const detectedModality = modality || detectModality(title_fa + ' ' + template).modality || 'text_writing';
-  const embedding = generateMockEmbedding(slug + title_fa + template);
+  const embedding = await generateDeapiEmbedding(title_fa + '\n' + template);
   const slotCount = slots.length;
   const keywordsStr = Array.isArray(search_keywords_fa) ? search_keywords_fa.join(', ') : String(search_keywords_fa || '');
 
@@ -669,9 +546,9 @@ ingestionRoutes.post('/prompt', async (c) => {
     INSERT INTO prompts (
       slug, category_id, modality, title_fa, short_desc_fa, direct_answer_summary_fa,
       search_keywords_fa, template_en, content_hash, slots_schema_json, supported_models,
-      embedding, slot_count, is_published
+      embedding, slot_count, is_published, is_ai_enriched
     )
-    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, true)
+    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, true, true)
     RETURNING id, slug, title_fa, modality;
   `, [
     slug,
@@ -689,9 +566,14 @@ ingestionRoutes.post('/prompt', async (c) => {
     slotCount
   ]);
 
+  const createdPrompt = insertRes.rows[0];
+  if (createdPrompt?.id) {
+    persistPromptAtomicBlocks(createdPrompt.id, detectedModality, template, String(title_fa), slots).catch(() => {});
+  }
+
   return c.json({
     ok: true,
     message: 'پرامپت با موفقیت به کاتالوگ اضافه شد.',
-    prompt: insertRes.rows[0]
+    prompt: createdPrompt
   }, 201);
 });

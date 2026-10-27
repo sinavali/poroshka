@@ -84,19 +84,19 @@ export function PromptCard({ prompt, onQuickCopied }: PromptCardProps) {
           <span className={`text-[11px] font-bold px-3 py-1 rounded-full border ${modalityBadge.color} ${modalityBadge.border}`}>
             {modalityBadge.label}
           </span>
-          <div className="flex items-center gap-1 text-[11px] text-slate-500 font-medium">
+          <div className="flex items-center gap-1 text-[11px] text-slate-500 font-medium" dir="rtl">
             <Copy className="w-3 h-3 text-slate-400" />
-            <span dir="ltr">{prompt.copy_count.toLocaleString('fa-IR')} کپی</span>
+            <span>{prompt.copy_count.toLocaleString('fa-IR')} کپی</span>
           </div>
         </div>
 
         {/* Title */}
-        <h3 className="text-base font-bold text-slate-900 group-hover:text-blue-600 spring-transition mb-2 leading-snug">
+        <h3 className="text-base font-bold text-slate-900 group-hover:text-blue-600 spring-transition mb-2 leading-snug line-clamp-2 h-12">
           {prompt.title_fa}
         </h3>
 
         {/* Short Description */}
-        <p className="text-xs text-slate-600 line-clamp-2 leading-relaxed mb-4">
+        <p className="text-xs text-slate-600 line-clamp-2 leading-relaxed mb-4 h-10">
           {prompt.short_desc_fa}
         </p>
 

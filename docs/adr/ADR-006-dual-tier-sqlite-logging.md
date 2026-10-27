@@ -17,7 +17,7 @@ tier_override: false
 High-volume HTTP request logs, search queries, and audit traces can saturate network bandwidth and storage IOPS on remote managed databases. We need an architecture that keeps remote PostgreSQL focused on relational entities and vectors, while retaining rich local logs.
 
 ## 2. Decision Drivers
-- Bandwidth and connection pool conservation on remote PostgreSQL (`remote-respina-free.runflare.com:31725/promptjoo_db`).
+- Bandwidth and connection pool conservation on remote PostgreSQL (configured via `DATABASE_URL`).
 - High-velocity local logging without network latency.
 - Structured, queryable log analytics using local SQLite.
 

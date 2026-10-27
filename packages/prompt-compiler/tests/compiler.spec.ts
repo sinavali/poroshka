@@ -1,7 +1,7 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert';
 import { compilePrompt, stitchAtomicBlocks, resolveSlotValue } from '../src/index.ts';
-import type { PromptSlot, SavedContextProfile } from '../../contracts/src/index.ts';
+import type { PromptSlot, SavedContextProfile } from '@promptjoo/contracts';
 
 describe('Prompt Compiler Unit Tests', () => {
   const sampleSlot: PromptSlot = {
@@ -11,7 +11,10 @@ describe('Prompt Compiler Unit Tests', () => {
     input_type: 'SHORT_TEXT',
     default_value_en: 'young professionals',
     profile_binding_key: 'TARGET_AUDIENCE',
-    preset_options: []
+    preset_options: [],
+    options: [],
+    is_required: false,
+    priority: 1
   };
 
   it('resolves slot priority: user custom > personal memory > default', () => {
@@ -52,7 +55,10 @@ describe('Prompt Compiler Unit Tests', () => {
       input_type: 'SHORT_TEXT',
       default_value_en: 'AI productivity',
       profile_binding_key: 'NONE',
-      preset_options: []
+      preset_options: [],
+      options: [],
+      is_required: false,
+      priority: 1
     }];
 
     const result = compilePrompt(template, slots, {}, undefined, {
@@ -72,7 +78,10 @@ describe('Prompt Compiler Unit Tests', () => {
       input_type: 'SHORT_TEXT',
       default_value_en: 'modern building',
       profile_binding_key: 'NONE',
-      preset_options: []
+      preset_options: [],
+      options: [],
+      is_required: false,
+      priority: 1
     }];
 
     const result = compilePrompt(template, slots, { subject: 'برج میلاد' }, undefined, {

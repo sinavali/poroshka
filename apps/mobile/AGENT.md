@@ -5,6 +5,15 @@ stack: "react-native-typescript-android"
 scope: "mobile"
 owner: "sinavali"
 tier_overrides: []
+dr:
+  rto: "4h"
+  rpo: "1h"
+slo:
+  tier: "tier-2"
+  availability_target: "0.99"
+resources:
+  cpu_limit: "500m"
+  memory_limit: "512Mi"
 ---
 
 # Project Agent Manifest: mobile
@@ -34,3 +43,14 @@ Cross-platform React Native (TypeScript) mobile client targeting Cafe Bazaar, My
 - 4-state UI test coverage (`loading`, `empty`, `loaded`, `failure`).
 - Zero hard dependency on Google Play Services; builds cleanly for Cafe Bazaar and Myket.
 - Hardware-backed encrypted storage for session tokens via Android Keystore and iOS Keychain.
+- Single-turn context ingestion via `ep pack --surface`.
+
+## 5. Approved Tier 2 Deviations
+| Rule | Justification | ADR Reference |
+|---|---|---|
+| *(None)* | Strictly conforms to Profile C invariants | - |
+
+## 6. Project Invariants
+- Offline-first cache fallback for catalog browsing.
+- Hardware-backed encrypted secure storage for auth tokens.
+- Domestic Android store compliance (Bazaar / Myket deep links).

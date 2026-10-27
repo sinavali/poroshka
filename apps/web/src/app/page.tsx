@@ -5,6 +5,7 @@ import { PromptCard, PromptCardData } from '../components/PromptCard';
 import { BlockForger } from '../components/BlockForger';
 import { PostCopyDrawer } from '../components/PostCopyDrawer';
 import { AdBanner } from '../components/AdBanner';
+import { AdPlacement } from '../components/AdPlacement';
 import { fetchFromApi } from '../lib/api-client';
 import { Sparkles, TrendingUp, Filter, AlertCircle, RefreshCw, X, SlidersHorizontal } from 'lucide-react';
 
@@ -56,6 +57,9 @@ export default function HomePage() {
       if (selectedModality !== 'all') {
         url += `&modality=${selectedModality}`;
       }
+      if (selectedModel !== 'all') {
+        url += `&model=${encodeURIComponent(selectedModel)}`;
+      }
       if (q) {
         url += `&q=${encodeURIComponent(q)}`;
       }
@@ -75,14 +79,7 @@ export default function HomePage() {
         total_pages: number;
       }>(url);
 
-      let items = res.items || [];
-
-      // Filter by AI model if specified
-      if (selectedModel !== 'all') {
-        items = items.filter(
-          (p) => p.supported_models && p.supported_models.some((m) => m.toLowerCase().includes(selectedModel))
-        );
-      }
+      const items = res.items || [];
 
       setPrompts(items);
       setTotalPages(res.total_pages || 1);
@@ -123,12 +120,7 @@ export default function HomePage() {
   return (
     <div className="space-y-10 animate-fade-in">
       {/* Apple-Grade Hero Header */}
-      <section className="text-center py-8 sm:py-12 relative">
-        <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-bold bg-blue-50 text-blue-700 border border-blue-200/80 mb-5 shadow-sm">
-          <Sparkles className="w-3.5 h-3.5 text-blue-600" />
-          <span>مرجع تخصصی پرامپت‌های مهندسی‌شده هوش مصنوعی در ایران</span>
-        </div>
-
+      <section className="text-center py-6 sm:py-10 relative">
         <h1 className="text-3xl sm:text-5xl font-black text-slate-900 tracking-tight leading-tight mb-4">
           بهترین خروجی را از{' '}
           <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600">
@@ -242,8 +234,8 @@ export default function HomePage() {
           </div>
         </div>
 
-        {/* 4-State UI: Loading Skeleton */}
-        {loading && (
+        {/* 4-State UI: Loading Skeleton (only on initial load when no prompts yet) */}
+        {loading && prompts.length === 0 && (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {[1, 2, 3, 4, 5, 6].map((n) => (
               <div key={n} className="glass-panel rounded-3xl p-6 h-56 animate-pulse space-y-4 border border-slate-200/80">
@@ -257,7 +249,7 @@ export default function HomePage() {
         )}
 
         {/* 4-State UI: Error State */}
-        {!loading && error && (
+        {!loading && error && prompts.length === 0 && (
           <div className="glass-panel rounded-3xl p-8 text-center border border-red-200 bg-red-50/30 max-w-md mx-auto space-y-4">
             <AlertCircle className="w-10 h-10 text-red-500 mx-auto" />
             <h3 className="text-sm font-bold text-slate-900">خطا در بارگذاری پرامپت‌ها</h3>
@@ -293,15 +285,28 @@ export default function HomePage() {
           </div>
         )}
 
-        {/* 4-State UI: Success State Grid */}
-        {!loading && !error && prompts.length > 0 && (
+        {/* 4-State UI: Success State Grid (Kept mounted during pagination to preserve ads) */}
+        {prompts.length > 0 && (
           <>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-              {prompts.map((prompt, idx) => (
-                <React.Fragment key={prompt.id}>
-                  {idx === 2 && <AdBanner placementSlot="FEED_NATIVE_CARD_3" />}
-                  <PromptCard prompt={prompt} onQuickCopied={handleQuickCopied} />
-                </React.Fragment>
+            <div className={`grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 transition-opacity duration-200 ${loading ? 'opacity-60 pointer-events-none' : ''}`}>
+              {prompts.slice(0, 2).map((prompt) => (
+                <PromptCard key={prompt.id} prompt={prompt} onQuickCopied={handleQuickCopied} />
+              ))}
+
+              {prompts.length > 2 && (
+                <AdPlacement key="persistent-home-grid-ad-1" slot="grid_card_1" />
+              )}
+
+              {prompts.slice(2, 5).map((prompt) => (
+                <PromptCard key={prompt.id} prompt={prompt} onQuickCopied={handleQuickCopied} />
+              ))}
+
+              {prompts.length > 5 && (
+                <AdPlacement key="persistent-home-grid-ad-2" slot="grid_card_2" />
+              )}
+
+              {prompts.slice(5).map((prompt) => (
+                <PromptCard key={prompt.id} prompt={prompt} onQuickCopied={handleQuickCopied} />
               ))}
             </div>
 

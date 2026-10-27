@@ -5,6 +5,15 @@ stack: "node-ts-22-pure"
 scope: "shared"
 owner: "sinavali"
 tier_overrides: []
+dr:
+  rto: "1h"
+  rpo: "15m"
+slo:
+  tier: "tier-1"
+  availability_target: "0.999"
+resources:
+  cpu_limit: "500m"
+  memory_limit: "512Mi"
 ---
 
 # Project Agent Manifest: persian-normalizer
@@ -27,3 +36,15 @@ Zero-side-effect Persian (`fa-IR`) text, digit, and ZWNJ normalizer. Normalizes 
 ## 4. Test & Verification Rules
 - Line and branch coverage $\ge 98\%$.
 - Exhaustive test cases for Persian characters, Arabic diacritics, numbers, and modality detection keywords.
+- Zero heap allocations during hot-path text normalization.
+- Single-turn context ingestion via `ep pack --surface`.
+
+## 5. Approved Tier 2 Deviations
+| Rule | Justification | ADR Reference |
+|---|---|---|
+| *(None)* | Strictly conforms to Profile D invariants | - |
+
+## 6. Project Invariants
+- Zero third-party npm runtime dependencies (100% pure standard library).
+- Idempotent normalization (`normalize(normalize(text)) === normalize(text)`).
+- Complete preservation of Latin substrings and prompt slot placeholders.

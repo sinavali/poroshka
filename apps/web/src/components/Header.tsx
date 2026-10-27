@@ -2,7 +2,9 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { Search, Sparkles, User, Brain, Menu, X, History } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { Search, Sparkles, User, Brain, Menu, X, History, MessageSquare } from 'lucide-react';
+import { PoroshkaLogo } from './PoroshkaLogo';
 
 interface HeaderProps {
   onOpenMemory: () => void;
@@ -11,6 +13,7 @@ interface HeaderProps {
 }
 
 export function Header({ onOpenMemory, onOpenAuth, userPhone }: HeaderProps) {
+  const router = useRouter();
   const [searchQuery, setSearchQuery] = useState('');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [hasMemory, setHasMemory] = useState(false);
@@ -30,34 +33,21 @@ export function Header({ onOpenMemory, onOpenAuth, userPhone }: HeaderProps) {
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (searchQuery.trim()) {
-      window.location.href = `/?q=${encodeURIComponent(searchQuery.trim())}`;
+      router.push(`/?q=${encodeURIComponent(searchQuery.trim())}`);
     }
   };
 
   const handleClearSearch = () => {
     setSearchQuery('');
-    if (window.location.search.includes('q=')) {
-      window.location.href = '/';
-    }
+    router.push('/');
   };
 
   return (
     <header className="sticky top-0 z-40 w-full glass-panel border-b border-slate-200/80 backdrop-blur-xl">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-4">
         {/* Brand Logo */}
-        <Link href="/" className="flex items-center gap-2.5 group flex-shrink-0 pressable-subtle">
-          <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center text-white shadow-md shadow-blue-500/25 group-hover:scale-105 spring-transition">
-            <Sparkles className="w-5 h-5 text-white" />
-          </div>
-          <div className="flex flex-col">
-            <span className="text-xl font-black tracking-tight text-slate-900 flex items-center gap-1.5">
-              پرامپت‌جو
-              <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-blue-50 text-blue-600 border border-blue-200">
-                PRO
-              </span>
-            </span>
-            <span className="text-[10px] text-slate-400 font-medium">مرجع تخصصی پرامپت هوش مصنوعی</span>
-          </div>
+        <Link href="/" className="flex items-center gap-2 group flex-shrink-0 pressable-subtle">
+          <PoroshkaLogo size={34} showWordmark={true} />
         </Link>
 
         {/* Global Search Bar */}
@@ -104,6 +94,16 @@ export function Header({ onOpenMemory, onOpenAuth, userPhone }: HeaderProps) {
             {hasMemory && (
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
             )}
+          </button>
+
+          {/* Support Tickets Button */}
+          <button
+            onClick={() => window.dispatchEvent(new CustomEvent('promptjoo:open-tickets'))}
+            className="pressable flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-white text-slate-700 border border-slate-200/90 hover:bg-slate-50"
+            title="ثبت تیکت و پشتیبانی"
+          >
+            <MessageSquare className="w-3.5 h-3.5 text-blue-600" />
+            <span>پشتیبانی</span>
           </button>
 
           {/* Auth Button */}
@@ -196,6 +196,48 @@ export function Header({ onOpenMemory, onOpenAuth, userPhone }: HeaderProps) {
               </button>
             )}
 
+            {/* AI Model Hubs Navigation */}
+            <div className="pt-3 border-t border-slate-200/80 space-y-2">
+              <span className="text-[11px] font-bold text-slate-400 block px-2">هاب مدل‌های هوش مصنوعی:</span>
+              <div className="grid grid-cols-2 gap-1.5 text-[11px] font-semibold text-slate-700">
+                <Link
+                  href="/hub/chatgpt"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="px-2.5 py-1.5 rounded-lg bg-slate-50 hover:bg-blue-50 hover:text-blue-600 transition-colors"
+                >
+                  ChatGPT (چت جی‌پی‌تی)
+                </Link>
+                <Link
+                  href="/hub/midjourney"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="px-2.5 py-1.5 rounded-lg bg-slate-50 hover:bg-blue-50 hover:text-blue-600 transition-colors"
+                >
+                  Midjourney (میدجورنی)
+                </Link>
+                <Link
+                  href="/hub/claude"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="px-2.5 py-1.5 rounded-lg bg-slate-50 hover:bg-blue-50 hover:text-blue-600 transition-colors"
+                >
+                  Claude (کلود)
+                </Link>
+                <Link
+                  href="/hub/gemini"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="px-2.5 py-1.5 rounded-lg bg-slate-50 hover:bg-blue-50 hover:text-blue-600 transition-colors"
+                >
+                  Gemini (جمینای)
+                </Link>
+                <Link
+                  href="/hub/deepseek"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="px-2.5 py-1.5 rounded-lg bg-slate-50 hover:bg-blue-50 hover:text-blue-600 transition-colors col-span-2"
+                >
+                  DeepSeek (دیپ‌سیک)
+                </Link>
+              </div>
+            </div>
+
             {/* Quick Links to Legal and Informational Pages */}
             <div className="pt-3 border-t border-slate-200/80 grid grid-cols-2 gap-2 text-[11px] font-medium text-slate-600">
               <Link
@@ -210,7 +252,7 @@ export function Header({ onOpenMemory, onOpenAuth, userPhone }: HeaderProps) {
                 onClick={() => setMobileMenuOpen(false)}
                 className="px-2.5 py-1.5 rounded-lg hover:bg-slate-100 transition-colors"
               >
-                درباره پرامپت‌جو
+                درباره پوروشکا
               </Link>
               <Link
                 href="/contact"
@@ -218,13 +260,6 @@ export function Header({ onOpenMemory, onOpenAuth, userPhone }: HeaderProps) {
                 className="px-2.5 py-1.5 rounded-lg hover:bg-slate-100 transition-colors"
               >
                 ارتباط با ما
-              </Link>
-              <Link
-                href="/api-docs"
-                onClick={() => setMobileMenuOpen(false)}
-                className="px-2.5 py-1.5 rounded-lg hover:bg-slate-100 transition-colors"
-              >
-                مستندات API
               </Link>
               <Link
                 href="/terms"

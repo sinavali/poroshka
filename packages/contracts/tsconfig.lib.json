@@ -3,6 +3,8 @@
   "compilerOptions": {
     "outDir": "./dist",
     "declaration": true,
+    "noEmit": false,
+    "allowImportingTsExtensions": false,
     "target": "ES2022",
     "lib": ["ES2022"],
     "module": "NodeNext",

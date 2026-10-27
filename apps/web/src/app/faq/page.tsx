@@ -2,18 +2,21 @@ import React from 'react';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { HelpCircle, Sparkles, ArrowRight, CheckCircle2, ChevronDown } from 'lucide-react';
+import { AdPlacement } from '../../components/AdPlacement';
+
+const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://poroshka.ir';
 
 export const metadata: Metadata = {
-  title: 'پرسش‌های متداول (FAQ) | پرامپت‌جو',
-  description: 'پاسخ به سوالات متداول درباره نحوه کپی و اجرای پرامپت‌ها در ChatGPT، Midjourney، Claude، متغیرهای شخصی و حافظه برند.',
+  title: 'پرسش‌های متداول (FAQ) | پوروشکا',
+  description: 'پاسخ به سوالات متداول درباره نحوه کپی، شخصی‌سازی و اجرای پرامپت‌ها در مدل‌های هوش مصنوعی، متغیرهای شخصی و حافظه برند در پوروشکا.',
   alternates: {
-    canonical: 'https://promptjoo.ir/faq'
+    canonical: `${baseUrl}/faq`
   },
   openGraph: {
-    title: 'پرسش‌های متداول و راهنمای کار با پرامپت‌جو',
-    description: 'همه چیز درباره استفاده حرفه‌ای از پرامپت‌های مهندسی‌شده هوش مصنوعی در ایران.',
-    url: 'https://promptjoo.ir/faq',
-    siteName: 'پرامپت‌جو',
+    title: 'پرسش‌های متداول و راهنمای کار با پوروشکا',
+    description: 'همه چیز درباره استفاده حرفه‌ای از پرامپت‌های مهندسی‌شده هوش مصنوعی در ایران با کپی سریع و رایگان.',
+    url: `${baseUrl}/faq`,
+    siteName: 'پوروشکا',
     locale: 'fa_IR',
     type: 'article'
   }
@@ -22,10 +25,10 @@ export const metadata: Metadata = {
 const FAQ_ITEMS = [
   {
     q: 'پرامپت (Prompt) چیست و چرا استفاده از قالب‌های مهندسی‌شده مهم است؟',
-    a: 'پرامپت دستور یا متنی است که شما به یک مدل هوش مصنوعی (مانند ChatGPT یا Midjourney) می‌دهید. مدل‌های هوش مصنوعی بر اساس کیفیت و جزئیات دستور ورودی پاسخ می‌دهند. پرامپت‌های مهندسی‌شده پرامپت‌جو شامل نقش دقیق (Role)، زمینه تخصصی (Context)، گام‌های منطقی (Chain-of-Thought) و ساختار خروجی استاندارد هستند که خروجی را از سطحی و کلیشه‌ای به حرفه‌ای و آماده استفاده تبدیل می‌کنند.'
+    a: 'پرامپت دستور یا متنی است که شما به یک مدل هوش مصنوعی (مانند ChatGPT یا Midjourney) می‌دهید. مدل‌های هوش مصنوعی بر اساس کیفیت و جزئیات دستور ورودی پاسخ می‌دهند. پرامپت‌های مهندسی‌شده پوروشکا شامل نقش دقیق (Role)، زمینه تخصصی (Context)، گام‌های منطقی (Chain-of-Thought) و ساختار خروجی استاندارد هستند که خروجی را از سطحی و کلیشه‌ای به حرفه‌ای و آماده استفاده تبدیل می‌کنند.'
   },
   {
-    q: 'آیا برای استفاده از پرامپت‌های پرامپت‌جو باید هزینه‌ای پرداخت کنم؟',
+    q: 'آیا برای استفاده از پرامپت‌های پوروشکا باید هزینه‌ای پرداخت کنم؟',
     a: 'خیر! دسترسی به تمام پرامپت‌های کاتالوگ، موتور کامپایل و ابزار ترکیب بلوک‌ها برای تمامی کاربران کاملاً رایگان است.'
   },
   {
@@ -38,7 +41,7 @@ const FAQ_ITEMS = [
   },
   {
     q: 'چرا برخی پرامپت‌ها به زبان انگلیسی اما خروجی به زبان فارسی است؟',
-    a: 'بسیاری از مدل‌های هوش مصنوعی قدرتمند (به‌خصوص مدل‌های تصویرساز مانند Midjourney یا موتورهای کدنویسی) زبان انگلیسی را با دقت مفهومی بالاتری نسبت به فارسی درک می‌کنند. الگوهای پرامپت‌جو ساختار دستور را به دقیق‌ترین فرم انگلیسی تنظیم می‌کنند اما با دستورهای تکمیلی، مدل متنی را ملزم می‌کنند خروجی نهایی را به فارسی روان، بدون غلط و باکیفیت بنویسد.'
+    a: 'بسیاری از مدل‌های هوش مصنوعی قدرتمند (به‌خصوص مدل‌های تصویرساز مانند Midjourney یا موتورهای کدنویسی) زبان انگلیسی را با دقت مفهومی بالاتری نسبت به فارسی درک می‌کنند. الگوهای پوروشکا ساختار دستور را به دقیق‌ترین فرم انگلیسی تنظیم می‌کنند اما با دستورهای تکمیلی، مدل متنی را ملزم می‌کنند خروجی نهایی را به فارسی روان، بدون غلط و باکیفیت بنویسد.'
   },
   {
     q: 'چگونه می‌توانم پرامپت‌های کپی‌شده قبلی خود را پیدا کنم؟',
@@ -78,16 +81,19 @@ export default function FaqPage() {
           <span>راهنما و پاسخ به سؤالات</span>
         </div>
         <h1 className="text-3xl sm:text-4xl font-black text-slate-900 tracking-tight">
-          پرسش‌های متداول پرامپت‌جو
+          پرسش‌های متداول پوروشکا
         </h1>
         <p className="text-sm text-slate-500 leading-relaxed">
           پاسخ سریع به متداول‌ترین سؤالات کاربران درباره نحوه کارکرد پرامپت‌ها، هوش مصنوعی و حافظه برند.
         </p>
       </div>
 
+      {/* Ad Placement 1 */}
+      <AdPlacement slot="faq_1" />
+
       {/* Accordion / FAQ List */}
       <div className="space-y-4">
-        {FAQ_ITEMS.map((item, index) => (
+        {FAQ_ITEMS.slice(0, 4).map((item, index) => (
           <details
             key={index}
             className="group glass-panel rounded-2xl border border-slate-200/80 p-5 open:bg-white open:shadow-md spring-transition"
@@ -104,13 +110,37 @@ export default function FaqPage() {
             </div>
           </details>
         ))}
+
+        {/* Ad Placement 2 */}
+        <AdPlacement slot="faq_2" />
+
+        {FAQ_ITEMS.slice(4).map((item, index) => (
+          <details
+            key={index + 4}
+            className="group glass-panel rounded-2xl border border-slate-200/80 p-5 open:bg-white open:shadow-md spring-transition"
+          >
+            <summary className="flex items-center justify-between cursor-pointer list-none select-none font-bold text-sm text-slate-900 group-hover:text-blue-600 spring-transition">
+              <span className="flex items-center gap-2">
+                <span className="text-xs font-mono text-slate-400">۰{index + 5}.</span>
+                <span>{item.q}</span>
+              </span>
+              <ChevronDown className="w-4 h-4 text-slate-400 group-open:rotate-180 spring-transition flex-shrink-0 mr-2" />
+            </summary>
+            <div className="mt-4 pt-3 border-t border-slate-100 text-xs sm:text-sm text-slate-600 leading-relaxed mr-6">
+              {item.a}
+            </div>
+          </details>
+        ))}
       </div>
+
+      {/* Ad Placement 3 */}
+      <AdPlacement slot="faq_3" />
 
       {/* Call to action */}
       <div className="glass-panel p-6 sm:p-8 rounded-3xl border border-blue-100 bg-blue-50/40 text-center space-y-3">
         <h3 className="text-base font-bold text-slate-900">سؤال دیگری دارید که اینجا نیست؟</h3>
         <p className="text-xs text-slate-600 max-w-md mx-auto leading-relaxed">
-          تیم پشتیبانی و جامعه کاربری پرامپت‌جو در تلگرام و بله همواره پاسخگوی سؤالات فنی شما هستند.
+          تیم پشتیبانی پوروشکا از طریق سیستم تیکت همواره پاسخگوی سؤالات فنی شما هستند.
         </p>
         <div className="pt-2">
           <Link

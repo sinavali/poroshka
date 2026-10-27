@@ -26,3 +26,7 @@ export const AdClickEventSchema = z.object({
   zone_id: z.string(),
   client_uuid: z.string().uuid()
 }).openapi('AdClickEvent');
+
+export const TrackAdClickInputSchema = AdClickEventSchema;
+export type AdClickEvent = z.infer<typeof AdClickEventSchema>;
+export type TrackAdClickInput = z.infer<typeof TrackAdClickInputSchema>;
