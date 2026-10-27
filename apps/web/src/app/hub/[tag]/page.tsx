@@ -293,32 +293,25 @@ export default async function HubTagPage({ params }: PageProps) {
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {prompts.map((prompt, index) => {
-              // Inject ad slots at cards 2 and 5
-              if (index === 2) {
-                return (
-                  <React.Fragment key="ad-slot-1">
-                    <div className="glass-panel rounded-3xl p-4 border border-slate-200 flex flex-col justify-center items-center overflow-hidden">
-                      <AdPlacement slot="grid_card_1" />
-                    </div>
-                    <PromptCard prompt={prompt} />
-                  </React.Fragment>
-                );
-              }
+            {prompts.slice(0, 2).map((prompt) => (
+              <PromptCard key={prompt.id} prompt={prompt} />
+            ))}
 
-              if (index === 5) {
-                return (
-                  <React.Fragment key="ad-slot-2">
-                    <div className="glass-panel rounded-3xl p-4 border border-slate-200 flex flex-col justify-center items-center overflow-hidden">
-                      <AdPlacement slot="grid_card_2" />
-                    </div>
-                    <PromptCard prompt={prompt} />
-                  </React.Fragment>
-                );
-              }
+            {prompts.length > 2 && (
+              <AdPlacement key="persistent-hub-ad-1" slot="grid_card_1" />
+            )}
 
-              return <PromptCard key={prompt.id} prompt={prompt} />;
-            })}
+            {prompts.slice(2, 5).map((prompt) => (
+              <PromptCard key={prompt.id} prompt={prompt} />
+            ))}
+
+            {prompts.length > 5 && (
+              <AdPlacement key="persistent-hub-ad-2" slot="grid_card_2" />
+            )}
+
+            {prompts.slice(5).map((prompt) => (
+              <PromptCard key={prompt.id} prompt={prompt} />
+            ))}
           </div>
         )}
       </section>

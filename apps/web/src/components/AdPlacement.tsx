@@ -1,8 +1,9 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { X } from 'lucide-react';
 import { usePublicSettings, DEFAULT_AD_PLACEMENTS } from '../lib/public-settings';
+import { getPersistentAdSlot, parkPersistentAdSlot } from '../lib/persistent-ad-pool';
 
 export type AdSlotKey =
   | 'header_top'
@@ -50,6 +51,7 @@ function normalizeSlotKey(slot: string): string {
 }
 
 export function AdPlacement({ slot, className = '' }: AdPlacementProps) {
+  const mountRef = useRef<HTMLDivElement>(null);
   const { ads } = usePublicSettings();
   const [closed, setClosed] = useState(false);
 
@@ -69,15 +71,30 @@ export function AdPlacement({ slot, className = '' }: AdPlacementProps) {
     } catch {}
   };
 
-  // If ads are globally disabled in settings, render nothing
-  if (!ads.ads_enabled) {
-    return null;
-  }
-
   const normalizedSlot = normalizeSlotKey(slot);
   const tagHtml = ads.placements?.[normalizedSlot] || DEFAULT_AD_PLACEMENTS[normalizedSlot]?.defaultTag;
 
-  if (!tagHtml) {
+  // Mount persistent slot node into our container ref without re-executing or destroying DOM nodes
+  useEffect(() => {
+    if (!ads.ads_enabled || !tagHtml) return;
+    if (normalizedSlot === 'header_top' && (closed || ads.fixed_banner_position === 'off')) return;
+
+    const mountEl = mountRef.current;
+    if (!mountEl) return;
+
+    const slotEl = getPersistentAdSlot(normalizedSlot, tagHtml);
+    if (slotEl && slotEl.parentNode !== mountEl) {
+      mountEl.appendChild(slotEl);
+    }
+
+    return () => {
+      // Park back into persistent pool on unmount so it is never destroyed
+      parkPersistentAdSlot(slotEl);
+    };
+  }, [normalizedSlot, tagHtml, ads.ads_enabled, closed, ads.fixed_banner_position]);
+
+  // If ads are globally disabled in settings, render nothing
+  if (!ads.ads_enabled || !tagHtml) {
     return null;
   }
 
@@ -93,8 +110,8 @@ export function AdPlacement({ slot, className = '' }: AdPlacementProps) {
       <div className="w-full bg-[#10265D] text-white border-b border-[#2864F0]/30 shadow-sm relative z-30 transition-all p-0 m-0">
         <div className="max-w-7xl mx-auto flex items-center justify-between p-0">
           <div
+            ref={mountRef}
             className="flex-1 flex justify-center items-center overflow-hidden p-0 m-0"
-            dangerouslySetInnerHTML={{ __html: tagHtml }}
           />
           <button
             onClick={handleDismiss}
@@ -113,8 +130,8 @@ export function AdPlacement({ slot, className = '' }: AdPlacementProps) {
     return (
       <div className={`rounded-2xl border border-dashed border-[#E5E9F2] bg-[#F6F8FC] p-4 flex flex-col items-center justify-center relative min-h-[220px] transition-colors hover:border-[#2864F0] ${className}`}>
         <div
+          ref={mountRef}
           className="w-full flex items-center justify-center"
-          dangerouslySetInnerHTML={{ __html: tagHtml }}
         />
       </div>
     );
@@ -125,8 +142,8 @@ export function AdPlacement({ slot, className = '' }: AdPlacementProps) {
     return (
       <div className={`w-full my-4 p-3 rounded-2xl bg-[#F6F8FC] border border-[#E5E9F2] flex flex-col items-center justify-center ${className}`}>
         <div
+          ref={mountRef}
           className="w-full flex justify-center overflow-hidden min-h-[90px]"
-          dangerouslySetInnerHTML={{ __html: tagHtml }}
         />
       </div>
     );
@@ -136,8 +153,8 @@ export function AdPlacement({ slot, className = '' }: AdPlacementProps) {
   return (
     <div className={`my-8 p-3 rounded-2xl bg-[#F6F8FC] border border-[#E5E9F2] flex flex-col items-center justify-center ${className}`}>
       <div
+        ref={mountRef}
         className="w-full flex justify-center min-h-[90px]"
-        dangerouslySetInnerHTML={{ __html: tagHtml }}
       />
     </div>
   );

@@ -234,8 +234,8 @@ export default function HomePage() {
           </div>
         </div>
 
-        {/* 4-State UI: Loading Skeleton */}
-        {loading && (
+        {/* 4-State UI: Loading Skeleton (only on initial load when no prompts yet) */}
+        {loading && prompts.length === 0 && (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {[1, 2, 3, 4, 5, 6].map((n) => (
               <div key={n} className="glass-panel rounded-3xl p-6 h-56 animate-pulse space-y-4 border border-slate-200/80">
@@ -249,7 +249,7 @@ export default function HomePage() {
         )}
 
         {/* 4-State UI: Error State */}
-        {!loading && error && (
+        {!loading && error && prompts.length === 0 && (
           <div className="glass-panel rounded-3xl p-8 text-center border border-red-200 bg-red-50/30 max-w-md mx-auto space-y-4">
             <AlertCircle className="w-10 h-10 text-red-500 mx-auto" />
             <h3 className="text-sm font-bold text-slate-900">خطا در بارگذاری پرامپت‌ها</h3>
@@ -285,16 +285,28 @@ export default function HomePage() {
           </div>
         )}
 
-        {/* 4-State UI: Success State Grid */}
-        {!loading && !error && prompts.length > 0 && (
+        {/* 4-State UI: Success State Grid (Kept mounted during pagination to preserve ads) */}
+        {prompts.length > 0 && (
           <>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-              {prompts.map((prompt, idx) => (
-                <React.Fragment key={prompt.id}>
-                  {idx === 2 && <AdPlacement slot="grid_card_1" />}
-                  {idx === 5 && <AdPlacement slot="grid_card_2" />}
-                  <PromptCard prompt={prompt} onQuickCopied={handleQuickCopied} />
-                </React.Fragment>
+            <div className={`grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 transition-opacity duration-200 ${loading ? 'opacity-60 pointer-events-none' : ''}`}>
+              {prompts.slice(0, 2).map((prompt) => (
+                <PromptCard key={prompt.id} prompt={prompt} onQuickCopied={handleQuickCopied} />
+              ))}
+
+              {prompts.length > 2 && (
+                <AdPlacement key="persistent-home-grid-ad-1" slot="grid_card_1" />
+              )}
+
+              {prompts.slice(2, 5).map((prompt) => (
+                <PromptCard key={prompt.id} prompt={prompt} onQuickCopied={handleQuickCopied} />
+              ))}
+
+              {prompts.length > 5 && (
+                <AdPlacement key="persistent-home-grid-ad-2" slot="grid_card_2" />
+              )}
+
+              {prompts.slice(5).map((prompt) => (
+                <PromptCard key={prompt.id} prompt={prompt} onQuickCopied={handleQuickCopied} />
               ))}
             </div>
 

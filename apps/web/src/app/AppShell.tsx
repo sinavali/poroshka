@@ -10,6 +10,7 @@ import { PersonalMemoryModal } from '../components/PersonalMemoryModal';
 import { AuthModal } from '../components/AuthModal';
 import { UserTicketsModal } from '../components/UserTicketsModal';
 import { AdPlacement } from '../components/AdPlacement';
+import { PersistentAdPool } from '../components/PersistentAdPool';
 import { DynamicIslandToast } from '../components/DynamicIslandToast';
 import { PublicSettingsProvider } from '../lib/public-settings';
 
@@ -43,6 +44,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   return (
     <PublicSettingsProvider>
       <DynamicIslandToast />
+      <PersistentAdPool />
       {!isAdminPage && <AdPlacement slot="header_top" />}
       {!isAdminPage && (
         <Header

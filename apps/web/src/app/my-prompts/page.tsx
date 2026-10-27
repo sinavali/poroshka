@@ -206,6 +206,123 @@ function MyPromptsContent() {
     }
   };
 
+  const renderPromptCard = (item: CopiedPromptItem) => (
+    <div
+      key={item.id}
+      className="glass-panel rounded-3xl p-6 border border-slate-200/90 hover:border-blue-500/40 hover:shadow-lg transition flex flex-col justify-between h-full group"
+    >
+      <div>
+        {/* Counter & Modality Badges - Requirement 2: RTL Counter */}
+        <div className="flex items-center justify-between gap-2 mb-3">
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-blue-50 text-blue-700 border border-blue-200" dir="rtl">
+            <Copy className="w-3 h-3 text-blue-600" />
+            <span>{item.copy_count.toLocaleString('fa-IR')} بار استفاده شده</span>
+          </span>
+
+          <span className="text-[10px] text-slate-400 font-medium">
+            {new Date(item.last_copied_at).toLocaleDateString('fa-IR')}
+          </span>
+        </div>
+
+        {/* Requirement 4: Category Badge with inline Scope Categorization */}
+        <div className="mb-2.5">
+          {editingCategoryId === item.id ? (
+            <div className="space-y-1.5 bg-slate-50 p-2.5 rounded-2xl border border-slate-200">
+              <span className="text-[10px] font-bold text-slate-600 block">انتخاب دسته‌بندی شخصی:</span>
+              <StyledSelect
+                size="sm"
+                value={item.category_id || ''}
+                onChange={(catId) => handleUpdateCategory(item.id, catId)}
+                options={[
+                  { value: '', label: 'دسته‌بندی اصلی پرامپت (پیش‌فرض)' },
+                  ...categories.map((c) => ({ value: c.id, label: c.title_fa }))
+                ]}
+                placeholder="انتخاب دسته..."
+              />
+              <button
+                type="button"
+                onClick={() => setEditingCategoryId(null)}
+                className="text-[10px] text-slate-400 hover:text-slate-600 underline block"
+              >
+                انصراف
+              </button>
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setEditingCategoryId(item.id)}
+              title="کلیک برای تغییر دسته‌بندی اختصاصی در آرشیو شما"
+              className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[10px] font-semibold bg-slate-100 hover:bg-blue-50 hover:text-blue-700 text-slate-600 border border-slate-200/80 transition"
+            >
+              <Tag className="w-3 h-3 text-slate-400" />
+              <span>{item.category_title_fa || 'دسته‌بندی'}</span>
+              {item.is_custom_category && (
+                <span className="text-[9px] text-blue-600 font-normal mr-1">(شخصی)</span>
+              )}
+            </button>
+          )}
+        </div>
+
+        {/* Requirement 3: Title ellipsis 2 lines with uniform fixed height for card alignment */}
+        <h3 className="text-base font-bold text-slate-900 mb-1.5 line-clamp-2 h-12 leading-snug">
+          {item.title_fa}
+        </h3>
+
+        <p className="text-xs text-slate-500 mb-4 line-clamp-2 h-10 leading-relaxed">
+          {item.short_desc_fa || 'بدون توضیحات تکمیلی'}
+        </p>
+      </div>
+
+      {/* Action Buttons: Requirement 1 Remove Button added */}
+      <div className="pt-3 border-t border-slate-100 flex items-center justify-between gap-2 mt-auto">
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => handleRemoveItem(item)}
+            title="حذف از آرشیو پرامپت‌های من"
+            className="pressable p-1.5 rounded-xl text-slate-400 hover:text-red-600 hover:bg-red-50 border border-transparent hover:border-red-200 transition"
+          >
+            <Trash2 className="w-4 h-4" />
+          </button>
+
+          <Link
+            href={item.slug ? `/p/${item.slug}` : '/'}
+            className="pressable text-xs font-semibold text-slate-600 hover:text-blue-600 flex items-center gap-1"
+          >
+            <Sliders className="w-3.5 h-3.5" />
+            <span>تنظیم مجدد</span>
+          </Link>
+        </div>
+
+        <div className="flex items-center gap-1.5">
+          {item.slug && (
+            <ShareButton slug={item.slug} title={item.title_fa} size="sm" />
+          )}
+          <button
+            onClick={() => handleReCopy(item)}
+            className={`pressable flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold spring-transition ${
+              copiedId === item.id
+                ? 'bg-emerald-600 text-white'
+                : 'bg-blue-600 hover:bg-blue-500 text-white shadow-sm shadow-blue-600/20'
+            }`}
+          >
+            {copiedId === item.id ? (
+              <>
+                <Check className="w-3.5 h-3.5" />
+                <span>کپی شد!</span>
+              </>
+            ) : (
+              <>
+                <Copy className="w-3.5 h-3.5" />
+                <span>کپی مجدد</span>
+              </>
+            )}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+
   return (
     <div className="space-y-8 animate-fade-in py-4">
       {/* Page Header */}
@@ -300,8 +417,8 @@ function MyPromptsContent() {
         </div>
       </div>
 
-      {/* Loading Skeleton */}
-      {loading && (
+      {/* Loading Skeleton (only on initial load when items array is empty) */}
+      {loading && items.length === 0 && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {[1, 2, 3, 4, 5, 6].map((n) => (
             <div key={n} className="glass-panel rounded-3xl p-6 h-64 animate-pulse space-y-3">
@@ -333,135 +450,27 @@ function MyPromptsContent() {
         </div>
       )}
 
-      {/* Used Prompts Grid */}
-      {!loading && items.length > 0 && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {items.map((item, idx) => (
-            <React.Fragment key={item.id}>
-              {idx === 2 && <AdPlacement slot="grid_card_1" />}
-              {idx === 5 && <AdPlacement slot="grid_card_2" />}
-              <div
-                className="glass-panel rounded-3xl p-6 border border-slate-200/90 hover:border-blue-500/40 hover:shadow-lg transition flex flex-col justify-between h-full group"
-              >
-              <div>
-                {/* Counter & Modality Badges - Requirement 2: RTL Counter */}
-                <div className="flex items-center justify-between gap-2 mb-3">
-                  <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-blue-50 text-blue-700 border border-blue-200" dir="rtl">
-                    <Copy className="w-3 h-3 text-blue-600" />
-                    <span>{item.copy_count.toLocaleString('fa-IR')} بار استفاده شده</span>
-                  </span>
+      {/* Used Prompts Grid (Kept mounted during pagination to preserve ads) */}
+      {items.length > 0 && (
+        <div className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 transition-opacity duration-200 ${loading ? 'opacity-60 pointer-events-none' : ''}`}>
+          {items.slice(0, 2).map((item) => renderPromptCard(item))}
 
-                  <span className="text-[10px] text-slate-400 font-medium">
-                    {new Date(item.last_copied_at).toLocaleDateString('fa-IR')}
-                  </span>
-                </div>
+          {items.length > 2 && (
+            <AdPlacement key="persistent-my-prompts-ad-1" slot="grid_card_1" />
+          )}
 
-                {/* Requirement 4: Category Badge with inline Scope Categorization */}
-                <div className="mb-2.5">
-                  {editingCategoryId === item.id ? (
-                    <div className="space-y-1.5 bg-slate-50 p-2.5 rounded-2xl border border-slate-200">
-                      <span className="text-[10px] font-bold text-slate-600 block">انتخاب دسته‌بندی شخصی:</span>
-                      <StyledSelect
-                        size="sm"
-                        value={item.category_id || ''}
-                        onChange={(catId) => handleUpdateCategory(item.id, catId)}
-                        options={[
-                          { value: '', label: 'دسته‌بندی اصلی پرامپت (پیش‌فرض)' },
-                          ...categories.map((c) => ({ value: c.id, label: c.title_fa }))
-                        ]}
-                        placeholder="انتخاب دسته..."
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setEditingCategoryId(null)}
-                        className="text-[10px] text-slate-400 hover:text-slate-600 underline block"
-                      >
-                        انصراف
-                      </button>
-                    </div>
-                  ) : (
-                    <button
-                      type="button"
-                      onClick={() => setEditingCategoryId(item.id)}
-                      title="کلیک برای تغییر دسته‌بندی اختصاصی در آرشیو شما"
-                      className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[10px] font-semibold bg-slate-100 hover:bg-blue-50 hover:text-blue-700 text-slate-600 border border-slate-200/80 transition"
-                    >
-                      <Tag className="w-3 h-3 text-slate-400" />
-                      <span>{item.category_title_fa || 'دسته‌بندی'}</span>
-                      {item.is_custom_category && (
-                        <span className="text-[9px] text-blue-600 font-normal mr-1">(شخصی)</span>
-                      )}
-                    </button>
-                  )}
-                </div>
+          {items.slice(2, 5).map((item) => renderPromptCard(item))}
 
-                {/* Requirement 3: Title ellipsis 2 lines with uniform fixed height for card alignment */}
-                <h3 className="text-base font-bold text-slate-900 mb-1.5 line-clamp-2 h-12 leading-snug">
-                  {item.title_fa}
-                </h3>
+          {items.length > 5 && (
+            <AdPlacement key="persistent-my-prompts-ad-2" slot="grid_card_2" />
+          )}
 
-                <p className="text-xs text-slate-500 mb-4 line-clamp-2 h-10 leading-relaxed">
-                  {item.short_desc_fa || 'بدون توضیحات تکمیلی'}
-                </p>
-
-                {/* Note: Custom slot values preview section removed per Requirement 3 */}
-              </div>
-
-              {/* Action Buttons: Requirement 1 Remove Button added */}
-              <div className="pt-3 border-t border-slate-100 flex items-center justify-between gap-2 mt-auto">
-                <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={() => handleRemoveItem(item)}
-                    title="حذف از آرشیو پرامپت‌های من"
-                    className="pressable p-1.5 rounded-xl text-slate-400 hover:text-red-600 hover:bg-red-50 border border-transparent hover:border-red-200 transition"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
-
-                  <Link
-                    href={item.slug ? `/p/${item.slug}` : '/'}
-                    className="pressable text-xs font-semibold text-slate-600 hover:text-blue-600 flex items-center gap-1"
-                  >
-                    <Sliders className="w-3.5 h-3.5" />
-                    <span>تنظیم مجدد</span>
-                  </Link>
-                </div>
-
-                <div className="flex items-center gap-1.5">
-                  {item.slug && (
-                    <ShareButton slug={item.slug} title={item.title_fa} size="sm" />
-                  )}
-                  <button
-                    onClick={() => handleReCopy(item)}
-                    className={`pressable flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold spring-transition ${
-                      copiedId === item.id
-                        ? 'bg-emerald-600 text-white'
-                        : 'bg-blue-600 hover:bg-blue-500 text-white shadow-sm shadow-blue-600/20'
-                    }`}
-                  >
-                    {copiedId === item.id ? (
-                      <>
-                        <Check className="w-3.5 h-3.5" />
-                        <span>کپی شد!</span>
-                      </>
-                    ) : (
-                      <>
-                        <Copy className="w-3.5 h-3.5" />
-                        <span>کپی مجدد</span>
-                      </>
-                    )}
-                  </button>
-                </div>
-              </div>
-            </div>
-          </React.Fragment>
-          ))}
+          {items.slice(5).map((item) => renderPromptCard(item))}
         </div>
       )}
 
       {/* Requirement 7: Server-side Pagination Controls */}
-      {!loading && totalPages > 1 && (
+      {totalPages > 1 && (
         <div className="flex items-center justify-between pt-6 border-t border-slate-200/80 flex-wrap gap-4">
           <div className="text-xs text-slate-500">
             مجموع <span className="font-bold text-slate-800 font-mono">{totalCount.toLocaleString('fa-IR')}</span> پرامپت کپی‌شده • صفحه <span className="font-bold text-slate-800 font-mono">{page}</span> از <span className="font-bold text-slate-800 font-mono">{totalPages}</span>
